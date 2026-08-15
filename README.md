@@ -5,11 +5,22 @@ orquestrado pelo TechLeader **Invoker** — o único ponto de contato com o
 Founder. Todo o estado do pipeline vive em artefatos versionados no
 repositório (`docs/`).
 
-## Uso
+## Instalação
+
+Direto do GitHub (o repo é seu próprio marketplace):
+
+```
+/plugin marketplace add Spectree-Tecnologia/spectree-squad
+/plugin install spectree-squad@spectree
+```
+
+Para desenvolvimento local (sem instalar):
 
 ```bash
 claude --plugin-dir <caminho>/spectree-squad
 ```
+
+## Uso
 
 ```
 /spectree-squad:techleader quero construir <ideia>
