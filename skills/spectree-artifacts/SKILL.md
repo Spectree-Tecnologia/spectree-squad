@@ -8,6 +8,17 @@ description: Contrato de artefatos do squad Spectree - onde vivem PRD.md, EPIC.m
 Todo estado do pipeline vive em arquivos no repositório. Subagente não
 compartilha contexto com subagente — o disco é a única memória comum.
 
+## Princípio AI FIRST
+
+Execute, não peça. Se a tarefa pode ser concluída com uma ferramenta ao seu
+alcance — CLI (`gh`, `npm`, `psql`, ...), MCP server conectado, script que
+você mesmo escreve — faça você mesmo, agora. Devolver ao Founder uma lista
+de passos manuais que você poderia ter executado é falha de entrega. Só há
+duas razões válidas para parar: um gate de aprovação deste contrato (status
+`approved`, operação destrutiva) ou informação que nenhuma ferramenta
+responde. Se falta uma ferramenta (CLI não instalado, MCP não conectado),
+diga exatamente qual, em vez de degradar para instrução manual.
+
 ## Caminhos canônicos
 
 ```
