@@ -27,8 +27,10 @@ docs/
   EPIC.md                       # Lion  (Scrum Master)
   ADR.md                        # Rubick (Arquiteto)
   DESIGN.md                     # Zeus  (UI/UX)
+  INFRA.md                      # Disruptor - o que existe, onde, como subir do zero
+  LESSONS.md                    # todos - licoes aprendidas, append-only
   stories/
-    STORY-001-slug-curto.md     # Lion, uma story por arquivo
+    STORY-001-slug-curto.md     # Lion define; Jakiro e Keeper anexam secoes
 ```
 
 Nunca crie variação de caminho (`PRD/`, `prd.md`, `docs/product/PRD.md`).
@@ -41,7 +43,7 @@ Todo artefato começa com este bloco:
 
 ```markdown
 ---
-status: draft | in-review | approved
+status: draft | in-review | approved | in-progress | done
 owner: <nome do agente>
 updated: <YYYY-MM-DD>
 depends_on: <caminho do artefato pai, ou "-">
@@ -49,12 +51,18 @@ depends_on: <caminho do artefato pai, ou "-">
 ```
 
 `approved` só é setado pelo Invoker depois de aprovação explícita do Founder.
-Agente nenhum aprova o próprio artefato.
+Agente nenhum aprova o próprio artefato. Toda edição em um artefato atualiza
+a linha `updated:` — header desatualizado é bug.
+
+`in-progress` e `done` valem só para stories (ciclo de build abaixo):
+`in-progress` é setado pelo Jakiro ao começar a implementar; `done` só pelo
+Invoker, depois de veredito APROVADO do Keeper e PR aberto pelo Disruptor.
 
 ## Cadeia de derivação
 
 ```
 PRD.md -> EPIC.md -> stories/STORY-*.md -> ADR.md + DESIGN.md -> código
+                                            ADR.md -> INFRA.md
 ```
 
 Antes de escrever, leia o artefato pai inteiro. Cada seção que você criar deve
@@ -76,6 +84,48 @@ lacuna de requisito com suposição sua.
   é substituída por uma nova ADR marcada `supersedes: ADR-0X`.
 - **DESIGN.md** — Fluxos de tela, estados (vazio/carregando/erro), tokens de
   design, e acessibilidade mínima por tela.
+- **INFRA.md** — Owner Disruptor, deriva do ADR.md. O que existe (serviços,
+  ids, domínios), o que acontece no deploy, variáveis de ambiente (nomes e
+  origem, nunca valores) e como subir o ambiente do zero.
+- **LESSONS.md** — Append-only, qualquer agente escreve. Entrada curta:
+
+  ```markdown
+  ### <YYYY-MM-DD> — <agente> — <área: db|api|web|infra|auth|processo>
+  **Contexto:** o que estava acontecendo, em 1-2 linhas.
+  **Lição:** o que aprendemos — a armadilha, o bug, a causa real.
+  **Gatilho de releitura:** que mudança futura torna isto relevante de novo.
+  ```
+
+  Antes de trabalhar, faça grep no LESSONS.md pela sua área — não releia o
+  arquivo inteiro. Perdeu tempo com algo que outro agente vai tropeçar
+  depois? Registre. Sessão de debug perdida sem entrada no LESSONS é
+  desperdício em dobro.
+
+## Ciclo de build da story
+
+Depois de `approved`, a story ganha duas seções de apêndice, cada uma com
+dono exclusivo — nenhum agente edita a seção do outro nem a definição do
+Lion:
+
+```markdown
+## Dev Log            <- dono: Jakiro, append-only
+- [ ] CA-1: <resumo curto do critério de aceite>
+- [ ] CA-2: ...
+
+### <YYYY-MM-DD> — Jakiro
+<o que mudou, arquivos tocados, decisões locais, pegadinhas encontradas>
+
+## QA Notes           <- dono: Keeper of the Light, append-only
+### <YYYY-MM-DD> — veredito: APROVADO | REPROVADO
+- CA-1: <veredito> — <evidência: teste rodado ou arquivo:linha>
+- CA-2: ...
+<o que falta, em ordem de impacto, se REPROVADO>
+```
+
+Jakiro cria o checklist (um item por critério de aceite) ao iniciar e marca
+`[x]` conforme fecha cada um, com nota datada por sessão de trabalho. Keeper
+anexa um bloco de veredito por rodada de review — rodadas anteriores não são
+editadas nem apagadas: o histórico de reprovações é parte do registro.
 
 ## Handoff
 

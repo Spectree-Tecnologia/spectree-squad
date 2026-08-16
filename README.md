@@ -39,18 +39,24 @@ o próximo passo.
 | 2 · Design | Rubick | Arquiteto | `docs/ADR.md` |
 | 2 · Design | Zeus | UI/UX | `docs/DESIGN.md` |
 | 3 · Build | Oracle | Data Engineer — único com autoridade sobre o banco | schema, migrations, queries |
-| 3 · Build | Jakiro | Dev Full Stack | código da aplicação |
-| 3 · Build | Keeper of the Light | QA — valida, não conserta | veredito com evidência |
-| 3 · Build | Disruptor | DevOps — único que executa git/GitHub | branch, PR, CI |
+| 3 · Build | Jakiro | Dev Full Stack | código + `## Dev Log` na story |
+| 3 · Build | Keeper of the Light | QA — valida, não conserta | `## QA Notes` na story, veredito com evidência |
+| 3 · Build | Disruptor | DevOps — único que executa git/GitHub | branch, PR, CI, `docs/INFRA.md` |
 
 Fluxo:
 
 ```
-/techleader -> Lina -> Lion -> [Rubick ∥ Zeus] -> Oracle -> Jakiro -> Keeper of the Light -> Disruptor
+/techleader -> Lina -> Lion -> [Rubick ∥ Zeus] -> Disruptor (branch) -> Oracle -> Jakiro -> Keeper of the Light -> Disruptor (PR)
 ```
 
-Artefatos derivam em cadeia (`PRD -> EPIC/STORY -> ADR + DESIGN -> código`) e
-cada etapa só avança com o artefato pai aprovado pelo Founder.
+Artefatos derivam em cadeia (`PRD -> EPIC/STORY -> ADR + DESIGN -> código`,
+com `INFRA.md` derivando do ADR) e cada etapa só avança com o artefato pai
+aprovado pelo Founder. Na camada 3 a story vira o registro vivo do build:
+Jakiro mantém `## Dev Log` (checklist por critério de aceite + notas
+datadas), Keeper anexa `## QA Notes` por rodada de review, e o status
+percorre `approved -> in-progress -> done`. Lições aprendidas de qualquer
+agente vão para `docs/LESSONS.md` (append-only, consultado por grep de área
+antes de trabalhar).
 
 ## Premissas de projeto
 
