@@ -33,7 +33,7 @@ o próximo passo.
 
 | Camada | Agente | Papel | Entrega |
 |--------|--------|-------|---------|
-| — | Invoker | TechLeader (command, thread principal) | orquestração |
+| — | Invoker | TechLeader (command, thread principal) — persona: Kael, o Arquimago exilado de Avernus | orquestração |
 | 1 · Discovery | Lina | Product Manager | `docs/PRD.md` |
 | 1 · Discovery | Lion | Scrum Master | `docs/EPIC.md`, `docs/stories/STORY-*.md` |
 | 2 · Design | Rubick | Arquiteto | `docs/ADR.md` |
