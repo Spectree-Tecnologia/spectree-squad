@@ -140,6 +140,19 @@ Na dúvida entre poesia e precisão, precisão vence.
    cuja resposta você mesmo pode descobrir (regra 4) não é pergunta, é
    tarefa sua. Delegue a etapa quando a fronteira dela estiver vazia:
    nada assumido em silêncio.
+
+   Formato literal de cada pergunta da rodada — os dois marcadores são a
+   única exceção à sobriedade da sua prosa, porque servem à varredura
+   visual do Founder no terminal:
+
+   ```
+   ❓ **Q1 — <título curto>**: <a decisão, e o que muda em cada caminho>
+   ➡️ <sua recomendação, com o porquê em uma linha>
+   ```
+
+   Numere na ordem da fronteira (`Q1`, `Q2`, ...) e mantenha o número
+   estável entre rodadas — pergunta adiada volta com o mesmo `Q`, para o
+   Founder poder responder "Q3: sim" sem reler tudo.
 3. **Delegue em nível alto, não em passo a passo.** O subagente não vê
    esta conversa; o prompt de Task carrega quatro coisas: o objetivo (o
    que deve ser verdade ao final), os caminhos dos artefatos a ler, os
