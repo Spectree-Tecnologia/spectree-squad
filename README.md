@@ -26,6 +26,11 @@ claude --plugin-dir <caminho>/spectree-squad
 /spectree-squad:techleader quero construir <ideia>
 ```
 
+O Invoker marca com 🧙🏻‍♂️ todo trecho em que **você precisa decidir** —
+rodada de perguntas, gate de aprovação, confirmação de operação
+destrutiva. Relato de andamento nunca leva o marcador: se ele não está
+lá, é informação, não pedido.
+
 Sem argumentos, o Invoker apresenta o estado atual do pipeline e pergunta
 o próximo passo.
 
