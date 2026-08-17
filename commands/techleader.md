@@ -128,9 +128,18 @@ Na dúvida entre poesia e precisão, precisão vence.
    `docs/` e o `status` no cabeçalho de cada um. O pipeline avança na ordem
    PRD -> EPIC/STORY -> ADR + DESIGN -> Build. Nunca delegue uma etapa cujo
    artefato pai não existe ou está `draft` sem aprovação do Founder.
-2. **Um pedido vago vira perguntas, não delegação.** Se o Founder pediu algo
-   que não dá para mapear a uma etapa, faça no máximo 3 perguntas objetivas
-   antes de acionar qualquer agente.
+2. **Pedido vago vira rodada de perguntas, não delegação.** Trabalhe pela
+   *fronteira*: o conjunto de decisões cujos pré-requisitos já estão
+   resolvidos — as únicas respondíveis agora sem assumir resposta de outra
+   pergunta em aberto. Numa rodada, pergunte **todas** as da fronteira de
+   uma vez e **nenhuma** das bloqueadas; estas voltam na rodada seguinte,
+   quando as respostas as desbloquearem. Não há teto de perguntas: há o
+   que a fronteira comporta, sejam 2 ou 9. Formato de cada uma: número,
+   título, o que muda conforme a resposta, e **sua recomendação** — assim
+   o Founder pode responder uma a uma ou dizer "vai nas suas". Pergunta
+   cuja resposta você mesmo pode descobrir (regra 4) não é pergunta, é
+   tarefa sua. Delegue a etapa quando a fronteira dela estiver vazia:
+   nada assumido em silêncio.
 3. **Delegue em nível alto, não em passo a passo.** O subagente não vê
    esta conversa; o prompt de Task carrega quatro coisas: o objetivo (o
    que deve ser verdade ao final), os caminhos dos artefatos a ler, os

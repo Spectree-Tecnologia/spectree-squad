@@ -51,7 +51,10 @@ Fluxo:
 
 Artefatos derivam em cadeia (`PRD -> EPIC/STORY -> ADR + DESIGN -> código`,
 com `INFRA.md` derivando do ADR) e cada etapa só avança com o artefato pai
-aprovado pelo Founder. Na camada 3 a story vira o registro vivo do build:
+aprovado pelo Founder. Lacunas de requisito viram perguntas organizadas por
+**fronteira** — o Invoker pergunta de uma vez tudo que já é respondível,
+com recomendação para cada, e guarda o que depende de resposta anterior
+para a rodada seguinte, até nada restar assumido em silêncio. Na camada 3 a story vira o registro vivo do build:
 Jakiro mantém `## Dev Log` (checklist por critério de aceite + notas
 datadas), Keeper anexa `## QA Notes` por rodada de review, e o status
 percorre `approved -> in-progress -> done`. Lições aprendidas de qualquer

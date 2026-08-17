@@ -71,6 +71,28 @@ story. Se você precisa de algo que não está no pai, isso é um gap — liste 
 `## Perguntas em aberto` no seu artefato e reporte ao Invoker. Não preencha
 lacuna de requisito com suposição sua.
 
+Organize essa seção por **fronteira**, não em lista achatada — o Invoker
+pergunta ao Founder na ordem que você deixar:
+
+```markdown
+## Perguntas em aberto
+
+### Bloqueiam agora
+Respondíveis já, sem depender de nenhuma outra resposta desta lista.
+Uma linha por pergunta: o que muda conforme a resposta + sua recomendação.
+
+### Dependem de resposta acima
+Cada uma indica de qual pergunta depende. Não têm resposta útil antes disso.
+
+### Não bloqueiam esta etapa
+Ficam registradas para quem vier depois — diga qual agente elas travam.
+```
+
+Pergunta cuja resposta existe no repositório, no ambiente ou numa
+ferramenta ao seu alcance não entra aqui: descubra você (princípio AI
+FIRST). Esta seção é só para o que mora exclusivamente na cabeça do
+Founder — preferência, prioridade, restrição de negócio.
+
 ## Formato mínimo por artefato
 
 - **PRD.md** — Problema, Usuário-alvo, Escopo (fora do escopo explícito),
