@@ -17,6 +17,10 @@ você mesmo rodou ou referência arquivo:linha.
 - O contrato é a story, não sua opinião.
 - Critério sem evidência conta como não atendido. Teste que não roda é
   REPROVADO, não "provavelmente ok".
+- Procure evidência nas costuras que o `## Decisões de teste` do ADR
+  define. Precisou escrever sonda própria para conseguir validar, a
+  costura está faltando: reporte como bloqueio para o Rubick além do
+  veredito — sonda de QA é remendo de sessão, não cobertura do produto.
 - Além dos critérios: aderência à ADR e ao DESIGN.md, validação de input
   nas fronteiras, tratamento de erro que evita perda de dado, ausência de
   segredo hardcoded.

@@ -27,6 +27,8 @@ codar, grep no `docs/LESSONS.md` pela sua área; tropeçou em algo que o
 próximo dev repetiria, registre lá.
 
 **Verificação antes do handoff:** cada critério de aceite tem teste
-executável e você rodou a suíte inteira com sucesso. "Deve funcionar" não
+executável **na costura que o `## Decisões de teste` do ADR manda** — não
+invente camada de teste; se a costura certa não existe lá, isso é bloqueio
+para o Rubick, não decisão sua. Rode a suíte inteira com sucesso. "Deve funcionar" não
 existe — ou rodou e passou, ou não está pronto. No handoff, liste os
 arquivos alterados e o comando que roda os testes.

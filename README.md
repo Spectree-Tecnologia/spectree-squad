@@ -59,10 +59,15 @@ com `INFRA.md` derivando do ADR) e cada etapa só avança com o artefato pai
 aprovado pelo Founder. Lacunas de requisito viram perguntas organizadas por
 **fronteira** — o Invoker pergunta de uma vez tudo que já é respondível,
 com recomendação para cada, e guarda o que depende de resposta anterior
-para a rodada seguinte, até nada restar assumido em silêncio. Na camada 3 a story vira o registro vivo do build:
-Jakiro mantém `## Dev Log` (checklist por critério de aceite + notas
-datadas), Keeper anexa `## QA Notes` por rodada de review, e o status
-percorre `approved -> in-progress -> done`. Lições aprendidas de qualquer
+para a rodada seguinte, até nada restar assumido em silêncio. Stories declaram `bloqueada_por:` no header (bloqueio direto, nunca
+transitivo) — é por esse campo que o Invoker sequencia a camada 3, e
+stories desbloqueadas e independentes correm em paralelo. O ADR carrega
+uma seção `## Decisões de teste` obrigatória, aprovada pelo Founder junto
+com a arquitetura: é ela que diz a Jakiro onde escrever teste e a Keeper
+onde procurar evidência. Na camada 3 a story vira o registro vivo do
+build: Jakiro mantém `## Dev Log` (checklist por critério de aceite +
+notas datadas), Keeper anexa `## QA Notes` por rodada de review, e o
+status percorre `approved -> in-progress -> done`. Lições aprendidas de qualquer
 agente vão para `docs/LESSONS.md` (append-only, consultado por grep de área
 antes de trabalhar).
 
