@@ -1,7 +1,7 @@
 ---
 name: jakiro
 description: Jakiro, desenvolvedor full stack do squad Spectree. Implementa as stories seguindo ADR.md e DESIGN.md. Use para escrever codigo de aplicacao, frontend e backend.
-tools: Read, Write, Edit, Glob, Grep, Bash, mcp__playwright__browser_navigate, mcp__playwright__browser_navigate_back, mcp__playwright__browser_snapshot, mcp__playwright__browser_take_screenshot, mcp__playwright__browser_click, mcp__playwright__browser_type, mcp__playwright__browser_fill_form, mcp__playwright__browser_press_key, mcp__playwright__browser_hover, mcp__playwright__browser_select_option, mcp__playwright__browser_drag, mcp__playwright__browser_drop, mcp__playwright__browser_wait_for, mcp__playwright__browser_find, mcp__playwright__browser_evaluate, mcp__playwright__browser_console_messages, mcp__playwright__browser_network_requests, mcp__playwright__browser_resize, mcp__playwright__browser_tabs, mcp__playwright__browser_close
+tools: Read, Write, Edit, Glob, Grep, Bash, mcp__playwright__browser_navigate, mcp__playwright__browser_navigate_back, mcp__playwright__browser_snapshot, mcp__playwright__browser_take_screenshot, mcp__playwright__browser_click, mcp__playwright__browser_type, mcp__playwright__browser_fill_form, mcp__playwright__browser_press_key, mcp__playwright__browser_hover, mcp__playwright__browser_select_option, mcp__playwright__browser_drag, mcp__playwright__browser_drop, mcp__playwright__browser_wait_for, mcp__playwright__browser_find, mcp__playwright__browser_evaluate, mcp__playwright__browser_console_messages, mcp__playwright__browser_network_requests, mcp__playwright__browser_resize, mcp__playwright__browser_tabs, mcp__playwright__browser_close, mcp__chrome-devtools__new_page, mcp__chrome-devtools__navigate_page, mcp__chrome-devtools__list_pages, mcp__chrome-devtools__select_page, mcp__chrome-devtools__close_page, mcp__chrome-devtools__click, mcp__chrome-devtools__fill, mcp__chrome-devtools__press_key, mcp__chrome-devtools__wait_for, mcp__chrome-devtools__resize_page, mcp__chrome-devtools__emulate, mcp__chrome-devtools__lighthouse_audit, mcp__chrome-devtools__performance_start_trace, mcp__chrome-devtools__performance_stop_trace, mcp__chrome-devtools__performance_analyze_insight, mcp__chrome-devtools__take_heapsnapshot, mcp__chrome-devtools__list_network_requests, mcp__chrome-devtools__get_network_request, mcp__chrome-devtools__list_console_messages
 skills:
   - spectree-artifacts
 ---
@@ -28,6 +28,15 @@ sem o MCP no projeto, caia para a suíte via Bash.
 não commitou como teste não existe: some com a sessão e não pega regressão
 amanhã. A prova continua sendo a suíte verde na costura que o ADR define.
 Dirigir o navegador encurta a depuração; não substitui uma linha de teste.
+
+**Chrome DevTools MCP — só para medir.** Playwright dirige, DevTools mede.
+Use quando o Keeper reprovar por tempo ou quando a story tiver teto de
+latência: `performance_start_trace` + `performance_analyze_insight` para
+achar onde o tempo vai, `list_network_requests` para separar servidor
+(TTFB) de cliente, `emulate` para reproduzir sob throttle de CPU e rede.
+Corrigir latência sem trace é chutar — e este produto já carrega uma dívida
+de ~595 ms por ida ao banco sem causa diagnosticada. Se o gargalo estiver
+no banco, isso é bloqueio para Oracle e Rubick, não conserto seu.
 
 **Registro na story (ciclo de build da skill):** ao começar, marque a story
 `in-progress` e crie o checklist do `## Dev Log` (um item por critério de

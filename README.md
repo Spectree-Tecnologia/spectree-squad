@@ -81,6 +81,13 @@ estilo computado), o Jakiro para depurar enquanto constrói. Em nenhum dos
 dois o navegador substitui teste commitado: o que não virou prova na suíte
 não pega regressão amanhã.
 
+Para número em vez de comportamento, os dois têm o **Chrome DevTools MCP**:
+`lighthouse_audit` afere o contraste e a acessibilidade que o `DESIGN.md`
+especificou, os traces de performance separam tempo de servidor de tempo de
+cliente, e `emulate` mede sob throttle — porque teto aprovado só em stack
+local costuma mentir em produção. Regra: **Playwright dirige, DevTools
+mede.**
+
 ## Premissas de projeto
 
 1. **AI FIRST / CLI FIRST** — o squad executa tudo que estiver ao alcance
