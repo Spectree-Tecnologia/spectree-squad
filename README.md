@@ -48,8 +48,8 @@ o próximo passo.
 | 2 · Design | Rubick | Arquiteto | `docs/ADR.md` |
 | 2 · Design | Zeus | UI/UX | `docs/DESIGN.md` |
 | 3 · Build | Oracle | Data Engineer — único com autoridade sobre o banco | schema, migrations, queries |
-| 3 · Build | Jakiro | Dev Full Stack | código + `## Dev Log` na story |
-| 3 · Build | Keeper of the Light | QA — valida, não conserta | `## QA Notes` na story, veredito com evidência |
+| 3 · Build | Jakiro | Dev Full Stack; depura na UI real via Playwright MCP | código + `## Dev Log` na story |
+| 3 · Build | Keeper of the Light | QA — valida, não conserta; dirige a UI real via Playwright MCP | `## QA Notes` na story, veredito com evidência |
 | 3 · Build | Disruptor | DevOps — único que executa git/GitHub | branch, PR, CI, `docs/INFRA.md` |
 
 Fluxo:
@@ -74,6 +74,12 @@ notas datadas), Keeper anexa `## QA Notes` por rodada de review, e o
 status percorre `approved -> in-progress -> done`. Lições aprendidas de qualquer
 agente vão para `docs/LESSONS.md` (append-only, consultado por grep de área
 antes de trabalhar).
+
+Jakiro e Keeper têm acesso ao **Playwright MCP** e dirigem a interface real
+— o Keeper para colher evidência que a suíte não dá (console, requisições,
+estilo computado), o Jakiro para depurar enquanto constrói. Em nenhum dos
+dois o navegador substitui teste commitado: o que não virou prova na suíte
+não pega regressão amanhã.
 
 ## Premissas de projeto
 
