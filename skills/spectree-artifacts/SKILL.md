@@ -1,6 +1,6 @@
 ---
 name: spectree-artifacts
-description: Contrato de artefatos do squad Spectree - onde vivem PRD.md, EPIC.md, STORY, ADR.md e DESIGN.md, qual o formato de cada um e como registrar handoff entre agentes. Use sempre que for ler ou escrever qualquer artefato do squad.
+description: Contrato de artefatos do squad Spectree - onde vivem PRD.md, EPIC.md, STORY, ADR e DESIGN.md, qual o formato de cada um e como registrar handoff entre agentes. Use sempre que for ler ou escrever qualquer artefato do squad.
 ---
 
 # Contrato de artefatos do squad
@@ -25,7 +25,8 @@ diga exatamente qual, em vez de degradar para instrução manual.
 docs/
   PRD.md                        # Lina  (Product Manager)
   EPIC.md                       # Lion  (Scrum Master)
-  ADR.md                        # Rubick (Arquiteto)
+  adr/
+    ADR-001-slug-curto.md       # Rubick, uma decisão por arquivo
   DESIGN.md                     # Zeus  (UI/UX)
   INFRA.md                      # Disruptor - o que existe, onde, como subir do zero
   LESSONS.md                    # todos - licoes aprendidas, append-only
@@ -43,7 +44,7 @@ Todo artefato começa com este bloco:
 
 ```markdown
 ---
-status: draft | in-review | approved | in-progress | done
+status: draft | in-review | approved | in-progress | done | superseded
 owner: <nome do agente>
 updated: <YYYY-MM-DD>
 depends_on: <caminho do artefato pai, ou "-">
@@ -73,8 +74,8 @@ header.
 ## Cadeia de derivação
 
 ```
-PRD.md -> EPIC.md -> stories/STORY-*.md -> ADR.md + DESIGN.md -> código
-                                            ADR.md -> INFRA.md
+PRD.md -> EPIC.md -> stories/STORY-*.md -> adr/ADR-*.md + DESIGN.md -> código
+                                            adr/ADR-*.md -> INFRA.md
 ```
 
 Antes de escrever, leia o artefato pai inteiro. Cada seção que você criar deve
@@ -113,13 +114,33 @@ Founder — preferência, prioridade, restrição de negócio.
   e critério de pronto.
 - **STORY-*.md** — `Como <papel>, quero <ação>, para <valor>`, épico de origem,
   critérios de aceite em Gherkin, estimativa relativa.
-- **ADR.md** — Um bloco por decisão (`ADR-01`): Contexto, Decisão,
-  Alternativas descartadas, Consequências. Decisão tomada é substituída por
-  uma nova ADR marcada `supersedes: ADR-0X`, nunca editada. Traz também a
-  seção `## Decisões de teste` (skill spectree-testes).
+- **adr/ADR-NNN-slug.md** — Uma decisão por arquivo, numeração sequencial.
+  O número no nome do arquivo é o que torna `ADR-011` localizável por grep;
+  o slug é o que permite achar a decisão certa sem abrir nenhuma. Formato
+  mínimo, e ele basta na maioria das vezes:
+
+  ```markdown
+  # ADR-011 — Título curto da decisão
+
+  <1 a 3 frases: qual era o contexto, o que foi decidido, e por quê.>
+  ```
+
+  Seções opcionais entram só quando pagam a própria linha: **Alternativas
+  descartadas** quando a rejeição é não óbvia e alguém vai propor de novo em
+  seis meses; **Consequências** quando o efeito colateral surpreende. Um ADR
+  de um parágrafo é um ADR completo — o valor está em registrar *que* se
+  decidiu e *por quê*.
+
+  Decisão registrada permanece como está. Mudou de ideia, abra um ADR novo
+  com `supersedes: ADR-0XX` no header e marque o antigo `status: superseded`
+  com `superseded_by: ADR-0YY`. Assim o histórico continua legível e o grep
+  encontra as duas pontas.
+
+  As costuras de teste são um ADR como outro qualquer (skill
+  `spectree-testes`), com seu próprio arquivo e seu próprio gate.
 - **DESIGN.md** — Fluxos de tela, estados (vazio/carregando/erro), tokens de
   design, e acessibilidade mínima por tela.
-- **INFRA.md** — Owner Disruptor, deriva do ADR.md. O que existe (serviços,
+- **INFRA.md** — Owner Disruptor, deriva das ADRs. O que existe (serviços,
   ids, domínios), o que acontece no deploy, variáveis de ambiente (nomes e
   origem, nunca valores) e como subir o ambiente do zero.
 - **LESSONS.md** — Append-only, qualquer agente escreve. Entrada curta:
