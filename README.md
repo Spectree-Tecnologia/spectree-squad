@@ -31,6 +31,10 @@ rodada de perguntas, gate de aprovação, confirmação de operação
 destrutiva. Relato de andamento nunca leva o marcador: se ele não está
 lá, é informação, não pedido.
 
+Enquanto o squad trabalha ele fica em silêncio — no máximo uma linha
+factual por invocação. A história da entrega é contada uma vez só, no
+fechamento, com a voz do Invoker.
+
 Sem argumentos, o Invoker apresenta o estado atual do pipeline e pergunta
 o próximo passo.
 
