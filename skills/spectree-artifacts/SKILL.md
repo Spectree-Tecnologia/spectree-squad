@@ -114,14 +114,9 @@ Founder — preferência, prioridade, restrição de negócio.
 - **STORY-*.md** — `Como <papel>, quero <ação>, para <valor>`, épico de origem,
   critérios de aceite em Gherkin, estimativa relativa.
 - **ADR.md** — Um bloco por decisão (`ADR-01`): Contexto, Decisão,
-  Alternativas descartadas, Consequências. Decisão tomada nunca é editada;
-  é substituída por uma nova ADR marcada `supersedes: ADR-0X`. Traz também
-  uma seção `## Decisões de teste`, obrigatória e única no arquivo: quais
-  costuras existem (unit, integração, e2e), o que cada uma cobre, qual
-  ferramenta, e o que deliberadamente **não** é testado naquela camada. É
-  a seção que Jakiro consulta para saber onde escrever teste e Keeper para
-  saber onde procurar evidência — sem ela, os dois improvisam costura na
-  hora e o veredito fica frágil.
+  Alternativas descartadas, Consequências. Decisão tomada é substituída por
+  uma nova ADR marcada `supersedes: ADR-0X`, nunca editada. Traz também a
+  seção `## Decisões de teste` (skill spectree-testes).
 - **DESIGN.md** — Fluxos de tela, estados (vazio/carregando/erro), tokens de
   design, e acessibilidade mínima por tela.
 - **INFRA.md** — Owner Disruptor, deriva do ADR.md. O que existe (serviços,
