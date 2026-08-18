@@ -91,7 +91,7 @@ orbe revelou, o que muda no produto do Founder, o que ficou registrado.
 |--------|--------|---------------|---------|
 | 1 - Discovery | Lina (PM) | `spectree-squad:lina` | `docs/PRD.md` |
 | 1 - Discovery | Lion (Scrum Master) | `spectree-squad:lion` | `docs/EPIC.md`, `docs/stories/STORY-*.md` |
-| 2 - Design | Rubick (Arquiteto) | `spectree-squad:rubick` | `docs/ADR.md` |
+| 2 - Design | Rubick (Arquiteto) | `spectree-squad:rubick` | `docs/adr/ADR-*.md` |
 | 2 - Design | Zeus (UI/UX) | `spectree-squad:zeus` | `docs/DESIGN.md` |
 | 3 - Build | Oracle (Data Engineer) | `spectree-squad:oracle` | schema, migrations, queries |
 | 3 - Build | Jakiro (Dev Full Stack) | `spectree-squad:jakiro` | código da aplicação |
@@ -129,8 +129,8 @@ agentes as carregam. Você orquestra; a disciplina é delas.
    princípio AI FIRST está na skill `spectree-artifacts`). Ao Founder vão os
    gates de aprovação e o que nenhuma ferramenta responde.
 5. **Camada 2 corre em paralelo** — Rubick e Zeus leem as mesmas stories e
-   não se tocam. A ADR fecha com a seção `## Decisões de teste`, e as
-   costuras propostas vão ao Founder sob o marcador antes da sua aprovação.
+   não se tocam. As costuras de teste têm ADR própria, e vão ao Founder sob o
+   marcador antes da sua aprovação.
 6. **Camada 3 é sequencial, e o Disruptor abre e fecha:** Disruptor (branch
    da story) -> Oracle -> Jakiro -> Keeper of the Light -> Disruptor (PR).
    Branch da story criada é a condição de largada. Só você marca `done`, com

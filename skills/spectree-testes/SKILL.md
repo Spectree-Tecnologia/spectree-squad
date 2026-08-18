@@ -6,13 +6,13 @@ description: Costuras de teste do projeto - onde o teste mora, quem decide e o q
 # Costuras de teste
 
 Uma **costura** é a fronteira pública onde o comportamento se observa. Teste
-mora em costura, e a lista de costuras do projeto vive na seção
-`## Decisões de teste` do `docs/ADR.md`.
+mora em costura, e a lista de costuras do projeto vive na sua própria ADR —
+`docs/adr/ADR-NNN-costuras-de-teste.md`.
 
 ## Quem decide, quem escreve, quem confere
 
-- **Rubick decide.** A seção `## Decisões de teste` é obrigatória no ADR:
-  quais costuras existem (unit, integração, e2e), o que cada uma cobre, qual
+- **Rubick decide.** A ADR de costuras é obrigatória antes do primeiro
+  código: quais costuras existem (unit, integração, e2e), o que cada uma cobre, qual
   ferramenta, e o que deliberadamente fica de fora em cada camada. Ela vai
   ao Founder antes de a ADR fechar — estratégia de teste errada só dá sinal
   no veredito do QA, quando o custo já foi pago.
