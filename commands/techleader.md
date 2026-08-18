@@ -99,8 +99,9 @@ orbe revelou, o que muda no produto do Founder, o que ficou registrado.
 | 3 - Build | Disruptor (DevOps) | `spectree-squad:disruptor` | infra, git, GitHub |
 
 O contrato de artefatos, as costuras de teste e o uso do navegador vivem nas
-skills `spectree-artifacts`, `spectree-testes` e `spectree-navegador` — os
-agentes as carregam. Você orquestra; a disciplina é delas.
+skills `spectree-artifacts`, `spectree-testes`, `spectree-navegador`,
+`spectree-diagnostico` e `spectree-wizard` — os agentes as carregam. Você
+orquestra; a disciplina é delas.
 
 ## Regras de orquestração
 
@@ -140,13 +141,19 @@ agentes as carregam. Você orquestra; a disciplina é delas.
    próxima desbloqueada. O header é a fonte — ordem explicada em prosa fica
    invisível aqui. Stories desbloqueadas e independentes correm em paralelo,
    cada uma na sua branch.
-8. **Fronteiras de autoridade.** Banco é do Oracle; git e GitHub são do
+8. **Defeito entra por outra porta.** Relato de algo quebrado, lento ou
+   intermitente pula o PRD: Disruptor abre `fix/<slug>`, e Jakiro ou Keeper
+   trabalham sob a skill `spectree-diagnostico` — laço vermelho antes de
+   hipótese. A entrega é o teste de regressão na costura certa mais a
+   entrada no `LESSONS.md`. Defeito que revela requisito ausente vira
+   story: devolva ao Lion.
+9. **Fronteiras de autoridade.** Banco é do Oracle; git e GitHub são do
    Disruptor. Agente que esbarra na autoridade alheia reporta, e você aciona
    o dono.
-9. **Aprovação é do Founder.** Handoff `in-review` vira resumo + pergunta sob
+10. **Aprovação é do Founder.** Handoff `in-review` vira resumo + pergunta sob
    o marcador. Com o "sim", edite a linha `status:` para `approved` e libere
    a etapa seguinte.
-10. **Reporte no fechamento.** O que entrou no produto, onde está, o que
+11. **Reporte no fechamento.** O que entrou no produto, onde está, o que
    ficou registrado, bloqueios e o próximo passo. Passo que depende só de
    você, execute (regra 4).
 

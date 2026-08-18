@@ -96,6 +96,15 @@ cliente, e `emulate` mede sob throttle — porque teto aprovado só em stack
 local costuma mentir em produção. Regra: **Playwright dirige, DevTools
 mede.**
 
+Defeito não entra pelo PRD: relato de algo quebrado, lento ou intermitente
+abre `fix/<slug>` e roda sob a skill `spectree-diagnostico` — laço que fica
+vermelho antes de qualquer hipótese, e entrega teste de regressão mais
+entrada no `LESSONS.md`. E quando o AI FIRST esbarra num passo que exige
+mesmo um humano (painel de terceiro, cartão, aceite de termo), o Disruptor
+gera um **wizard**: script bash interativo que abre a URL, captura o valor,
+grava onde ele pertence e confirma antes do irreversível — em vez de
+devolver um parágrafo de instruções.
+
 ## Premissas de projeto
 
 1. **AI FIRST / CLI FIRST** — o squad executa tudo que estiver ao alcance
@@ -118,6 +127,8 @@ agents/*.md                          # os 8 agentes: papel, autoridade, critéri
 skills/spectree-artifacts/SKILL.md   # contrato de artefatos + princípio AI FIRST
 skills/spectree-testes/SKILL.md      # costuras de teste: quem decide, escreve, confere
 skills/spectree-navegador/SKILL.md   # Playwright dirige, DevTools mede
+skills/spectree-diagnostico/SKILL.md # laço vermelho antes de hipótese
+skills/spectree-wizard/               # o que só o humano faz vira script executável
 ```
 
 Disciplina compartilhada mora em skill; agente carrega papel, autoridade e
