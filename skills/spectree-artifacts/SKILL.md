@@ -28,6 +28,7 @@ docs/
   adr/
     ADR-001-slug-curto.md       # Rubick, uma decisão por arquivo
   DESIGN.md                     # Zeus  (UI/UX)
+  CONTEXT.md                    # glossário do domínio - Lina mantém, todos escrevem
   INFRA.md                      # Disruptor - o que existe, onde, como subir do zero
   LESSONS.md                    # todos - licoes aprendidas, append-only
   stories/
@@ -138,6 +139,42 @@ Founder — preferência, prioridade, restrição de negócio.
 
   As costuras de teste são um ADR como outro qualquer (skill
   `spectree-testes`), com seu próprio arquivo e seu próprio gate.
+- **CONTEXT.md** — O glossário do domínio, e **nada além disso**. Um termo,
+  a definição em 1-2 frases, e os sinônimos que ficam proibidos:
+
+  ```markdown
+  ## Linguagem
+
+  **Conta**:
+  O registro de autenticação de uma pessoa — e-mail e senha.
+  _Avoid_: usuário, login
+
+  **Membro**:
+  Uma Conta que entrou num Canal. É papel, não entidade separada.
+  _Avoid_: participante, integrante
+  ```
+
+  A linha `_Avoid_` é o que faz o glossário funcionar: quem ia escrever
+  "participante" encontra a palavra proibida e a substituição no mesmo
+  lugar. Sem ela, sobra um dicionário que ninguém consulta.
+
+  Quatro regras:
+  - **Defina o que a coisa é**, não o que ela faz. Uma ou duas frases.
+  - **Só termo específico deste domínio.** `timeout`, `cache` e `retry` são
+    conceitos gerais de programação e ficam de fora, por mais usados que
+    sejam aqui.
+  - **Zero implementação.** Nome de tabela, rota e biblioteca pertencem às
+    ADRs; glossário que vira spec deixa de ser consultável.
+  - **Escreva no instante em que o termo se resolve**, nunca em lote — lote
+    não acontece. Qualquer agente escreve; a Lina mantém a consistência.
+
+  Leia o glossário antes de escrever artefato ou código, e **tire dele os
+  nomes**: variável, função, arquivo, tabela e título de seção usam o termo
+  canônico. É assim que oito agentes sem contexto compartilhado convergem
+  para a mesma linguagem.
+
+  O arquivo nasce quando o primeiro termo se resolve. Glossário escrito
+  antes da primeira decisão é chute com aparência de autoridade.
 - **DESIGN.md** — Fluxos de tela, estados (vazio/carregando/erro), tokens de
   design, e acessibilidade mínima por tela.
 - **INFRA.md** — Owner Disruptor, deriva das ADRs. O que existe (serviços,
