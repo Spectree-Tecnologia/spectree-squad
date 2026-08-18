@@ -104,12 +104,15 @@ mede.**
 ## Estrutura
 
 ```
-.claude-plugin/plugin.json          # manifest
-commands/techleader.md              # Invoker (orquestrador)
-agents/*.md                         # os 8 agentes do squad
-skills/spectree-artifacts/SKILL.md  # contrato de artefatos + princípio AI FIRST
+.claude-plugin/plugin.json           # manifest
+commands/techleader.md               # Invoker: orquestração + persona
+agents/*.md                          # os 8 agentes: papel, autoridade, critério de saída
+skills/spectree-artifacts/SKILL.md   # contrato de artefatos + princípio AI FIRST
+skills/spectree-testes/SKILL.md      # costuras de teste: quem decide, escreve, confere
+skills/spectree-navegador/SKILL.md   # Playwright dirige, DevTools mede
 ```
 
-O contrato de artefatos (caminhos canônicos, cabeçalho de status, formato
-de handoff) é uma skill compartilhada por todos os agentes — subagentes não
-compartilham contexto, então o disco é a única memória comum do squad.
+Disciplina compartilhada mora em skill; agente carrega papel, autoridade e
+critério de saída. Subagentes não compartilham contexto, então o disco é a
+única memória comum do squad — e a skill é o que garante que todos leiam e
+escrevam sob as mesmas regras, definidas uma vez só.
