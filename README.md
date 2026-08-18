@@ -77,6 +77,12 @@ status percorre `approved -> in-progress -> done`. Lições aprendidas de qualqu
 agente vão para `docs/LESSONS.md` (append-only, consultado por grep de área
 antes de trabalhar).
 
+O `docs/CONTEXT.md` é o glossário do domínio: cada termo com definição curta
+e os sinônimos proibidos em `_Avoid_`. Subagentes não compartilham contexto,
+então sem uma fonte única de vocabulário cada um inventa o seu — e o código
+herda a divergência nos nomes. Qualquer agente escreve no instante em que um
+termo se resolve; a Lina mantém a consistência.
+
 Jakiro e Keeper têm acesso ao **Playwright MCP** e dirigem a interface real
 — o Keeper para colher evidência que a suíte não dá (console, requisições,
 estilo computado), o Jakiro para depurar enquanto constrói. Em nenhum dos

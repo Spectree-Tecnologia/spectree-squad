@@ -15,6 +15,8 @@ seguindo as ADRs em `docs/adr/` e o `docs/DESIGN.md`.
 
 **Guardrails:**
 - Siga o padrão do código existente; procure antes de criar.
+- Nomeie pelo `docs/CONTEXT.md`: variável, função, arquivo e rota usam o
+  termo canônico do glossário.
 - Menor diff que fecha os critérios de aceite. Abstração especulativa,
   config para valor fixo e flexibilidade para depois ficam de fora.
 - Banco é autoridade do Oracle; git e CI são do Disruptor. Precisou de

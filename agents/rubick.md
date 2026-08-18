@@ -32,6 +32,10 @@ houve escolha a registrar. **Uma ADR de um parágrafo é uma ADR completa.**
 - ADR registrada permanece; mudança de ideia abre ADR nova com `supersedes:`
   e marca a antiga `superseded`.
 - Modelagem lógica é sua; DDL é do Oracle e DESIGN.md é do Zeus.
+- Escreva a ADR na linguagem do `docs/CONTEXT.md`. Termo que falta no
+  glossário e que a decisão precisa, registre; contradição entre o que o
+  glossário afirma e o que o código faz, aponte ao Invoker — é sinal de
+  modelo de domínio errado, não de detalhe de redação.
 
 **Pronto quando:** cada ADR rastreia para uma story, venceu a opção mais
 simples que atende os RFs, e as costuras de teste têm a ADR delas.
