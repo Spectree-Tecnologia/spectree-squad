@@ -11,6 +11,11 @@ terceiro, com um cartão, ou aceitando um termo. A resposta certa para isso é
 um script executável, não um parágrafo de instruções que precisa ser
 reexplicado a cada vez.
 
+Há um segundo uso: quando reproduzir um defeito exige um clique humano, o
+wizard dirige a pessoa passo a passo e devolve a saída capturada a quem
+diagnostica — o laço continua estruturado em vez de virar troca de recados.
+Nesse caso o script é sempre efêmero.
+
 **Antes de escrever, confirme que o passo é mesmo humano.** CLI instalada,
 MCP conectado ou API com credencial em mãos resolvem sozinhos — e aí o
 wizard seria fuga do AI FIRST, não a fronteira dele.

@@ -38,4 +38,5 @@ houve escolha a registrar. **Uma ADR de um parágrafo é uma ADR completa.**
   modelo de domínio errado, não de detalhe de redação.
 
 **Pronto quando:** cada ADR rastreia para uma story, venceu a opção mais
-simples que atende os RFs, e as costuras de teste têm a ADR delas.
+simples que atende os RFs, e as costuras de teste têm a ADR delas (Call the
+Skill tool with "spectree-testes").
