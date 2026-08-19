@@ -41,15 +41,23 @@ docs/
   PRD.md                        # Lina  (Product Manager)
   EPIC.md                       # Lion  (Scrum Master)
   adr/
-    ADR-001-english-slug.md     # Rubick, uma decisão por arquivo
+    ADR-NN-english-slug.md      # Rubick, uma decisão por arquivo
   DESIGN.md                     # Zeus  (UI/UX)
   CONTEXT.md                    # glossário do domínio - Lina mantém, todos escrevem
   TEST-SEAMS.md                 # Rubick - onde cada classe de critério se prova
   INFRA.md                      # Disruptor - o que existe, onde, como subir do zero
   LESSONS.md                    # todos - licoes aprendidas, append-only
   stories/
-    STORY-001-english-slug.md   # Lion define; Jakiro e Keeper anexam seções
+    STORY-NNN-english-slug.md   # Lion define; Jakiro e Keeper anexam seções
 ```
+
+**Largura do número.** O número no nome do arquivo usa **a mesma largura
+com que o identificador é citado no texto do projeto**. É isso que torna
+`ADR-11` localizável por grep — e é por isso que `ADR-011` no arquivo,
+com `ADR-11` na citação, quebra a regra em vez de cumpri-la. Projeto novo
+começa em `ADR-NN` e `STORY-NNN`; alargar depois exige renomear o conjunto
+inteiro de uma vez, porque largura misturada é pior que qualquer uma das
+duas.
 
 Nunca crie variação de caminho (`PRD/`, `prd.md`, `docs/product/PRD.md`).
 Se o arquivo pai não existir, o artefato derivado não pode ser escrito —
@@ -131,13 +139,13 @@ Founder — preferência, prioridade, restrição de negócio.
   e critério de pronto.
 - **STORY-*.md** — `Como <papel>, quero <ação>, para <valor>`, épico de origem,
   critérios de aceite em Gherkin, estimativa relativa.
-- **adr/ADR-NNN-slug.md** — Uma decisão por arquivo, numeração sequencial.
-  O número no nome do arquivo é o que torna `ADR-011` localizável por grep;
-  o slug é o que permite achar a decisão certa sem abrir nenhuma. Formato
-  mínimo, e ele basta na maioria das vezes:
+- **adr/ADR-NN-english-slug.md** — Uma decisão por arquivo, numeração
+  sequencial na largura que o projeto cita (ver "Largura do número"); o slug
+  é o que permite achar a decisão certa sem abrir nenhuma. Formato mínimo, e
+  ele basta na maioria das vezes:
 
   ```markdown
-  # ADR-011 — Título curto da decisão
+  # ADR-11 — Título curto da decisão
 
   <1 a 3 frases: qual era o contexto, o que foi decidido, e por quê.>
   ```
@@ -149,8 +157,8 @@ Founder — preferência, prioridade, restrição de negócio.
   decidiu e *por quê*.
 
   Decisão registrada permanece como está. Mudou de ideia, abra um ADR novo
-  com `supersedes: ADR-0XX` no header e marque o antigo `status: superseded`
-  com `superseded_by: ADR-0YY`. Assim o histórico continua legível e o grep
+  com `supersedes:` no header e marque o antigo `status: superseded` com
+  `superseded_by:`. Assim o histórico continua legível e o grep
   encontra as duas pontas.
 
 - **CONTEXT.md** — O glossário do domínio, e **nada além disso**. Um termo,
@@ -194,6 +202,10 @@ Founder — preferência, prioridade, restrição de negócio.
 
   O arquivo nasce quando o primeiro termo se resolve. Glossário escrito
   antes da primeira decisão é chute com aparência de autoridade.
+  Índice em `docs/adr/README.md` é opcional e **lista, nunca decide**.
+  Convenção de projeto que passa no portão das três condições é ADR, não
+  nota de índice: convenção que só existe num README não é achada por quem
+  faz grep — é folclore com endereço.
 - **TEST-SEAMS.md** — Owner Rubick. O mapa de onde cada classe de critério
   se prova para valer: a costura, o que ela cobre, a ferramenta, e o que
   deliberadamente fica de fora. É **registro vivo**, não decisão: cresce a
