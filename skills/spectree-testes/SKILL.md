@@ -7,7 +7,8 @@ description: Costuras de teste do projeto - onde o teste mora, quem decide e o q
 
 Uma **costura** é a fronteira pública onde o comportamento se observa. Teste
 mora em costura, e a lista de costuras do projeto vive na sua própria ADR —
-`docs/adr/ADR-NNN-costuras-de-teste.md`.
+`docs/adr/ADR-NNN-costuras-de-teste.md`. Para o formato do arquivo, Call
+the Skill tool with "spectree-artifacts".
 
 ## Quem decide, quem escreve, quem confere
 

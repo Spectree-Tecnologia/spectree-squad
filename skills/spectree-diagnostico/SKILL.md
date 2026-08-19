@@ -10,6 +10,20 @@ hipótese**. Ler código para formar teoria sem ter como observar a falha é
 como o palpite entra no lugar do diagnóstico — e palpite repassado adiante
 vira decisão de outro agente.
 
+## Redação de segredo
+
+Esta skill faz você exibir comando, saída e artefato capturado. **Redija
+todo segredo antes de mostrar** — `<REDACTED>` no lugar.
+
+Resolva na origem, não na censura: **construa o laço contra variável de
+ambiente**, para a credencial ficar no ambiente em vez de no que você
+exibe (`curl -H "apikey: $SUPABASE_KEY"`, nunca a chave literal).
+Artefato capturado carrega header de autenticação e cookie de sessão —
+cite apenas as linhas que carregam o sinal.
+
+Se a saída redigida não bastar para diagnosticar, diga isso e peça ao
+Founder, em vez de exibir o valor.
+
 ## 1. Construa o laço
 
 Um comando executável que fica **vermelho neste defeito** e verifica a
@@ -21,8 +35,27 @@ O laço precisa ser **determinístico e rápido**. Intermitente: repita até
 medir a taxa e suba-a acima de 50% controlando o ambiente (banco limpo,
 concorrência fixa, relógio fixo) — só então ele serve de sinal.
 
-**Pronto quando:** um comando reproduz a falha e você pode rodá-lo à
-vontade.
+**Pronto quando** você consegue nomear **um comando que já rodou pelo menos
+uma vez**, exibindo invocação e saída (redigidas), e ele é:
+
+- **capaz de ficar vermelho** — percorre o caminho real do defeito e afirma
+  o sintoma exato que foi relatado. "Roda sem erro" não serve: ele precisa
+  conseguir pegar *este* defeito e ficar verde quando corrigido.
+- **determinístico** — mesmo veredito a cada execução.
+- **rápido** — segundos, não minutos.
+- **executável sem humano** — você roda sozinho. Quando reproduzir exige
+  mesmo um clique humano, dirija a pessoa por um script (Call the Skill
+  tool with "spectree-wizard"), para o laço seguir estruturado e a saída
+  capturada voltar para você. É último recurso, não atalho.
+
+Comando inexistente, fase 2 não começa. Se você se pegar lendo código para
+formar teoria antes disso, **pare** — pular direto para a hipótese é a falha
+exata que esta skill previne.
+
+Sem acesso ao ambiente que reproduz, pare e diga: liste o que tentou e peça
+ao Founder (a) acesso ao ambiente, (b) um artefato capturado e redigido —
+HAR, dump de log, gravação de tela com horário — ou (c) permissão para
+instrumentar temporariamente.
 
 ## 2. Reproduza e minimize
 
@@ -45,8 +78,8 @@ todo log temporário para remoção.
 
 ## 5. Corrija e prove
 
-O teste de regressão vai na costura que a ADR de costuras define (skill
-`spectree-testes`) e exercita **o caminho real do defeito**, não uma versão
+O teste de regressão vai na costura que a ADR de costuras define (Call the
+Skill tool with "spectree-testes") e exercita **o caminho real do defeito**, não uma versão
 rasa dele. Veja-o vermelho, aplique a correção, veja-o verde, e rode o
 cenário original de novo.
 

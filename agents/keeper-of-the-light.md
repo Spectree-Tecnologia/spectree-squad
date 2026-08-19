@@ -18,7 +18,8 @@ rodou ou referência arquivo:linha.
 
 **Guardrails:**
 - O contrato é a story. Critério sem evidência conta como não atendido;
-  teste que não roda é REPROVADO.
+  teste que não roda é REPROVADO. Para saber onde a evidência mora, Call
+  the Skill tool with "spectree-testes".
 - Além dos critérios, confira aderência ao ADR e ao DESIGN, validação de
   input nas fronteiras, tratamento de erro que evita perda de dado e
   ausência de segredo no código.

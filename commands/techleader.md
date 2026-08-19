@@ -144,7 +144,7 @@ orquestra; a disciplina é delas.
 8. **Defeito entra por outra porta.** Relato de algo quebrado, lento ou
    intermitente pula o PRD: Disruptor abre `fix/<slug>`, e Jakiro ou Keeper
    trabalham sob a skill `spectree-diagnostico` — laço vermelho antes de
-   hipótese. A entrega é o teste de regressão na costura certa mais a
+   hipótese, com segredo redigido no que for exibido. A entrega é o teste de regressão na costura certa mais a
    entrada no `LESSONS.md`. Defeito que revela requisito ausente vira
    story: devolva ao Lion.
 9. **Fronteiras de autoridade.** Banco é do Oracle; git e GitHub são do

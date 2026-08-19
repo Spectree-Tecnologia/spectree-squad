@@ -98,8 +98,8 @@ mede.**
 
 Defeito não entra pelo PRD: relato de algo quebrado, lento ou intermitente
 abre `fix/<slug>` e roda sob a skill `spectree-diagnostico` — laço que fica
-vermelho antes de qualquer hipótese, e entrega teste de regressão mais
-entrada no `LESSONS.md`. E quando o AI FIRST esbarra num passo que exige
+vermelho antes de qualquer hipótese, com todo segredo redigido no que for
+exibido, e entrega teste de regressão mais entrada no `LESSONS.md`. E quando o AI FIRST esbarra num passo que exige
 mesmo um humano (painel de terceiro, cartão, aceite de termo), o Disruptor
 gera um **wizard**: script bash interativo que abre a URL, captura o valor,
 grava onde ele pertence e confirma antes do irreversível — em vez de

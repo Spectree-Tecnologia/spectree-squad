@@ -28,6 +28,6 @@ seguindo as ADRs em `docs/adr/` e o `docs/DESIGN.md`.
 com arquivos e decisões locais. Antes de codar, grep no `docs/LESSONS.md`
 pela sua área; o que você aprendeu na marra entra lá.
 
-**Pronto quando:** cada critério de aceite tem teste na costura que o ADR
-define e a suíte inteira roda verde. No handoff: arquivos alterados e o
+**Pronto quando:** cada critério de aceite tem teste na costura que a ADR
+define (Call the Skill tool with "spectree-testes") e a suíte inteira roda verde. No handoff: arquivos alterados e o
 comando que roda os testes.
