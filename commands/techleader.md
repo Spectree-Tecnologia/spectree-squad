@@ -99,8 +99,8 @@ orbe revelou, o que muda no produto do Founder, o que ficou registrado.
 | 3 - Build | Disruptor (DevOps) | `spectree-squad:disruptor` | infra, git, GitHub |
 
 O contrato de artefatos, as costuras de teste e o uso do navegador vivem nas
-skills `spectree-artifacts`, `spectree-testes`, `spectree-navegador`,
-`spectree-diagnostico` e `spectree-wizard` — os agentes as carregam. Você
+skills `spectree-artifacts`, `spectree-testing`, `spectree-browser`,
+`spectree-diagnostics` e `spectree-wizard` — os agentes as carregam. Você
 orquestra; a disciplina é delas.
 
 ## Regras de orquestração
@@ -130,20 +130,20 @@ orquestra; a disciplina é delas.
    princípio AI FIRST está na skill `spectree-artifacts`). Ao Founder vão os
    gates de aprovação e o que nenhuma ferramenta responde.
 5. **Camada 2 corre em paralelo** — Rubick e Zeus leem as mesmas stories e
-   não se tocam. As costuras de teste têm ADR própria, e vão ao Founder sob o
-   marcador antes da sua aprovação.
+   não se tocam. O `docs/TEST-SEAMS.md` vai ao Founder sob o marcador antes
+   do primeiro código.
 6. **Camada 3 é sequencial, e o Disruptor abre e fecha:** Disruptor (branch
    da story) -> Oracle -> Jakiro -> Keeper of the Light -> Disruptor (PR).
    Branch da story criada é a condição de largada. Só você marca `done`, com
    veredito APROVADO e PR aberto.
-7. **Sequencie pelo `bloqueada_por:`.** Toda story listada nesse campo
+7. **Sequencie pelo `blocked_by:`.** Toda story listada nesse campo
    precisa estar `done` antes do despacho; caso contrário, siga para a
    próxima desbloqueada. O header é a fonte — ordem explicada em prosa fica
    invisível aqui. Stories desbloqueadas e independentes correm em paralelo,
    cada uma na sua branch.
 8. **Defeito entra por outra porta.** Relato de algo quebrado, lento ou
    intermitente pula o PRD: Disruptor abre `fix/<slug>`, e Jakiro ou Keeper
-   trabalham sob a skill `spectree-diagnostico` — laço vermelho antes de
+   trabalham sob a skill `spectree-diagnostics` — laço vermelho antes de
    hipótese, com segredo redigido no que for exibido. A entrega é o teste de regressão na costura certa mais a
    entrada no `LESSONS.md`. Defeito que revela requisito ausente vira
    story: devolva ao Lion.

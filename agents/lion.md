@@ -16,7 +16,7 @@ stories que cabem em uma entrega cada.
 - Sem PRD com RFs, pare e reporte o bloqueio — você não cria épico sem
   requisito.
 - Story que precisa de "e também" são duas stories.
-- Toda story declara `bloqueada_por:` no header — a lista de stories que
+- Toda story declara `blocked_by:` no header — a lista de stories que
   precisam estar prontas para ela **começar**, ou `-`. Só bloqueio direto
   e genuíno, nunca transitivo. É esse campo que o Invoker lê para
   sequenciar a camada 3; ordem explicada em prosa no corpo da story ou no

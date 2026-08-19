@@ -19,6 +19,21 @@ duas razões válidas para parar: um gate de aprovação deste contrato (status
 responde. Se falta uma ferramenta (CLI não instalado, MCP não conectado),
 diga exatamente qual, em vez de degradar para instrução manual.
 
+## Convenção de nomes
+
+**Identificador em inglês, prosa em português.**
+
+Inglês técnico: pasta, arquivo, símbolo de código, tabela, coluna, rota,
+campo de header, nome de branch, slug de artefato e todo título de seção
+que este contrato define.
+
+Português: o conteúdo da documentação, os critérios de aceite, o corpo da
+mensagem de commit e os comentários de código.
+
+Um ADR mora em `ADR-025-invite-code-rotation.md` e o texto dentro dele é
+português. Uma migration chama `create_channels_table.sql`, e o comentário
+dentro explica em português por que a constraint existe.
+
 ## Caminhos canônicos
 
 ```
@@ -26,13 +41,14 @@ docs/
   PRD.md                        # Lina  (Product Manager)
   EPIC.md                       # Lion  (Scrum Master)
   adr/
-    ADR-001-slug-curto.md       # Rubick, uma decisão por arquivo
+    ADR-001-english-slug.md     # Rubick, uma decisão por arquivo
   DESIGN.md                     # Zeus  (UI/UX)
   CONTEXT.md                    # glossário do domínio - Lina mantém, todos escrevem
+  TEST-SEAMS.md                 # Rubick - onde cada classe de critério se prova
   INFRA.md                      # Disruptor - o que existe, onde, como subir do zero
   LESSONS.md                    # todos - licoes aprendidas, append-only
   stories/
-    STORY-001-slug-curto.md     # Lion define; Jakiro e Keeper anexam secoes
+    STORY-001-english-slug.md   # Lion define; Jakiro e Keeper anexam seções
 ```
 
 Nunca crie variação de caminho (`PRD/`, `prd.md`, `docs/product/PRD.md`).
@@ -63,7 +79,7 @@ Invoker, depois de veredito APROVADO do Keeper e PR aberto pelo Disruptor.
 Stories levam um campo a mais no header:
 
 ```markdown
-bloqueada_por: STORY-003, STORY-007   # ou "-" quando nada trava
+blocked_by: STORY-003, STORY-007   # ou "-" quando nada trava
 ```
 
 Liste apenas bloqueio **genuíno e direto**: a story não pode *começar* sem
@@ -82,23 +98,23 @@ PRD.md -> EPIC.md -> stories/STORY-*.md -> adr/ADR-*.md + DESIGN.md -> código
 Antes de escrever, leia o artefato pai inteiro. Cada seção que você criar deve
 rastrear para algo no pai: story cita o épico, ADR cita a story, código cita a
 story. Se você precisa de algo que não está no pai, isso é um gap — liste como
-`## Perguntas em aberto` no seu artefato e reporte ao Invoker. Não preencha
+`## Open Questions` no seu artefato e reporte ao Invoker. Não preencha
 lacuna de requisito com suposição sua.
 
 Organize essa seção por **fronteira**, não em lista achatada — o Invoker
 pergunta ao Founder na ordem que você deixar:
 
 ```markdown
-## Perguntas em aberto
+## Open Questions
 
-### Bloqueiam agora
+### Blocking now
 Respondíveis já, sem depender de nenhuma outra resposta desta lista.
 Uma linha por pergunta: o que muda conforme a resposta + sua recomendação.
 
-### Dependem de resposta acima
+### Waiting on an answer above
 Cada uma indica de qual pergunta depende. Não têm resposta útil antes disso.
 
-### Não bloqueiam esta etapa
+### Not blocking this stage
 Ficam registradas para quem vier depois — diga qual agente elas travam.
 ```
 
@@ -137,22 +153,25 @@ Founder — preferência, prioridade, restrição de negócio.
   com `superseded_by: ADR-0YY`. Assim o histórico continua legível e o grep
   encontra as duas pontas.
 
-  As costuras de teste são um ADR como outro qualquer (skill
-  `spectree-testes`), com seu próprio arquivo e seu próprio gate.
 - **CONTEXT.md** — O glossário do domínio, e **nada além disso**. Um termo,
   a definição em 1-2 frases, e os sinônimos que ficam proibidos:
 
   ```markdown
   ## Linguagem
 
-  **Conta**:
+  **Account** (conta):
   O registro de autenticação de uma pessoa — e-mail e senha.
-  _Avoid_: usuário, login
+  _Avoid_: user, usuário, login
 
-  **Membro**:
-  Uma Conta que entrou num Canal. É papel, não entidade separada.
-  _Avoid_: participante, integrante
+  **Member** (membro):
+  Uma Account que entrou num Channel. É papel, não entidade separada.
+  _Avoid_: participante, integrante, subscriber
   ```
+
+  O glossário é a **ponte** entre as duas línguas do projeto: o termo
+  canônico em inglês, porque é ele que vira `board.controller.ts` e a tabela
+  `boards`; o português entre parênteses, porque é assim que o Founder e a
+  documentação falam. `_Avoid_` recolhe os rejeitados nas duas línguas.
 
   A linha `_Avoid_` é o que faz o glossário funcionar: quem ia escrever
   "participante" encontra a palavra proibida e a substituição no mesmo
@@ -169,12 +188,18 @@ Founder — preferência, prioridade, restrição de negócio.
     não acontece. Qualquer agente escreve; a Lina mantém a consistência.
 
   Leia o glossário antes de escrever artefato ou código, e **tire dele os
-  nomes**: variável, função, arquivo, tabela e título de seção usam o termo
-  canônico. É assim que oito agentes sem contexto compartilhado convergem
+  nomes**: variável, função, arquivo, tabela e rota usam o termo canônico em
+  inglês; a prosa usa o português. É assim que oito agentes sem contexto compartilhado convergem
   para a mesma linguagem.
 
   O arquivo nasce quando o primeiro termo se resolve. Glossário escrito
   antes da primeira decisão é chute com aparência de autoridade.
+- **TEST-SEAMS.md** — Owner Rubick. O mapa de onde cada classe de critério
+  se prova para valer: a costura, o que ela cobre, a ferramenta, e o que
+  deliberadamente fica de fora. É **registro vivo**, não decisão: cresce a
+  cada classe nova de critério, e por isso não cabe num ADR, que se decide
+  uma vez e se substitui. Decisão *individual* de costura, quando é dura de
+  reverter, continua sendo ADR — e o mapa aponta para ela.
 - **DESIGN.md** — Fluxos de tela, estados (vazio/carregando/erro), tokens de
   design, e acessibilidade mínima por tela.
 - **INFRA.md** — Owner Disruptor, deriva das ADRs. O que existe (serviços,

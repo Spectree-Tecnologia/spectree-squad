@@ -1,5 +1,5 @@
 ---
-name: spectree-navegador
+name: spectree-browser
 description: Dirigir a interface real e medir numero - Playwright para comportamento, Chrome DevTools para medicao. Use ao verificar tela, depurar UI, aferir tempo, contraste ou acessibilidade.
 ---
 
