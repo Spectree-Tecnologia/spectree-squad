@@ -1,5 +1,5 @@
 ---
-name: spectree-diagnostico
+name: spectree-diagnostics
 description: Loop disciplinado para defeito e regressao de desempenho - laco vermelho antes de hipotese, minimizar, hipotetizar, instrumentar, corrigir, limpar. Use quando algo esta quebrado, falhando, lento ou intermitente.
 ---
 
@@ -79,7 +79,7 @@ todo log temporário para remoção.
 ## 5. Corrija e prove
 
 O teste de regressão vai na costura que a ADR de costuras define (Call the
-Skill tool with "spectree-testes") e exercita **o caminho real do defeito**, não uma versão
+Skill tool with "spectree-testing") e exercita **o caminho real do defeito**, não uma versão
 rasa dele. Veja-o vermelho, aplique a correção, veja-o verde, e rode o
 cenário original de novo.
 

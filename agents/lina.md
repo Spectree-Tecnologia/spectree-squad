@@ -20,7 +20,7 @@ Termo resolvido entra no glossário na hora, com os sinônimos rejeitados em
 que conflita com o que já está lá, o conflito é seu para resolver.
 
 **Guardrails:**
-- Não invente requisito — lacuna do briefing vira `## Perguntas em aberto`,
+- Não invente requisito — lacuna do briefing vira `## Open Questions`,
   organizada por fronteira (o que bloqueia agora / o que depende de outra
   resposta / o que trava outro agente depois). Discovery é a etapa com mais
   lacunas do pipeline: essa ordenação é o que permite ao Invoker fechá-las

@@ -63,14 +63,13 @@ com `INFRA.md` derivando das ADRs) e cada etapa só avança com o artefato pai
 aprovado pelo Founder. Lacunas de requisito viram perguntas organizadas por
 **fronteira** — o Invoker pergunta de uma vez tudo que já é respondível,
 com recomendação para cada, e guarda o que depende de resposta anterior
-para a rodada seguinte, até nada restar assumido em silêncio. Stories declaram `bloqueada_por:` no header (bloqueio direto, nunca
+para a rodada seguinte, até nada restar assumido em silêncio. Stories declaram `blocked_by:` no header (bloqueio direto, nunca
 transitivo) — é por esse campo que o Invoker sequencia a camada 3, e
 stories desbloqueadas e independentes correm em paralelo. Cada decisão de arquitetura é **uma ADR por arquivo** em `docs/adr/`, e só
 vira ADR o que é difícil de reverter, surpreendente sem contexto e resultado
-de trade-off real — uma ADR de um parágrafo é uma ADR completa. As costuras
-de teste têm ADR própria, aprovada pelo Founder junto com a arquitetura: é
-ela que diz a Jakiro onde escrever teste e a Keeper onde procurar
-evidência. Na camada 3 a story vira o registro vivo do
+de trade-off real — uma ADR de um parágrafo é uma ADR completa. O `docs/TEST-SEAMS.md` é o mapa vivo
+de onde cada classe de critério se prova — é ele que diz a Jakiro onde
+escrever teste e a Keeper onde procurar evidência. Na camada 3 a story vira o registro vivo do
 build: Jakiro mantém `## Dev Log` (checklist por critério de aceite +
 notas datadas), Keeper anexa `## QA Notes` por rodada de review, e o
 status percorre `approved -> in-progress -> done`. Lições aprendidas de qualquer
@@ -97,13 +96,21 @@ local costuma mentir em produção. Regra: **Playwright dirige, DevTools
 mede.**
 
 Defeito não entra pelo PRD: relato de algo quebrado, lento ou intermitente
-abre `fix/<slug>` e roda sob a skill `spectree-diagnostico` — laço que fica
+abre `fix/<slug>` e roda sob a skill `spectree-diagnostics` — laço que fica
 vermelho antes de qualquer hipótese, com todo segredo redigido no que for
 exibido, e entrega teste de regressão mais entrada no `LESSONS.md`. E quando o AI FIRST esbarra num passo que exige
 mesmo um humano (painel de terceiro, cartão, aceite de termo), o Disruptor
 gera um **wizard**: script bash interativo que abre a URL, captura o valor,
 grava onde ele pertence e confirma antes do irreversível — em vez de
 devolver um parágrafo de instruções.
+
+## Convenção de nomes
+
+**Identificador em inglês, prosa em português.** Pasta, arquivo, símbolo,
+tabela, rota, campo de header, branch e slug de artefato seguem o inglês
+técnico; a documentação, os critérios de aceite e os comentários de código
+ficam em português. O `CONTEXT.md` é a ponte: termo canônico em inglês
+(porque vira código), o português entre parênteses.
 
 ## Premissas de projeto
 
@@ -125,10 +132,10 @@ devolver um parágrafo de instruções.
 commands/techleader.md               # Invoker: orquestração + persona
 agents/*.md                          # os 8 agentes: papel, autoridade, critério de saída
 skills/spectree-artifacts/SKILL.md   # contrato de artefatos + princípio AI FIRST
-skills/spectree-testes/SKILL.md      # costuras de teste: quem decide, escreve, confere
-skills/spectree-navegador/SKILL.md   # Playwright dirige, DevTools mede
-skills/spectree-diagnostico/SKILL.md # laço vermelho antes de hipótese
-skills/spectree-wizard/               # o que só o humano faz vira script executável
+skills/spectree-testing/SKILL.md     # costuras de teste: quem decide, escreve, confere
+skills/spectree-browser/SKILL.md     # Playwright dirige, DevTools mede
+skills/spectree-diagnostics/SKILL.md # laço vermelho antes de hipótese
+skills/spectree-wizard/              # o que só o humano faz vira script executável
 ```
 
 Disciplina compartilhada mora em skill; agente carrega papel, autoridade e
