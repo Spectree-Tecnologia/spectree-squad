@@ -265,6 +265,7 @@ diretório pai).
 | 5 | Sandbox Runtime — `SandboxPolicy`, `SandboxResolver`, `LocalFilesystemSandboxProvider` | Sob quais limites físicos? |
 | 6 | Process Capability — `ProcessSpawnSpec`, `ProcessRegistry`, `LocalSubprocessProvider` | Qual processo pode nascer? |
 | 7 | Linux Physical Sandbox — `LinuxPhysicalSandboxProvider`, `BubblewrapBackend`, functional probe | O kernel garante o limite? |
+| 8 | Execution Effects — `ExecutionEffectSet`, `EffectResolver`, fingerprint | O que exatamente vai ser afetado? |
 
 O Sandbox fecha a quinta dimensão: a Policy responde *se pode*, o Sandbox
 responde *dentro de quais limites físicos*. Três modos (`read-only`,
@@ -314,10 +315,25 @@ desenvolvimento, não sandbox.
 | Windows nativo | indisponível | esperado |
 | macOS | indisponível | esperado |
 
-A próxima fronteira é o **Execution Effects / Resource Model** (F8): o
-`cwd` deixa de ser suficiente como modelo de efeito antes de o Shell
-(F9) existir — um comando expressivo toca vários mundos, e a Policy
-precisa julgar o conjunto de efeitos, não só onde o processo começou.
+A Fase 8 fechou essa fronteira: o `cwd` deixou de ser autoridade. Toda
+execução física governada carrega um **Execution Effect Set** explícito —
+cada efeito com kind, operação e resource canônico — e a Policy decide
+efeito a efeito: qualquer negação derruba o conjunto inteiro, aprovação
+humana pertence ao conjunto (não à tool), e o `resume()` recalcula os
+efeitos do input original com o **fingerprint** como trava — se o
+conjunto mudou, nada executa. `process.spawn` agora declara o execution
+world **e** a identidade do executável: começar no workspace não
+autoriza executável nenhum. Quem não consegue declarar o que vai afetar
+produz um plano incompleto — que falha fechado, nunca vira "provavelmente
+só o workspace". O Sandbox deriva o modo físico do conjunto: uma
+execução que só lê ganha boundary read-only, mesmo vinda de uma tool
+rotulada de escrita.
+
+A próxima fronteira é o **Shell** (F9): parser de comando de um lado, um
+`EffectPlan` do outro — o Shell não cria modelo de autorização, ele
+traduz a expressão para o modelo que a F8 acabou de estabelecer, e
+`filesystem.write(cwd)` como autorização de shell está explicitamente
+proibido.
 
 ### Rodando
 

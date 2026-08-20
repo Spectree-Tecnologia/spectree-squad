@@ -11,8 +11,14 @@ import {
   SandboxConfigurationError,
   CapabilityError,
 } from '../errors.js';
+import {
+  EffectResolutionError,
+  EffectAuthorizationError,
+} from '../errors.js';
 import { releaseSandbox } from '../sandbox/sandbox-resolver.js';
 import { describeSandboxPolicy } from '../sandbox/sandbox-policy.js';
+import { EffectResolver } from '../effects/effect-resolver.js';
+import { resourceUri } from '../effects/resource-ref.js';
 
 /**
  * Contrato de Tool (spec secao 10):
@@ -110,6 +116,7 @@ export class ToolRuntime {
   #sandboxProfileResolver;
   #projectEventPayload;
   #onApprovalRequired;
+  #effectResolver = new EffectResolver();
 
   /**
    * @param {object} options
@@ -219,7 +226,18 @@ export class ToolRuntime {
     const issues = validateInput(tool.inputSchema, input);
     if (issues.length > 0) throw new ToolValidationError(toolId, issues);
     const authorization = this.#buildAuthorization(tool, input, request, context);
-    return { authorization, decision: this.#policyEngine.decide(authorization) };
+    // Fase 8 (secoes 20, 50): o dry-run tambem resolve efeitos — o
+    // resume compara fingerprints e reavalia CADA efeito, sem eventos
+    const plan = this.#resolveEffectPlan(tool, input, authorization);
+    if (plan && plan.completeness !== 'complete') {
+      throw new EffectResolutionError(
+        "tool '" + tool.id + "' produced an incomplete effect plan on revalidation",
+      );
+    }
+    const decision = plan
+      ? this.#evaluateEffects(plan, authorization, {}, { emit: false }).decision
+      : this.#policyEngine.decide(authorization);
+    return { authorization, decision, effectPlan: plan };
   }
 
   #buildAuthorization(tool, input, request, context) {
@@ -234,6 +252,84 @@ export class ToolRuntime {
       input,
       resource: resource ? Object.freeze(resource) : null,
     });
+  }
+
+  /**
+   * Resolucao de efeitos (spec Fase 8, secoes 12, 44): antes da Policy,
+   * o Runtime determina o ExecutionEffectSet da operacao. Tool sem rota
+   * de resolucao segue o caminho legado single-resource das Fases 1-7
+   * (secao 63) — capability no modelo F8 (effectKinds declarados) nao
+   * pode regredir e falha fechado dentro do resolver.
+   */
+  #resolveEffectPlan(tool, input, authorization) {
+    let capability = null;
+    try {
+      capability = this.#capabilityResolver.resolveCapability(tool, authorization.operation);
+    } catch {
+      capability = null; // gate de capability continua no dispatch (F4)
+    }
+    return this.#effectResolver.resolve({
+      tool,
+      capability,
+      input,
+      principal: authorization.principal,
+      session: authorization.session,
+      cwd: typeof input?.cwd === 'string' ? input.cwd : null,
+    });
+  }
+
+  /**
+   * Avaliacao por efeito + composicao (secoes 15-17, INV-804): a Policy
+   * existente decide CADA efeito — capability de decisao = kind do
+   * efeito, resource = resource do efeito. Qualquer DENY vence o
+   * conjunto; APPROVAL vence ALLOW; nao existe autorizacao parcial.
+   */
+  #evaluateEffects(plan, authorization, meta, { emit = true } = {}) {
+    const decisions = [];
+    let deny = null;
+    let approval = null;
+    for (const effect of plan.effects) {
+      const effectAuthorization = Object.freeze({
+        principal: authorization.principal,
+        session: authorization.session,
+        // a capability que governa o efeito e o KIND dele: um spawn que
+        // declara efeitos de filesystem e julgado pelas policies de
+        // filesystem (secao 24)
+        tool: Object.freeze({ id: authorization.tool.id, capability: effect.kind }),
+        operation: effect.operation,
+        input: authorization.input,
+        resource: effect.resource,
+      });
+      const decision = this.#policyEngine.decide(effectAuthorization);
+      decisions.push(Object.freeze({ effect, decision }));
+      if (emit) {
+        this.#bus.publish('effect.evaluated', {
+          ...meta,
+          payload: {
+            effectSetFingerprint: plan.fingerprint,
+            kind: effect.kind,
+            operation: effect.operation,
+            resource: resourceUri(effect.resource),
+            policyId: decision.policyId ?? null,
+            effect: decision.effect,
+          },
+        });
+      }
+      if (decision.effect === 'deny' && !deny) deny = decisions[decisions.length - 1];
+      if (decision.effect === 'approval-required' && !approval) approval = decisions[decisions.length - 1];
+    }
+    let composed;
+    if (deny) composed = deny.decision;
+    else if (approval) composed = approval.decision;
+    else if (decisions.length === 1) composed = decisions[0].decision;
+    else {
+      composed = Object.freeze({
+        effect: 'allow',
+        policyId: decisions[0].decision.policyId ?? null,
+        reason: 'effect set allowed (' + decisions.length + ' effects)',
+      });
+    }
+    return { decision: composed, decisions, denied: deny, approvalRequired: approval };
   }
 
   /** Pipeline fisico de execucao: started -> execute -> completed/failed. */
@@ -271,10 +367,10 @@ export class ToolRuntime {
    * explicitamente nao-sandboxed: sem efeito fisico, sem fronteira, e a
    * decisao esta declarada no registro, nunca implicita.
    */
-  async #runTool(tool, input, meta, authorization) {
+  async #runTool(tool, input, meta, authorization, plan = null) {
     let sandbox = null;
     if (tool.execution === 'physical' && this.#sandboxProfileResolver && this.#sandboxResolver) {
-      sandbox = await this.#applySandbox(tool, meta, authorization);
+      sandbox = await this.#applySandbox(tool, meta, authorization, plan);
     }
     try {
       this.#bus.publish('tool.started', {
@@ -318,7 +414,10 @@ export class ToolRuntime {
       agentId,
       session: { id: sessionId },
     });
-    return this.#dispatch(tool, input ?? {}, { sessionId, agentId }, authorization);
+    // o resume ja revalidou o conjunto; aqui o plano alimenta a
+    // derivacao de boundary do Sandbox (secoes 28-31)
+    const plan = this.#resolveEffectPlan(tool, input ?? {}, authorization);
+    return this.#dispatch(tool, input ?? {}, { sessionId, agentId }, authorization, plan);
   }
 
   /**
@@ -329,7 +428,7 @@ export class ToolRuntime {
    * tool sem execute() e provider-backed: o Provider e resolvido fresco a
    * cada execucao e a cada resume (secao 86).
    */
-  async #dispatch(tool, input, meta, authorization) {
+  async #dispatch(tool, input, meta, authorization, plan = null) {
     let provider = null;
     try {
       const capability = this.#capabilityResolver.resolveCapability(tool, authorization.operation);
@@ -357,8 +456,8 @@ export class ToolRuntime {
       });
       throw error;
     }
-    if (!provider) return this.#runTool(tool, input, meta, authorization);
-    return this.#runProvider(provider, tool, input, meta, authorization);
+    if (!provider) return this.#runTool(tool, input, meta, authorization, plan);
+    return this.#runProvider(provider, tool, input, meta, authorization, plan);
   }
 
   /**
@@ -370,7 +469,7 @@ export class ToolRuntime {
    *
    * @returns {Promise<object|null>} SandboxHandle ou null
    */
-  async #applySandbox(tool, meta, authorization) {
+  async #applySandbox(tool, meta, authorization, plan = null) {
     if (!this.#sandboxProfileResolver || !this.#sandboxResolver) return null;
     const capabilityId = authorization.tool.capability;
     const operation = authorization.operation;
@@ -382,7 +481,11 @@ export class ToolRuntime {
     let provider;
     try {
       // teto: Runtime > Capability > Tool (secoes 134, 137)
-      resolved = this.#sandboxProfileResolver.resolve({ tool, capabilityId, operation });
+      // secoes 28-31: o Sandbox consome os efeitos AUTORIZADOS — o modo
+      // necessario e derivado do conjunto, nunca ampliado por ele
+      resolved = this.#sandboxProfileResolver.resolve({
+        tool, capabilityId, operation, effects: plan?.effects ?? null,
+      });
       provider = this.#sandboxResolver.resolve(resolved.policy, { capabilityId });
       this.#sandboxResolver.assertCapabilitySupported(provider, capabilityId, resolved.policy.mode);
     } catch (error) {
@@ -422,6 +525,7 @@ export class ToolRuntime {
           providerId: provider.providerId,
           // secao 67 (F7): identidade do backend fisico, sem internals
           backend: provider.describe(resolved.policy)?.backend ?? null,
+          effectSetFingerprint: plan?.fingerprint ?? null,
           requested: resolved.requiredMode,
           policy: describeSandboxPolicy(resolved.policy),
         },
@@ -443,7 +547,7 @@ export class ToolRuntime {
    * — nunca PolicyEngine, ToolRuntime, EventBus ou ApprovalManager
    * (INV-413/414). O resource e o autorizado pela Policy (INV-415).
    */
-  async #runProvider(provider, tool, input, meta, authorization) {
+  async #runProvider(provider, tool, input, meta, authorization, plan = null) {
     const resource = authorization.resource;
     const resourceStr = resource ? (resource.type ?? '?') + '/' + (resource.id ?? '?') : null;
     const providerPayload = {
@@ -454,7 +558,7 @@ export class ToolRuntime {
     };
     // Sandbox ANTES de qualquer sinal de execucao (secoes 68-69): se o
     // boundary recusa, tool.started e provider.started nao acontecem.
-    const sandbox = await this.#applySandbox(tool, meta, authorization);
+    const sandbox = await this.#applySandbox(tool, meta, authorization, plan);
     this.#bus.publish('tool.started', {
       ...meta,
       payload: this.#projectEventPayload({ phase: 'started', toolId: tool.id }),
@@ -560,7 +664,39 @@ export class ToolRuntime {
 
     // AuthorizationContext (secao 7): snapshot imutavel da decisao.
     const authorization = this.#buildAuthorization(tool, input, request, context);
-    const decision = this.#policyEngine.decide(authorization);
+
+    // Fase 8 (secao 44): resolve effects ANTES da Policy. Falha de
+    // resolucao e fail-closed (INV-805) e precede a decisao.
+    let plan = null;
+    let evaluation = null;
+    try {
+      plan = this.#resolveEffectPlan(tool, input, authorization);
+      if (plan) {
+        if (plan.completeness !== 'complete') {
+          throw new EffectResolutionError(
+            "tool '" + tool.id + "' produced an incomplete effect plan: " +
+            (plan.reason ?? 'unknown effects') + ' — incomplete plans fail closed (secao 52)',
+          );
+        }
+        this.#bus.publish('effect.resolved', {
+          ...meta,
+          payload: { effectSetFingerprint: plan.fingerprint, effectCount: plan.effects.length },
+        });
+      }
+    } catch (error) {
+      this.#bus.publish('tool.failed', {
+        ...meta,
+        payload: this.#projectEventPayload({
+          phase: 'failed',
+          toolId: tool.id,
+          error: String(error?.message ?? error),
+        }),
+      });
+      throw error;
+    }
+
+    if (plan) evaluation = this.#evaluateEffects(plan, authorization, meta);
+    const decision = evaluation ? evaluation.decision : this.#policyEngine.decide(authorization);
     const resource = authorization.resource;
     const policyPayload = {
       policyId: decision.policyId ?? null,
@@ -569,15 +705,57 @@ export class ToolRuntime {
       operation: authorization.operation,
       resource: resource ? (resource.type ?? '?') + '/' + (resource.id ?? '?') : null,
       reason: decision.reason,
+      ...(plan ? { effectSetFingerprint: plan.fingerprint } : {}),
     };
     this.#bus.publish('policy.evaluated', { ...meta, payload: policyPayload });
     if (decision.effect === 'deny') {
+      if (evaluation?.denied) {
+        const denied = evaluation.denied.effect;
+        this.#bus.publish('effect.denied', {
+          ...meta,
+          payload: {
+            effectSetFingerprint: plan.fingerprint,
+            kind: denied.kind,
+            operation: denied.operation,
+            resource: resourceUri(denied.resource),
+            policyId: decision.policyId ?? null,
+            reason: decision.reason,
+          },
+        });
+      }
       this.#bus.publish('policy.denied', { ...meta, payload: policyPayload });
-      throw new PolicyDeniedError(decision);
+      // INV-804: um deny nega o conjunto inteiro — nada executa
+      throw evaluation
+        ? new EffectAuthorizationError(decision, {
+            effectSetFingerprint: plan.fingerprint,
+            deniedEffect: evaluation.denied
+              ? {
+                  kind: evaluation.denied.effect.kind,
+                  operation: evaluation.denied.effect.operation,
+                  resource: resourceUri(evaluation.denied.effect.resource),
+                }
+              : null,
+          })
+        : new PolicyDeniedError(decision);
     }
     if (decision.effect === 'approval-required') {
+      if (evaluation?.approvalRequired) {
+        const pending = evaluation.approvalRequired.effect;
+        this.#bus.publish('effect.approval-required', {
+          ...meta,
+          payload: {
+            effectSetFingerprint: plan.fingerprint,
+            kind: pending.kind,
+            operation: pending.operation,
+            resource: resourceUri(pending.resource),
+            policyId: decision.policyId ?? null,
+            reason: decision.reason,
+          },
+        });
+      }
       this.#bus.publish('policy.approval-required', { ...meta, payload: policyPayload });
       const error = new PolicyApprovalRequiredError(decision);
+      if (plan) error.effectSetFingerprint = plan.fingerprint;
       // Fase 3: a invocation bloqueada vira um pedido formal de decisao
       // humana (secao 5). O snapshot vai ao ApprovalManager; o input fica
       // no estado privado do store, nunca em evento.
@@ -591,6 +769,15 @@ export class ToolRuntime {
             operation: authorization.operation,
             resource: policyPayload.resource,
             input,
+            // INV-807: a aprovacao pertence ao CONJUNTO de efeitos
+            effectSetFingerprint: plan?.fingerprint ?? null,
+            effects: plan
+              ? plan.effects.map((effect) => Object.freeze({
+                  kind: effect.kind,
+                  operation: effect.operation,
+                  resource: resourceUri(effect.resource),
+                }))
+              : null,
           },
           { policyId: decision.policyId ?? null, reason: decision.reason },
         );
@@ -599,6 +786,6 @@ export class ToolRuntime {
       throw error;
     }
 
-    return this.#dispatch(tool, input, meta, authorization);
+    return this.#dispatch(tool, input, meta, authorization, plan);
   }
 }

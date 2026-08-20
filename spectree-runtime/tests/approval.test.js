@@ -248,7 +248,7 @@ test('secao 68/28: approval.requested nao carrega input - segredo nunca chega ao
   const requested = runtime.events.find((e) => e.type === 'approval.requested');
   assert.deepEqual(
     Object.keys(requested.payload).sort(),
-    ['approvalId', 'capabilityId', 'expiresAt', 'operation', 'policyId', 'reason', 'resource', 'toolId'],
+    ['approvalId', 'capabilityId', 'effectSetFingerprint', 'effects', 'expiresAt', 'operation', 'policyId', 'reason', 'resource', 'toolId'],
   );
   assert.ok(!JSON.stringify(runtime.events).includes('super-secret'));
 });

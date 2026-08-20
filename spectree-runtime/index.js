@@ -67,6 +67,23 @@ export {
 export { BubblewrapBackend } from './sandbox/providers/linux-physical/bubblewrap-backend.js';
 export { LandlockBackend } from './sandbox/providers/linux-physical/landlock-backend.js';
 export { functionalProbe } from './sandbox/providers/linux-physical/probe.js';
+export {
+  createResourceRef,
+  resourceUri,
+  canonicalFilesystemPath,
+  filesystemResource,
+  createWorkspaceRef,
+} from './effects/resource-ref.js';
+export {
+  EFFECT_KINDS,
+  EFFECT_OPERATIONS,
+  createExecutionEffect,
+  canonicalEffect,
+  renameEffects,
+  linkEffects,
+} from './effects/execution-effect.js';
+export { createExecutionEffectSet, createEffectPlan } from './effects/effect-set.js';
+export { EffectResolver } from './effects/effect-resolver.js';
 export { createSandboxEscalationRequest } from './sandbox/sandbox-escalation.js';
 export { createProcessSpawnSpec } from './process/spawn-spec.js';
 export { buildProcessEnvironment, MINIMAL_SAFE_KEYS } from './process/environment.js';
