@@ -47,3 +47,15 @@ export const boomTool = {
 };
 
 export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Concede allow explicito por tool (spec Fase 2, secao 55) - nunca um
+ * allow-all global: cada teste declara exatamente o que pode executar.
+ */
+export function allowTools(runtime, toolIds) {
+  runtime.policyRegistry.register({
+    id: 'allow-' + toolIds.join('+'),
+    effect: 'allow',
+    tools: toolIds,
+  });
+}

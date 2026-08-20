@@ -37,3 +37,23 @@ export class SessionStateError extends SessionError {
     this.to = to;
   }
 }
+
+export class PolicyError extends RuntimeError {}
+
+export class PolicyDeniedError extends PolicyError {
+  constructor(decision) {
+    super('policy denied: ' + decision.reason);
+    this.decision = decision;
+  }
+}
+
+export class PolicyApprovalRequiredError extends PolicyError {
+  constructor(decision) {
+    super('approval required: ' + decision.reason);
+    this.decision = decision;
+  }
+}
+
+export class PolicyConfigurationError extends PolicyError {}
+
+export class CapabilityError extends RuntimeError {}

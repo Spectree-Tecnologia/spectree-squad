@@ -1,12 +1,18 @@
 {
   "name": "spectree-squad",
   "description": "Squad de agentes de IA em 3 camadas (Discovery/Product, Design/Arquitetura, Build) orquestrado pelo TechLeader Invoker.",
-  "version": "0.16.0",
+  "version": "0.17.0",
   "author": {
     "name": "Spectree Tecnologia",
     "email": "gilsonjunior.developer@gmail.com"
   },
   "homepage": "https://github.com/Spectree-Tecnologia/spectree-squad",
   "repository": "https://github.com/Spectree-Tecnologia/spectree-squad",
-  "keywords": ["squad", "pipeline", "prd", "adr", "multi-agent"]
+  "keywords": [
+    "squad",
+    "pipeline",
+    "prd",
+    "adr",
+    "multi-agent"
+  ]
 }

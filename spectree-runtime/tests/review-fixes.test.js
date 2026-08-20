@@ -2,8 +2,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { EventBus } from '../events/event-bus.js';
 import { ToolRuntime } from '../tools/tool-runtime.js';
+import { PolicyRegistry } from '../policy/policy-registry.js';
+import { PolicyEngine } from '../policy/policy-engine.js';
 import { SessionError } from '../errors.js';
-import { recordedRuntime, makeAgent, okTool, sleep } from './helpers.js';
+import { recordedRuntime, makeAgent, okTool, sleep, allowTools } from './helpers.js';
 
 test('R3/R4: session de um agente nao executa outro agente', async () => {
   const runtime = recordedRuntime();
@@ -30,6 +32,7 @@ test('R5/R6: tool em voo durante o cancel termina e emite; nada novo inicia; nen
     },
   });
   runtime.toolRuntime.register(okTool);
+  allowTools(runtime, ['slow', 'ok']);
   const agent = makeAgent('in-flight', async (context) => {
     const result = await context.runtime.requestTool('slow'); // cancel chega no meio desta
     await context.runtime.requestTool('ok', { value: result.output }); // barrada
@@ -56,8 +59,11 @@ test('R7: projectEventPayload separa o que a tool ve do que o bus publica', asyn
   const bus = new EventBus();
   const published = [];
   bus.subscribe('*', (e) => published.push(e));
+  const registry = new PolicyRegistry();
+  registry.register({ id: 'allow-secretive', effect: 'allow', tools: ['secretive'] });
   const tools = new ToolRuntime({
     eventBus: bus,
+    policyEngine: new PolicyEngine({ registry }),
     projectEventPayload: ({ phase, toolId }) => ({ toolId, phase, redacted: true }),
   });
   let toolSawInput;
@@ -73,18 +79,23 @@ test('R7: projectEventPayload separa o que a tool ve do que o bus publica', asyn
   await tools.execute({ toolId: 'secretive', input: { apiKey: 'super-secret' } });
   // a tool recebeu o input integro
   assert.deepEqual(toolSawInput, { apiKey: 'super-secret' });
-  // o bus nunca viu input nem output
-  for (const event of published) {
+  // o bus nunca viu input nem output - nem nos eventos de tool, nem nos de policy
+  const toolEvents = published.filter((e) => e.type.startsWith('tool.'));
+  for (const event of toolEvents) {
     assert.deepEqual(Object.keys(event.payload).sort(), ['phase', 'redacted', 'toolId']);
+  }
+  for (const event of published) {
     assert.ok(!JSON.stringify(event.payload).includes('super-secret'));
     assert.ok(!JSON.stringify(event.payload).includes('token-abc123'));
   }
-  assert.equal(published.length, 3); // requested, started, completed
+  assert.equal(toolEvents.length, 3); // requested, started, completed
+  assert.equal(published.length, 4); // + policy.evaluated
 });
 
 test('R8: o EventBus nao e alcancavel pelo Agent - o contexto expoe apenas requestTool', async () => {
   const runtime = recordedRuntime();
   runtime.toolRuntime.register(okTool);
+  allowTools(runtime, ['ok']);
   let seen;
   const agent = makeAgent('probe', async (context) => {
     seen = context;
