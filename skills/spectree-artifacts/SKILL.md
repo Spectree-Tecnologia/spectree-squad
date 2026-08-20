@@ -19,6 +19,13 @@ duas razões válidas para parar: um gate de aprovação deste contrato (status
 responde. Se falta uma ferramenta (CLI não instalado, MCP não conectado),
 diga exatamente qual, em vez de degradar para instrução manual.
 
+## Matriz de autoridade
+
+Quem pode o quê vive em `squad.policies.json`, na raiz do plugin — default
+deny: o que a matriz não concede, nenhum agente tem. A prosa dos agentes
+resume a matriz; em conflito, a matriz vence. Esbarrou em autoridade que
+não é sua, reporte ao Invoker em vez de contornar.
+
 ## Convenção de nomes
 
 **Identificador em inglês, prosa em português.**

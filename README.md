@@ -109,6 +109,14 @@ cliente, e `emulate` mede sob throttle — porque teto aprovado só em stack
 local costuma mentir em produção. Regra: **Playwright dirige, DevTools
 mede.**
 
+A matriz de quem-pode-o-quê vive em `squad.policies.json`, na raiz — no
+mesmo shape que o `PolicyRegistry` do runtime aceita, e provada por teste
+no motor real: `tests/squad-policies.test.js` carrega o arquivo no
+`PolicyRegistry` e decide cada fronteira no `PolicyEngine` (banco é do
+Oracle, main nega até o Disruptor, operação destrutiva é gate do Founder).
+Prosa e matriz em conflito, a matriz vence — e quando o Squad rodar sobre
+o runtime, o mesmo arquivo alimenta o registry sem tradução.
+
 Defeito não entra pelo PRD: relato de algo quebrado, lento ou intermitente
 abre `fix/<slug>` e roda sob a skill `spectree-diagnostics` — laço que fica
 vermelho antes de qualquer hipótese, com todo segredo redigido no que for
@@ -251,7 +259,9 @@ spectree-runtime/
   adapters/squad-agent.js            # ponte Squad -> Runtime
   tests/                             # a suíte; cada invariante tem seu teste
 
+squad.policies.json                  # a matriz de autoridade, no shape do PolicyRegistry
 tests/squad-surface.test.js          # a superfície de autoridade do Squad, travada
+tests/squad-policies.test.js         # a matriz decidida pelo PolicyEngine real
 
 docs/architecture/                   # a arquitetura do runtime, fase a fase
 docs/adr/                            # as decisões que custaram trade-off
