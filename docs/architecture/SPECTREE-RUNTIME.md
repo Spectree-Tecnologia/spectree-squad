@@ -1,4 +1,4 @@
-# Spectree Runtime — Fases 1 e 2: Runtime Core + Policy Engine
+# Spectree Runtime — Fases 1 a 3: Runtime Core + Policy Engine + Founder Gate
 
 Microkernel de execução do Spectree. Cinco primitivas, nenhum conhecimento
 de persona: o Squad define quem o agente é; o runtime define como um agente
@@ -194,13 +194,73 @@ sem engine seria uma rota permanente de bypass. `createRuntime()` nasce
 com registry vazio — que nega tudo. Teste que precisa executar registra
 policy explicita; nao existe allow-all de conveniencia.
 
+## Aprovacao humana (Fase 3)
+
+`approval-required` deixa de ser um beco: vira um pedido formal de decisao
+humana, com estado explicito no runtime.
+
+```
+requestTool -> policy approval-required -> ApprovalRequest (pending)
+  Founder approve -> resume() -> REVALIDA policy -> approved->resumed
+    -> tool.started -> tool.completed
+  Founder deny -> denied (terminal, zero execucao)
+```
+
+### Approval state machine
+
+`pending -> approved | denied | expired | cancelled` e
+`approved -> resumed`. Estados terminais nao transitam; decisao e unica —
+a segunda decisao concorrente recebe `ApprovalStateError` do
+compare-and-set do `ApprovalStore` (secoes 24, 45). Idempotencia segura:
+repetir a decisao vencedora devolve o estado, sem evento novo.
+
+### Resume: aprovacao nao e bypass (secao 97)
+
+`resume()` verifica `approved`, verifica cancelamento da Session, e
+**revalida a Policy com o input original** — resource recalculado pela
+regra R9, nada vindo do Founder (INV-305/307/308/309). A exigencia esta
+satisfeita quando a decisao vigente e `allow`, ou `approval-required` do
+MESMO `policyId` aprovado; policy nova ou `deny` -> `PolicyRevalidationError`
+e a approval permanece `approved` (retry e do operador; nada automatico).
+So entao o consumo atomico `approved -> resumed` libera a execucao unica
+(INV-317), via executor autorizado de aquisicao unica
+(`acquireAuthorizedExecutor`) — nao existe `executeWithoutPolicy` (secao 44).
+
+### Estado privado vs projecao publica (secao 77)
+
+O record no `ApprovalStore` guarda a `PendingToolInvocation` — incluindo o
+input, possivelmente sensivel. A visao publica (`ApprovalManager.get`,
+`FounderGate.pending()`) e os eventos carregam apenas metadata segura:
+`approvalId, toolId, capabilityId, operation, resource, policyId, reason,
+expiresAt`. Nunca input, output ou segredo (secoes 28, 36-37, 68).
+
+### Cancelamento e expiracao
+
+Session cancelada cancela as approvals `pending` dela em cascata sincrona
+(sem janela para um `approve()` escapar) e barra o resume das ja
+aprovadas — a Session tem autoridade final (secao 48). Efeito observavel
+documentado (secao 34): no stream, `approval.cancelled` aparece antes de
+`session.cancelled` por reentrancia do publish. Expiracao e preguicosa
+(secao 22): detectada na leitura/decisao via clock injetavel; sem worker.
+
+### FounderGate
+
+O contrato entre o manager e o mecanismo externo de decisao
+(`requestApproval` / `submitDecision`). `InMemoryFounderGate` atende os
+testes; Invoker CLI, TUI, Web, Slack futuros falam com o MESMO
+ApprovalManager (secao 49). Sem promise escondida (secao 84): a decisao e
+estado explicito no store — um processo reiniciado com o store restaurado
+consegue `resume(approvalId)` (secao 83).
+
 ## Extension points
 
 | Futuro | Onde entra | O que muda |
 |---|---|---|
 | Redação em eventos | `projectEventPayload` no construtor do ToolRuntime — o que a tool vê é separado do que o bus publica | nada nos demais |
 | PolicyRegistry externo | fonte de policies (arquivo, banco, serviço) alimenta o registry | Agent, AgentLoop e ToolRuntime intactos |
-| Founder Gate / Approval | consome `PolicyApprovalRequiredError` + `policy.approval-required` | resume/retry pertence ao Orchestrator futuro |
+| Approval UI (CLI/TUI/Web/Slack) | consome `ApprovalManager` + `FounderGate` + eventos `approval.*` | nunca fala com ToolRuntime (secao 86) |
+| ApprovalStore persistente | Postgres/Redis/Supabase implementam create/get/transition | ApprovalManager intacto (secao 14) |
+| Identidade do decisor | seam `FounderGate.authorizeDecision(actor, approval)` (secao 87) | decidedBy hoje e metadata de audit (secao 51) |
 | Sandbox | camada após a Policy: "mesmo podendo, em qual ambiente executa?" | não fundida com Policy por decisão (spec §64) |
 | LLM provider | subclasse de `Agent` que fala com um Model provider em `run()` | nada nos demais |
 | Timeout | mesmo choke point de `execute` | nada nos demais |
@@ -218,8 +278,11 @@ policy explicita; nao existe allow-all de conveniencia.
   `toolId` (e a mensagem de erro em `tool.failed`). Input e output nunca
   saem no bus sem um `projectEventPayload` customizado que opte por isso.
   Eventos de policy já nascem sem input/output por contrato.
-- Aprovação humana não existe ainda: `approval-required` bloqueia e lança;
-  o Founder Gate e o resume/retry pertencem a fase futura.
+- Agente que nao trata `PolicyApprovalRequiredError` falha a propria
+  session; a approval permanece acionavel e o resume executa fora do loop
+  do agente — o re-entry gracioso pertence ao Orchestrator futuro.
+- `resumed` e terminal: falha de revalidacao deixa a approval `approved`
+  para retry do operador, mas apos executar nao ha re-execucao.
 - Matching de policy é glob simples — sem CEL, OPA, RBAC/ABAC completos,
   por decisão de fase (spec §37).
 - CapabilityRegistry é catálogo, não gate (R11): a execução não consulta o

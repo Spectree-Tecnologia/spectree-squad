@@ -1,7 +1,7 @@
 {
   "name": "spectree-squad",
   "description": "Squad de agentes de IA em 3 camadas (Discovery/Product, Design/Arquitetura, Build) orquestrado pelo TechLeader Invoker.",
-  "version": "0.17.0",
+  "version": "0.18.0",
   "author": {
     "name": "Spectree Tecnologia",
     "email": "gilsonjunior.developer@gmail.com"
