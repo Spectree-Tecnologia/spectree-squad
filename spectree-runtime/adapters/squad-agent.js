@@ -15,7 +15,8 @@ export function loadSquadAgentDefinition(markdownPath) {
   const frontmatter = match[1];
   const body = match[2];
   const field = (name) => {
-    const m = frontmatter.match(new RegExp('^' + name + ':\s*(.+)$', 'm'));
+    // String.raw para o \s sobreviver: em string comum '\s' vira o literal 's'.
+    const m = frontmatter.match(new RegExp('^' + name + String.raw`:\s*(.+)$`, 'm'));
     return m ? m[1].trim() : undefined;
   };
   const id = field('name');
