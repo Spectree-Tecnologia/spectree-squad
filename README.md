@@ -5,6 +5,18 @@ orquestrado pelo TechLeader **Invoker** — o único ponto de contato com o
 Founder. Todo o estado do pipeline vive em artefatos versionados no
 repositório (`docs/`).
 
+O repositório carrega duas metades que se completam:
+
+- **O Squad** (`commands/`, `agents/`, `skills/`) — quem são os agentes,
+  o que cada um entrega e sob quais fronteiras. Autoridade descrita em
+  prompt.
+- **O Runtime** (`spectree-runtime/`) — como uma execução de agente é
+  governada: policy, aprovação humana e capability. Autoridade aplicada
+  em código.
+
+O Squad diz *quem* é o agente; o Runtime diz *o que ele pode fazer de
+verdade*. O runtime não conhece nenhum agente do Squad pelo nome.
+
 ## Instalação
 
 Direto do GitHub (o repo é seu próprio marketplace):
@@ -112,42 +124,93 @@ técnico; a documentação, os critérios de aceite e os comentários de código
 ficam em português. O `CONTEXT.md` é a ponte: termo canônico em inglês
 (porque vira código), o português entre parênteses.
 
-## Spectree Runtime (Fase 1)
+## Spectree Runtime
 
-`spectree-runtime/` é o microkernel de execução do Spectree: cinco
-primitivas — `Agent`, `AgentLoop`, `ToolRuntime`, `Session`, `EventBus` —
-sem conhecer nenhum agente do Squad pelo nome. O Squad define quem o agente
-é; o runtime define como um agente executa. Zero dependências; `npm test`
-roda a suíte e `npm run example` demonstra o lifecycle completo.
-Arquitetura em `docs/architecture/SPECTREE-RUNTIME.md`.
+`spectree-runtime/` é o microkernel de execução do Spectree: JavaScript
+ESM puro, zero dependências, testado com `node:test`. Ele responde a uma
+pergunta que prompt nenhum responde — **quando um agente pede para fazer
+algo, quem autoriza?**
 
-A Fase 2 adiciona o **sistema de autoridade**: `PolicyEngine`,
-`PolicyRegistry` e `CapabilityRegistry`. Toda execução de tool passa por
-uma decisão determinística — `allow`, `deny` ou `approval-required` — com
-**default deny**: ausência de policy nunca concede acesso, e `deny` sempre
-vence `allow`. A autoridade que antes era convenção de persona ("sou o
-Oracle, posso mexer no banco") vira enforcement do runtime.
-`npm run example:policy` demonstra os três cenários: allow, deny e
-approval-required.
+No Squad a autoridade é convenção de persona: "sou o Oracle, o banco é
+meu". Convenção depende do modelo obedecer ao próprio prompt. No Runtime a
+mesma autoridade vira decisão determinística tomada fora do agente, e o
+agente não tem como alcançá-la — o contexto que ele recebe expõe
+exatamente `session`, `mission` e `runtime.requestTool`, e essa superfície
+é travada por teste estrutural.
 
-A Fase 3 fecha o ciclo do `approval-required`: o bloqueio vira uma
-**ApprovalRequest** com estado explícito (`pending -> approved | denied |
-expired | cancelled`, `approved -> resumed`), decidida por um humano via
-**FounderGate** e retomada por `resume()` — que **revalida a Policy** com o
-input original antes de executar. Aprovação humana autoriza uma operação
-específica; nunca vira bypass, permissão permanente ou segunda autoridade.
-`npm run example:approval` demonstra approve/resume, deny e a revalidação
-bloqueando quando a policy mudou.
+Todo pedido de tool percorre um único caminho:
 
-A Fase 4 dá braços ao runtime: **Capability Providers**. Tool é a operação
-solicitável, Capability é o contrato do que o runtime sabe fazer, Provider
-é como se faz de verdade — e o `CapabilityRegistry` virou gate: capability
-não registrada bloqueia execução. O primeiro provider real é o
-`LocalFilesystemProvider` (read/write/delete dentro de um workspace
-injetado), com boundary de path, recusa de symlink e a garantia de que o
-resource autorizado pela Policy é exatamente o executado.
-`npm run example:provider` demonstra o ciclo completo até o arquivo real —
-incluindo um path traversal morrendo na Policy antes de tocar o Provider.
+```
+runtime.requestTool(toolId, input)
+  -> tool.requested
+  -> Policy.decide  ->  policy.evaluated
+       deny               nada executa (PolicyDeniedError)
+       approval-required  ApprovalRequest -> FounderGate -> resume() revalida a Policy
+       allow              Capability gate -> Provider -> efeito real no mundo
+  -> tool.completed
+```
+
+As invariantes que esse caminho garante, todas cobertas por teste:
+
+- **Default deny** — ausência de policy nunca concede acesso, e `deny`
+  sempre vence `allow`.
+- **Resource não é falsificável** — o recurso que a Policy julga é
+  derivado da metadata da Tool, nunca do que o agente mandou no pedido.
+- **O resource autorizado é o executado** — a Policy julga
+  `filesystem/workspace/src/a.js` e é exatamente esse arquivo que o
+  Provider toca; divergência é erro, não tolerância.
+- **Aprovação humana não é bypass** — `resume()` revalida a Policy com o
+  input original; se a policy mudou no intervalo, a aprovação já dada não
+  executa nada.
+- **O event bus não vaza payload** — por padrão o evento carrega o
+  `toolId`, não o input nem o output.
+- **Superfície de autoridade é congelada** — todo contexto que cruza uma
+  fronteira de autoridade tem suas chaves fixadas por igualdade estrita,
+  para que uma fase futura não amplie autoridade em silêncio.
+
+O primeiro Provider real é o `LocalFilesystemProvider`: read, write e
+delete dentro de um workspace injetado no construtor (nunca lido de
+`cwd` ou de variável de ambiente), com boundary textual e **físico** — o
+realpath do ancestral existente mais profundo precisa continuar dentro do
+workspace, que é o que pega um diretório pai que virou symlink ou junction
+para fora.
+
+O adaptador `adapters/squad-agent.js` fecha o círculo entre as duas
+metades: lê o markdown de um agente do Squad e devolve uma
+`AgentDefinition` do runtime. O markdown é dado de entrada, nunca
+dependência — nenhum agente precisou ser alterado.
+
+### Como se chegou aqui
+
+Cada fase entrou por especificação normativa, implementação contra ela e
+review adversarial. As quatro passaram por REQUEST CHANGES antes do
+APPROVED, e cada pacote de correção fechou uma classe real de brecha
+(autoridade vazando pelo bus, spoofing de resource, escape por symlink em
+diretório pai).
+
+| Fase | Entrega | Pergunta que passou a ter resposta |
+|------|---------|-------------------------------------|
+| 1 | Runtime Core — `Agent`, `AgentLoop`, `ToolRuntime`, `Session`, `EventBus` | Como um agente executa? |
+| 2 | Policy Engine — `PolicyRegistry`, `PolicyEngine`, `CapabilityRegistry` | O agente **pode** fazer isso? |
+| 3 | Founder Gate — `ApprovalRequest`, `FounderGate`, `resume()` | E quando só um humano pode decidir? |
+| 4 | Capability Providers — `CapabilityResolver`, `LocalFilesystemProvider` | Como isso vira efeito real no mundo? |
+
+A próxima fronteira é o **Sandbox**: deixar de perguntar apenas se o
+Agent pode, e passar a responder também em qual ambiente, com quais
+recursos e sob quais limites físicos a execução acontece.
+
+### Rodando
+
+```bash
+npm test               # a suíte inteira
+npm run example        # lifecycle completo de um agente
+npm run example:policy # allow, deny e approval-required
+npm run example:approval # approve/resume, deny e revalidação bloqueando
+npm run example:provider # até o arquivo real, com traversal morrendo na Policy
+```
+
+Arquitetura em `docs/architecture/SPECTREE-RUNTIME.md`; as decisões que
+custaram trade-off estão em `docs/adr/`.
 
 ## Premissas de projeto
 
@@ -173,6 +236,18 @@ skills/spectree-testing/SKILL.md     # costuras de teste: quem decide, escreve, 
 skills/spectree-browser/SKILL.md     # Playwright dirige, DevTools mede
 skills/spectree-diagnostics/SKILL.md # laço vermelho antes de hipótese
 skills/spectree-wizard/              # o que só o humano faz vira script executável
+
+spectree-runtime/
+  agent/ loop/ session/ events/      # Fase 1: como um agente executa
+  policy/                            # Fase 2: quem autoriza
+  approval/                          # Fase 3: quando o humano decide
+  capabilities/ providers/           # Fase 4: como vira efeito real
+  tools/tool-runtime.js              # o ponto onde as quatro se encontram
+  adapters/squad-agent.js            # ponte Squad -> Runtime
+  tests/                             # a suíte; cada invariante tem seu teste
+
+docs/architecture/                   # a arquitetura do runtime, fase a fase
+docs/adr/                            # as decisões que custaram trade-off
 ```
 
 Disciplina compartilhada mora em skill; agente carrega papel, autoridade e
