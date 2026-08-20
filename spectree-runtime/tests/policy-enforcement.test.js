@@ -54,7 +54,13 @@ test('APPROVAL: Tool.execute() nunca e chamado; erro tipado para o Founder Gate 
       error.decision.policyId === 'production-migration',
   );
   assert.equal(tool.calls, 0);
-  assert.deepEqual(runtime.types(), ['tool.requested', 'policy.evaluated', 'policy.approval-required']);
+  // Fase 3: o bloqueio agora cria o pedido formal de decisao humana
+  assert.deepEqual(runtime.types(), [
+    'tool.requested',
+    'policy.evaluated',
+    'policy.approval-required',
+    'approval.requested',
+  ]);
 });
 
 test('ALLOW: Tool.execute() e chamado exatamente uma vez; lifecycle exato', async () => {

@@ -78,11 +78,28 @@ function matchesType(type, value) {
 const defaultProjection = ({ phase, toolId, error }) =>
   phase === 'failed' ? { toolId, error } : { toolId };
 
+// Executor autorizado (spec Fase 3, secao 43): registrado aqui na
+// construcao e adquirivel UMA unica vez — o wiring do createRuntime o
+// entrega ao ApprovalManager, cujo resume() sempre revalida a Policy
+// antes de chamar (INV-318). Nao existe executeWithoutPolicy na
+// superficie publica (secao 44), e nada disto alcanca o Agent (R8).
+const AUTHORIZED_EXECUTORS = new WeakMap();
+
+export function acquireAuthorizedExecutor(toolRuntime) {
+  const executor = AUTHORIZED_EXECUTORS.get(toolRuntime);
+  if (!executor) {
+    throw new ToolError('authorized executor already acquired or unavailable');
+  }
+  AUTHORIZED_EXECUTORS.delete(toolRuntime);
+  return executor;
+}
+
 export class ToolRuntime {
   #tools = new Map();
   #bus;
   #policyEngine;
   #projectEventPayload;
+  #onApprovalRequired;
 
   /**
    * @param {object} options
@@ -95,7 +112,7 @@ export class ToolRuntime {
    *   Recebe {phase: 'requested'|'started'|'completed'|'failed', toolId,
    *   input?, output?, error?} e devolve o payload publicado.
    */
-  constructor({ eventBus, policyEngine, projectEventPayload = defaultProjection }) {
+  constructor({ eventBus, policyEngine, projectEventPayload = defaultProjection, onApprovalRequired = null }) {
     if (!policyEngine || typeof policyEngine.decide !== 'function') {
       // Sem policy nao ha execucao (secao 63): um ToolRuntime sem engine
       // seria uma rota permanente de bypass, entao ele nao pode existir.
@@ -104,6 +121,8 @@ export class ToolRuntime {
     this.#bus = eventBus;
     this.#policyEngine = policyEngine;
     this.#projectEventPayload = projectEventPayload;
+    this.#onApprovalRequired = onApprovalRequired;
+    AUTHORIZED_EXECUTORS.set(this, (invocation) => this.#runAuthorized(invocation));
   }
 
   /** Registra uma Tool; id duplicado é erro. */
@@ -138,6 +157,72 @@ export class ToolRuntime {
         : { type: declared.slice(0, slash), id: declared.slice(slash + 1) };
     }
     return { type: declared.type ?? null, id: declared.id ?? null };
+  }
+
+  /**
+   * Dry-run de autorizacao (Fase 3): resolve, valida e decide SEM emitir
+   * evento e SEM executar. E o que o ApprovalManager usa para revalidar
+   * um resume (secao 42) — e o que uma UI futura usaria para responder
+   * "o que aconteceria?". Nao ha efeito colateral algum.
+   */
+  authorize(request, context = {}) {
+    const { toolId, input = {} } = request;
+    const tool = this.#tools.get(toolId);
+    if (!tool) throw new ToolNotFoundError(toolId);
+    const issues = validateInput(tool.inputSchema, input);
+    if (issues.length > 0) throw new ToolValidationError(toolId, issues);
+    const authorization = this.#buildAuthorization(tool, input, request, context);
+    return { authorization, decision: this.#policyEngine.decide(authorization) };
+  }
+
+  #buildAuthorization(tool, input, request, context) {
+    const operation = request.operation ?? tool.operation ?? 'execute';
+    const capability = tool.capability ?? tool.id;
+    const resource = this.#resolveResource(tool, input);
+    return Object.freeze({
+      principal: Object.freeze({ type: 'agent', id: context.agentId ?? null }),
+      session: Object.freeze({ id: context.session?.id ?? null }),
+      tool: Object.freeze({ id: tool.id, capability }),
+      operation,
+      input,
+      resource: resource ? Object.freeze(resource) : null,
+    });
+  }
+
+  /** Pipeline fisico de execucao: started -> execute -> completed/failed. */
+  async #runTool(tool, input, meta) {
+    try {
+      this.#bus.publish('tool.started', {
+        ...meta,
+        payload: this.#projectEventPayload({ phase: 'started', toolId: tool.id }),
+      });
+      const output = await tool.execute(input, {
+        sessionId: meta.sessionId,
+        agentId: meta.agentId,
+      });
+      this.#bus.publish('tool.completed', {
+        ...meta,
+        payload: this.#projectEventPayload({ phase: 'completed', toolId: tool.id, output }),
+      });
+      return { ok: true, toolId: tool.id, output };
+    } catch (error) {
+      this.#bus.publish('tool.failed', {
+        ...meta,
+        payload: this.#projectEventPayload({
+          phase: 'failed',
+          toolId: tool.id,
+          error: String(error?.message ?? error),
+        }),
+      });
+      throw error;
+    }
+  }
+
+  /** Caminho do resume: so alcancavel via acquireAuthorizedExecutor. */
+  async #runAuthorized({ toolId, input, sessionId, agentId }) {
+    const tool = this.#tools.get(toolId);
+    if (!tool) throw new ToolNotFoundError(toolId);
+    return this.#runTool(tool, input ?? {}, { sessionId, agentId });
   }
 
   has(toolId) {
@@ -184,23 +269,14 @@ export class ToolRuntime {
     }
 
     // AuthorizationContext (secao 7): snapshot imutavel da decisao.
-    const operation = request.operation ?? tool.operation ?? 'execute';
-    const capability = tool.capability ?? tool.id; // fallback de migracao (secao 21)
-    const resource = this.#resolveResource(tool, input);
-    const authorization = Object.freeze({
-      principal: Object.freeze({ type: 'agent', id: context.agentId ?? null }),
-      session: Object.freeze({ id: context.session?.id ?? null }),
-      tool: Object.freeze({ id: tool.id, capability }),
-      operation,
-      input,
-      resource: resource ? Object.freeze(resource) : null,
-    });
+    const authorization = this.#buildAuthorization(tool, input, request, context);
     const decision = this.#policyEngine.decide(authorization);
+    const resource = authorization.resource;
     const policyPayload = {
       policyId: decision.policyId ?? null,
       effect: decision.effect,
       toolId: tool.id,
-      operation,
+      operation: authorization.operation,
       resource: resource ? (resource.type ?? '?') + '/' + (resource.id ?? '?') : null,
       reason: decision.reason,
     };
@@ -211,33 +287,28 @@ export class ToolRuntime {
     }
     if (decision.effect === 'approval-required') {
       this.#bus.publish('policy.approval-required', { ...meta, payload: policyPayload });
-      throw new PolicyApprovalRequiredError(decision);
-    }
-
-    try {
-      this.#bus.publish('tool.started', {
-        ...meta,
-        payload: this.#projectEventPayload({ phase: 'started', toolId }),
-      });
-      const output = await tool.execute(input, {
-        sessionId: context.session?.id,
-        agentId: context.agentId,
-      });
-      this.#bus.publish('tool.completed', {
-        ...meta,
-        payload: this.#projectEventPayload({ phase: 'completed', toolId, output }),
-      });
-      return { ok: true, toolId, output };
-    } catch (error) {
-      this.#bus.publish('tool.failed', {
-        ...meta,
-        payload: this.#projectEventPayload({
-          phase: 'failed',
-          toolId,
-          error: String(error?.message ?? error),
-        }),
-      });
+      const error = new PolicyApprovalRequiredError(decision);
+      // Fase 3: a invocation bloqueada vira um pedido formal de decisao
+      // humana (secao 5). O snapshot vai ao ApprovalManager; o input fica
+      // no estado privado do store, nunca em evento.
+      if (this.#onApprovalRequired) {
+        const approval = await this.#onApprovalRequired(
+          {
+            sessionId: context.session?.id ?? null,
+            agentId: context.agentId ?? null,
+            toolId: tool.id,
+            capability: authorization.tool.capability,
+            operation: authorization.operation,
+            resource: policyPayload.resource,
+            input,
+          },
+          { policyId: decision.policyId ?? null, reason: decision.reason },
+        );
+        error.approvalId = approval?.approvalId ?? null;
+      }
       throw error;
     }
+
+    return this.#runTool(tool, input, meta);
   }
 }

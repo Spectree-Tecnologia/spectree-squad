@@ -57,3 +57,37 @@ export class PolicyApprovalRequiredError extends PolicyError {
 export class PolicyConfigurationError extends PolicyError {}
 
 export class CapabilityError extends RuntimeError {}
+
+export class ApprovalError extends RuntimeError {}
+
+export class ApprovalNotFoundError extends ApprovalError {
+  constructor(approvalId) {
+    super('approval not found: ' + approvalId);
+    this.approvalId = approvalId;
+  }
+}
+
+export class ApprovalStateError extends ApprovalError {
+  constructor(from, to, approvalId) {
+    super("invalid approval transition: '" + from + "' -> '" + to + "'" +
+      (approvalId ? ' (' + approvalId + ')' : ''));
+    this.from = from;
+    this.to = to;
+    this.approvalId = approvalId;
+  }
+}
+
+export class ApprovalExpiredError extends ApprovalStateError {
+  constructor(approvalId) {
+    super('expired', 'decided', approvalId);
+    this.message = 'approval expired: ' + approvalId;
+  }
+}
+
+export class PolicyRevalidationError extends PolicyError {
+  constructor(decision, approvalId) {
+    super('policy revalidation blocked resume: ' + decision.reason);
+    this.decision = decision;
+    this.approvalId = approvalId;
+  }
+}

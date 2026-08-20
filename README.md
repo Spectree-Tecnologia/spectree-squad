@@ -130,6 +130,15 @@ Oracle, posso mexer no banco") vira enforcement do runtime.
 `npm run example:policy` demonstra os três cenários: allow, deny e
 approval-required.
 
+A Fase 3 fecha o ciclo do `approval-required`: o bloqueio vira uma
+**ApprovalRequest** com estado explícito (`pending -> approved | denied |
+expired | cancelled`, `approved -> resumed`), decidida por um humano via
+**FounderGate** e retomada por `resume()` — que **revalida a Policy** com o
+input original antes de executar. Aprovação humana autoriza uma operação
+específica; nunca vira bypass, permissão permanente ou segunda autoridade.
+`npm run example:approval` demonstra approve/resume, deny e a revalidação
+bloqueando quando a policy mudou.
+
 ## Premissas de projeto
 
 1. **AI FIRST / CLI FIRST** — o squad executa tudo que estiver ao alcance
