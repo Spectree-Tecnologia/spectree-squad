@@ -112,6 +112,15 @@ técnico; a documentação, os critérios de aceite e os comentários de código
 ficam em português. O `CONTEXT.md` é a ponte: termo canônico em inglês
 (porque vira código), o português entre parênteses.
 
+## Spectree Runtime (Fase 1)
+
+`spectree-runtime/` é o microkernel de execução do Spectree: cinco
+primitivas — `Agent`, `AgentLoop`, `ToolRuntime`, `Session`, `EventBus` —
+sem conhecer nenhum agente do Squad pelo nome. O Squad define quem o agente
+é; o runtime define como um agente executa. Zero dependências; `npm test`
+roda a suíte e `npm run example` demonstra o lifecycle completo.
+Arquitetura em `docs/architecture/SPECTREE-RUNTIME.md`.
+
 ## Premissas de projeto
 
 1. **AI FIRST / CLI FIRST** — o squad executa tudo que estiver ao alcance

@@ -1,0 +1,9 @@
+{
+  "name": "spectree-squad",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test \"spectree-runtime/tests/*.test.js\"",
+    "example": "node spectree-runtime/example.js"
+  }
+}
