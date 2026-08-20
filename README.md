@@ -121,9 +121,15 @@ A matriz também é aplicada em execução: o hook `PreToolUse`
 (`hooks/guard.mjs`, requer `node` no PATH) inspeciona cada comando Bash e
 pergunta ao `PolicyEngine` real o que a matriz diz — `deny` bloqueia
 (push na main, `rm -rf` fora do workspace), `approval-required` vira o
-prompt de confirmação na UI (force-push, `DROP` via CLI de banco). O guard
-só age nas policies que valem para qualquer agente; o que ele não detecta
-segue o fluxo normal de permissão. E a fronteira que o hook não alcança é
+prompt de confirmação na UI (force-push, `DROP` via CLI de banco). Dentro
+de um subagente o payload do hook traz `agent_type`, e o guard decide com
+o principal real: default deny vale — Jakiro rodando `psql` é negado, git
+mutável fora do Disruptor é negado, enquanto `git log`/`diff`/`status` não
+são governados e passam para todos. Principal ausente (thread principal)
+ou desconhecido degrada para as policies universais. O guard nunca
+responde `allow` — só nega, escala ou silencia: o fluxo normal de
+permissão continua sendo a última palavra, e o hook jamais amplia
+autoridade. O que ele não detecta segue o fluxo normal de permissão. E a fronteira que o hook não alcança é
 auditada na verificação: o Keeper reprova diff de banco sem handoff do
 Oracle, e o Disruptor audita o `git log` da branch antes do PR.
 

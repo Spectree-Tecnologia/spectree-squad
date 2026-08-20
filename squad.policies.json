@@ -29,9 +29,6 @@
       "commit",
       "push",
       "merge"
-    ],
-    "resources": [
-      "refs/heads/*"
     ]
   },
   {
