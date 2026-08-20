@@ -27,9 +27,10 @@ const KNOWN_PRINCIPALS = [
     .map((f) => f.replace(/\.md$/, '')),
 ];
 
-function engine() {
+// escopo (4.8): estes casos julgam a matriz DESTE projeto
+function engine(project = 'spectree-squad') {
   const registry = new PolicyRegistry();
-  registry.registerMany(POLICIES);
+  registry.registerMany(POLICIES.filter((p) => (p.project ?? project) === project));
   return new PolicyEngine({ registry });
 }
 

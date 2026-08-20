@@ -114,6 +114,14 @@ mesmo shape que o `PolicyRegistry` do runtime aceita, e provada por teste
 no motor real: `tests/squad-policies.test.js` carrega o arquivo no
 `PolicyRegistry` e decide cada fronteira no `PolicyEngine` (banco é do
 Oracle, main nega até o Disruptor, operação destrutiva é gate do Founder).
+Policy sem `project` é global; policy com `project` só vale nos projetos
+nomeados, e a identidade vem do basename da raiz do repo. O filtro mora
+no adapter, então guard, runtime e testes aplicam o mesmo escopo por
+construção — e uma policy escopada nunca vaza para fora do escopo, nem
+para conceder nem para negar. A matriz continua dentro do plugin: nenhum
+agente a alcança, e não existe arquivo local de policy que alguém pudesse
+escrever para se autorizar.
+
 Prosa e matriz em conflito, a matriz vence — e o caminho de carga é um
 só: o adapter oficial (`spectree-runtime/adapters/policy-document.js`)
 alimenta guard, runtime (`npm run example:policy` roda a matriz real no
@@ -142,6 +150,13 @@ de um `pending` chega como linha `executed` (hook `PostToolUse`, que só
 dispara quando a operação executou) correlacionada pelo mesmo
 `toolUseId` — dá para responder se um force-push aprovado no gate
 aconteceu ou não.
+
+O vocabulário de detecção acompanha o ferramental de cada projeto: além de
+`git`, `gh` e `psql`, o guard governa `supabase` (`db push` aplica schema
+em produção, `db reset`, `migration new`), enquanto leitura e ciclo de
+vida local seguem livres. Ele não lê o conteúdo das migrations, então não
+distingue aditiva de destrutiva — essa fronteira continua com a
+verificação humana.
 
 O guard lê o comando como texto: comando **citado** dentro de conteúdo de
 arquivo (heredoc, string de teste) é detectado como se fosse executado.

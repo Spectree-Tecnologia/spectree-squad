@@ -31,7 +31,11 @@ export {
 export { InMemoryApprovalStore, APPROVAL_STATES } from './approval/approval-store.js';
 export { ApprovalManager } from './approval/approval-manager.js';
 export { InMemoryFounderGate } from './approval/founder-gate.js';
-export { loadPolicyDocument, policyEngineFromDocument } from './adapters/policy-document.js';
+export {
+  loadPolicyDocument,
+  policyEngineFromDocument,
+  policyAppliesToProject,
+} from './adapters/policy-document.js';
 export * from './errors.js';
 
 /**

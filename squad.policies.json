@@ -45,7 +45,8 @@
     "resources": [
       "refs/heads/main",
       "refs/heads/master"
-    ]
+    ],
+    "project": "spectree-squad"
   },
   {
     "id": "destructive-git-founder-gate",
