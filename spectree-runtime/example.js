@@ -14,6 +14,8 @@ class EchoAgent extends Agent {
 }
 
 const runtime = createRuntime();
+// Default deny: sem esta policy o proprio exemplo seria bloqueado.
+runtime.policyRegistry.register({ id: 'allow-echo', effect: 'allow', tools: ['echo'] });
 runtime.eventBus.subscribe('*', (event) =>
   console.log(event.type.padEnd(20) + ' ' + (event.sessionId ?? '')),
 );

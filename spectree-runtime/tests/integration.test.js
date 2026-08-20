@@ -1,12 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
-import { ScriptedAgent, recordedRuntime, makeAgent, okTool, boomTool, sleep } from './helpers.js';
+import { ScriptedAgent, recordedRuntime, makeAgent, okTool, boomTool, sleep, allowTools } from './helpers.js';
 import { loadSquadAgentDefinition } from '../adapters/squad-agent.js';
 
 test('lifecycle completo: a sequencia exata da spec secao 29', async () => {
   const runtime = recordedRuntime();
   runtime.toolRuntime.register(okTool);
+  allowTools(runtime, ['ok']);
   const agent = makeAgent('lifecycle', async (context) => {
     const result = await context.runtime.requestTool('ok', { value: 'proof' });
     return result.output;
@@ -19,6 +20,7 @@ test('lifecycle completo: a sequencia exata da spec secao 29', async () => {
     'session.started',
     'agent.started',
     'tool.requested',
+    'policy.evaluated',
     'tool.started',
     'tool.completed',
     'agent.completed',
@@ -31,6 +33,7 @@ test('lifecycle completo: a sequencia exata da spec secao 29', async () => {
 test('falha: cascata da spec secao 30, e nenhum completed depois dela', async () => {
   const runtime = recordedRuntime();
   runtime.toolRuntime.register(boomTool);
+  allowTools(runtime, ['boom']);
   const agent = makeAgent('failing', async (context) => {
     await context.runtime.requestTool('boom');
   });
@@ -42,6 +45,7 @@ test('falha: cascata da spec secao 30, e nenhum completed depois dela', async ()
     'session.started',
     'agent.started',
     'tool.requested',
+    'policy.evaluated',
     'tool.started',
     'tool.failed',
     'agent.failed',
@@ -61,6 +65,7 @@ test('isolamento: duas sessions simultaneas nao trocam estado nem eventos', asyn
       return label;
     },
   });
+  allowTools(runtime, ['slow']);
   const agentA = makeAgent('agent-a', async (context) => {
     const r = await context.runtime.requestTool('slow', { label: 'A' });
     return 'A:' + r.output;
@@ -82,7 +87,8 @@ test('isolamento: duas sessions simultaneas nao trocam estado nem eventos', asyn
   const forSession = (id) => runtime.events.filter((e) => e.sessionId === id).map((e) => e.type);
   const expected = [
     'session.created', 'session.started', 'agent.started', 'tool.requested',
-    'tool.started', 'tool.completed', 'agent.completed', 'session.completed',
+    'policy.evaluated', 'tool.started', 'tool.completed', 'agent.completed',
+    'session.completed',
   ];
   assert.deepEqual(forSession(sessionA.id), expected);
   assert.deepEqual(forSession(sessionB.id), expected);
@@ -98,6 +104,7 @@ test('criterio de arquitetura (spec secao 40): dois agents, tools diferentes, ze
   const runtime = recordedRuntime();
   runtime.toolRuntime.register({ id: 'tool.a', name: 'A', description: 'a', execute: async () => 'from A' });
   runtime.toolRuntime.register({ id: 'tool.b', name: 'B', description: 'b', execute: async () => 'from B' });
+  allowTools(runtime, ['tool.a', 'tool.b']);
   const agentA = makeAgent('uses-a', async (c) => (await c.runtime.requestTool('tool.a')).output);
   const agentB = makeAgent('uses-b', async (c) => (await c.runtime.requestTool('tool.b')).output);
   const ra = await runtime.loop.run(agentA, runtime.createSession({ agentId: agentA.id, mission: 'a' }));
@@ -115,6 +122,7 @@ test('prova de integracao (spec secao 39): um agente real do Squad vira AgentDef
 
   const runtime = recordedRuntime();
   runtime.toolRuntime.register(okTool);
+  allowTools(runtime, ['ok']);
   const agent = new ScriptedAgent(definition, async (context) => {
     const r = await context.runtime.requestTool('ok', { value: 'PRD.md' });
     return r.output;

@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "test": "node --test \"spectree-runtime/tests/*.test.js\"",
-    "example": "node spectree-runtime/example.js"
+    "example": "node spectree-runtime/example.js",
+    "example:policy": "node spectree-runtime/example-policy.js"
   }
 }

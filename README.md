@@ -121,6 +121,15 @@ sem conhecer nenhum agente do Squad pelo nome. O Squad define quem o agente
 roda a suíte e `npm run example` demonstra o lifecycle completo.
 Arquitetura em `docs/architecture/SPECTREE-RUNTIME.md`.
 
+A Fase 2 adiciona o **sistema de autoridade**: `PolicyEngine`,
+`PolicyRegistry` e `CapabilityRegistry`. Toda execução de tool passa por
+uma decisão determinística — `allow`, `deny` ou `approval-required` — com
+**default deny**: ausência de policy nunca concede acesso, e `deny` sempre
+vence `allow`. A autoridade que antes era convenção de persona ("sou o
+Oracle, posso mexer no banco") vira enforcement do runtime.
+`npm run example:policy` demonstra os três cenários: allow, deny e
+approval-required.
+
 ## Premissas de projeto
 
 1. **AI FIRST / CLI FIRST** — o squad executa tudo que estiver ao alcance

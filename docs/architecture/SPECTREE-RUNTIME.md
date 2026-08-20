@@ -1,4 +1,4 @@
-# Spectree Runtime — Fase 1: Runtime Core
+# Spectree Runtime — Fases 1 e 2: Runtime Core + Policy Engine
 
 Microkernel de execução do Spectree. Cinco primitivas, nenhum conhecimento
 de persona: o Squad define quem o agente é; o runtime define como um agente
@@ -121,12 +121,85 @@ Tool { id, name, description, inputSchema?, execute(input, {sessionId, agentId})
 estado de projeto (PRD, stories, ADRs) continua em `docs/`, fora do
 runtime. `session.cancel()` é o sinal cooperativo de cancelamento.
 
+## Autorizacao (Fase 2)
+
+A regra central: **permissao deixa de ser instrucao de prompt e passa a
+ser decisao executavel do Runtime.** O fluxo:
+
+```
+Agent -> requestTool -> AgentLoop -> ToolRuntime
+  -> AuthorizationContext -> PolicyEngine -> PolicyDecision
+       ALLOW -> tool executa
+       DENY / APPROVAL-REQUIRED -> bloqueado antes de tool.started
+```
+
+### Policy model
+
+`Policy { id, effect: allow|deny|approval-required, principal?, tool?,
+capability?, operation?, resource?, priority? }` — campos aceitam
+singular ou plural, string ou lista; campo omitido e wildcard; glob
+simples com `*`. Registrada, a policy e congelada: mudar e `replace`,
+nunca mutacao. `PolicyRegistry` separa configuracao de avaliacao — pode
+ser alimentado por JSON (ver `policy/spectree.policies.json` +
+`example-policy.js`) e, no futuro, por arquivo/banco/servico remoto sem
+tocar o engine.
+
+### AuthorizationContext
+
+Snapshot imutavel construido pelo ToolRuntime apos resolver e validar:
+`{ principal {type, id}, session {id}, tool {id, capability}, operation,
+input, resource {type, id}|null }`. `operation` default e `execute`;
+`capability` default e `tool.id` (fallback de migracao); `resource` vem
+da metadata da tool — estatica ou funcao de input (o resource-resolver
+seam). O engine recebe contexto e devolve decisao, sem efeito colateral.
+
+### PolicyDecision e precedencia
+
+`{ effect, policyId, reason }` com reason deterministica (nunca LLM).
+Precedencia fixa: **explicit deny > approval-required > explicit allow >
+default deny**. `priority` desempata a selecao dentro do mesmo efeito e
+nunca inverte a precedencia. Ausencia de regra = deny (`default-deny`).
+
+### Eventos de policy
+
+`policy.evaluated` para toda decisao; `policy.denied` e
+`policy.approval-required` quando a execucao e interrompida. Payload:
+`{ policyId, effect, toolId, operation, resource, reason }` — nunca
+input, output ou segredo. Lifecycle resultante:
+
+```
+allow:    tool.requested -> policy.evaluated -> tool.started -> tool.completed
+deny:     tool.requested -> policy.evaluated -> policy.denied
+approval: tool.requested -> policy.evaluated -> policy.approval-required
+```
+
+Deny e approval lancam `PolicyDeniedError` / `PolicyApprovalRequiredError`
+— o Agent pode dar catch e decidir comportamento; a autorizacao continua
+sendo do runtime (secao 29 da spec).
+
+### Capability model
+
+`Capability { id, name, description, operations }` descreve o que o
+runtime **sabe** executar; nunca quem pode (INV-212). Uma Capability e
+uma familia (`database`); uma Tool e uma operacao concreta
+(`database.migrate`). `CapabilityRegistry` e o catalogo onde providers
+futuros se registram sem conhecer Agent, PolicyEngine ou Session.
+
+### Default deny por construcao
+
+`ToolRuntime` exige um `policyEngine` no construtor (ADR-02): um runtime
+sem engine seria uma rota permanente de bypass. `createRuntime()` nasce
+com registry vazio — que nega tudo. Teste que precisa executar registra
+policy explicita; nao existe allow-all de conveniencia.
+
 ## Extension points
 
 | Futuro | Onde entra | O que muda |
 |---|---|---|
-| PolicyEngine | dentro de `ToolRuntime.execute(request, context)` — único choke point; `context` já traz session e agentId | nada nos demais |
 | Redação em eventos | `projectEventPayload` no construtor do ToolRuntime — o que a tool vê é separado do que o bus publica | nada nos demais |
+| PolicyRegistry externo | fonte de policies (arquivo, banco, serviço) alimenta o registry | Agent, AgentLoop e ToolRuntime intactos |
+| Founder Gate / Approval | consome `PolicyApprovalRequiredError` + `policy.approval-required` | resume/retry pertence ao Orchestrator futuro |
+| Sandbox | camada após a Policy: "mesmo podendo, em qual ambiente executa?" | não fundida com Policy por decisão (spec §64) |
 | LLM provider | subclasse de `Agent` que fala com um Model provider em `run()` | nada nos demais |
 | Timeout | mesmo choke point de `execute` | nada nos demais |
 | SessionStore / EventStore | consumidores dependem só de `publish/subscribe`; um bus persistente implementa o mesmo contrato | nada no AgentLoop |
@@ -141,4 +214,9 @@ runtime. `session.cancel()` é o sinal cooperativo de cancelamento.
 - Validador de schema é subconjunto mínimo.
 - Redação de segredo tem seam pronto, não implementação: por padrão o
   payload do evento espelha o da tool (`projectEventPayload` identidade).
+  Eventos de policy já nascem sem input/output por contrato.
+- Aprovação humana não existe ainda: `approval-required` bloqueia e lança;
+  o Founder Gate e o resume/retry pertencem a fase futura.
+- Matching de policy é glob simples — sem CEL, OPA, RBAC/ABAC completos,
+  por decisão de fase (spec §37).
 - Session vive em memória; replay/persistência é fase posterior.

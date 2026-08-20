@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { EventBus } from '../events/event-bus.js';
+import { PolicyRegistry } from '../policy/policy-registry.js';
+import { PolicyEngine } from '../policy/policy-engine.js';
 import { ToolRuntime } from '../tools/tool-runtime.js';
 import { ToolError, ToolNotFoundError, ToolValidationError } from '../errors.js';
 import { okTool, boomTool } from './helpers.js';
@@ -9,7 +11,10 @@ function makeRuntime() {
   const bus = new EventBus();
   const types = [];
   bus.subscribe('*', (e) => types.push(e.type));
-  return { tools: new ToolRuntime({ eventBus: bus }), types };
+  const registry = new PolicyRegistry();
+  registry.register({ id: 'allow-under-test', effect: 'allow', tools: ['ok', 'boom', 'spy'] });
+  const policyEngine = new PolicyEngine({ registry });
+  return { tools: new ToolRuntime({ eventBus: bus, policyEngine }), types };
 }
 
 test('registro: campos obrigatorios, lookup e id duplicado', () => {
@@ -26,7 +31,7 @@ test('execucao com input valido: resultado + sequencia requested/started/complet
   tools.register(okTool);
   const result = await tools.execute({ toolId: 'ok', input: { value: 'v' } }, { agentId: 'a1' });
   assert.deepEqual(result, { ok: true, toolId: 'ok', output: 'ok:v' });
-  assert.deepEqual(types, ['tool.requested', 'tool.started', 'tool.completed']);
+  assert.deepEqual(types, ['tool.requested', 'policy.evaluated', 'tool.started', 'tool.completed']);
 });
 
 test('input invalido: ToolValidationError, sem tool.started', async () => {
@@ -41,6 +46,7 @@ test('input invalido: ToolValidationError, sem tool.started', async () => {
     ToolValidationError,
   );
   assert.ok(!types.includes('tool.started'));
+  assert.ok(!types.includes('policy.evaluated')); // validacao precede a Policy (secao 24)
   assert.equal(types.filter((t) => t === 'tool.failed').length, 2);
 });
 
@@ -54,7 +60,7 @@ test('erro de execucao: erro original relancado + tool.failed, sem tool.complete
   const { tools, types } = makeRuntime();
   tools.register(boomTool);
   await assert.rejects(tools.execute({ toolId: 'boom' }), /boom/);
-  assert.deepEqual(types, ['tool.requested', 'tool.started', 'tool.failed']);
+  assert.deepEqual(types, ['tool.requested', 'policy.evaluated', 'tool.started', 'tool.failed']);
 });
 
 test('a tool recebe apenas o contexto necessario (INV-002)', async () => {
