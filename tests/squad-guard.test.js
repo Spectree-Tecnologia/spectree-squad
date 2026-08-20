@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -127,8 +128,102 @@ test('4B: principal desconhecido ou ausente degrada para o modo 4A', () => {
   assert.equal(force?.permissionDecision, 'ask');
 });
 
+function runGuardFile(toolName, toolInput, agentType = undefined) {
+  const payload = JSON.stringify({
+    hook_event_name: 'PreToolUse',
+    tool_name: toolName,
+    tool_input: toolInput,
+    ...(agentType ? { agent_type: agentType } : {}),
+  });
+  const result = spawnSync(process.execPath, [GUARD], { input: payload, encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  return result.stdout.trim() ? JSON.parse(result.stdout).hookSpecificOutput : null;
+}
+
+test('4C: tokenizador — flag global com argumento e wrapper com aspas nao escondem o push', () => {
+  const flagged = runGuard('git -C ../outro push origin main', 'Bash', 'spectree-squad:disruptor');
+  assert.equal(flagged?.permissionDecision, 'deny');
+  assert.match(flagged.permissionDecisionReason, /no-direct-push-main/);
+  const wrapped = runGuard('bash -c "git push origin main"');
+  assert.equal(wrapped?.permissionDecision, 'deny');
+  // e a leitura continua livre mesmo com flag global
+  assert.equal(runGuard('git -C ../outro log --oneline', 'Bash', 'spectree-squad:keeper-of-the-light'), null);
+});
+
+test('4C: subagente escrevendo status approved/done em docs/ cai no default deny', () => {
+  for (const [agent, tool, input] of [
+    ['spectree-squad:keeper-of-the-light', 'Edit', {
+      file_path: 'C:/proj/docs/stories/STORY-001-login.md',
+      old_string: 'status: in-review', new_string: 'status: approved',
+    }],
+    ['spectree-squad:lion', 'Write', {
+      file_path: 'C:/proj/docs/stories/STORY-002-x.md',
+      content: 'status: done' + String.fromCharCode(10) + 'owner: lion',
+    }],
+  ]) {
+    const decision = runGuardFile(tool, input, agent);
+    assert.equal(decision?.permissionDecision, 'deny', agent);
+    assert.match(decision.permissionDecisionReason, /no policy grants/);
+  }
+  // thread principal (Invoker/Founder): passa — modo 4A
+  assert.equal(runGuardFile('Edit', {
+    file_path: 'C:/proj/docs/PRD.md',
+    old_string: 'status: in-review', new_string: 'status: approved',
+  }), null);
+  // Jakiro setando in-progress na story: allow da matriz, passa em silencio
+  assert.equal(runGuardFile('Edit', {
+    file_path: 'C:/proj/docs/stories/STORY-001-login.md',
+    old_string: 'status: approved', new_string: 'status: in-progress',
+  }, 'spectree-squad:jakiro'), null);
+  // status fora de docs/ (codigo de aplicacao) nao e governado
+  assert.equal(runGuardFile('Write', {
+    file_path: 'C:/proj/src/config.yaml', content: 'status: done',
+  }, 'spectree-squad:jakiro'), null);
+});
+
+test('4C: superficie de edicao fechada — Keeper so edita o que a matriz concede', () => {
+  const keeper = 'spectree-squad:keeper-of-the-light';
+  assert.equal(runGuardFile('Edit', {
+    file_path: 'C:/proj/docs/stories/STORY-001-login.md',
+    old_string: 'x', new_string: '### 2026-08-20 — veredito: APROVADO',
+  }, keeper), null);
+  assert.equal(runGuardFile('Edit', {
+    file_path: 'C:/proj/docs/LESSONS.md', old_string: 'x', new_string: 'y',
+  }, keeper), null);
+  const code = runGuardFile('Edit', {
+    file_path: 'C:/proj/src/app.js', old_string: 'bug', new_string: 'fix',
+  }, keeper);
+  assert.equal(code?.permissionDecision, 'deny');
+  assert.match(code.permissionDecisionReason, /no policy grants/);
+  const foreignDoc = runGuardFile('Edit', {
+    file_path: 'C:/proj/docs/PRD.md', old_string: 'a', new_string: 'b',
+  }, keeper);
+  assert.equal(foreignDoc?.permissionDecision, 'deny');
+  // superficie aberta: Jakiro edita codigo livremente
+  assert.equal(runGuardFile('Edit', {
+    file_path: 'C:/proj/src/app.js', old_string: 'bug', new_string: 'fix',
+  }, 'spectree-squad:jakiro'), null);
+});
+
+test('4C: hooks.json integro por igualdade estrita — typo nao desliga o guard em silencio', () => {
+  const hooks = JSON.parse(readFileSync(path.join(REPO, 'hooks', 'hooks.json'), 'utf8'));
+  assert.deepEqual(hooks, {
+    hooks: {
+      PreToolUse: [
+        {
+          matcher: 'Bash|Edit|Write',
+          hooks: [
+            { type: 'command', command: 'node "${CLAUDE_PLUGIN_ROOT}/hooks/guard.mjs"' },
+          ],
+        },
+      ],
+    },
+  });
+  assert.ok(existsSync(GUARD), 'o comando do hook referencia hooks/guard.mjs, que deve existir');
+});
+
 test('ferramenta que nao e Bash e payload ilegivel: sem decisao, sem crash', () => {
-  assert.equal(runGuard('qualquer coisa', 'Write'), null);
+  assert.equal(runGuard('qualquer coisa', 'Glob'), null);
   const result = spawnSync(process.execPath, [GUARD], { input: 'nao-e-json', encoding: 'utf8' });
   assert.equal(result.status, 0);
   assert.equal(result.stdout.trim(), '');

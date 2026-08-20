@@ -98,6 +98,15 @@ significa conteúdo que ninguém aprovou, e volta ao Invoker para reaprovação.
 (Regra espelhada do runtime: aprovação nunca sobrevive à mudança do que foi
 aprovado.)
 
+O rebaixamento vale para edição de **conteúdo aprovado** — requisito,
+critério de aceite, decisão. Não rebaixam: as transições sancionadas do
+ciclo de build (`approved -> in-progress -> done`, cada uma com seu dono)
+e os appends nas seções de build (`## Dev Log`, `## QA Notes`) — eles
+registram execução, não mudam o que foi aprovado. A regra de derivação
+(`updated:` igual ou anterior a `approved:`) vale para o artefato-pai no
+ato de derivar; story em ciclo de build carrega `updated:` posterior por
+natureza, e isso não é violação.
+
 `in-progress` e `done` valem só para stories (ciclo de build abaixo):
 `in-progress` é setado pelo Jakiro ao começar a implementar; `done` só pelo
 Invoker, depois de veredito APROVADO do Keeper e PR aberto pelo Disruptor.

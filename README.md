@@ -126,10 +126,15 @@ de um subagente o payload do hook traz `agent_type`, e o guard decide com
 o principal real: default deny vale — Jakiro rodando `psql` é negado, git
 mutável fora do Disruptor é negado, enquanto `git log`/`diff`/`status` não
 são governados e passam para todos. Principal ausente (thread principal)
-ou desconhecido degrada para as policies universais. O guard nunca
-responde `allow` — só nega, escala ou silencia: o fluxo normal de
-permissão continua sendo a última palavra, e o hook jamais amplia
-autoridade. O que ele não detecta segue o fluxo normal de permissão. E a fronteira que o hook não alcança é
+ou desconhecido degrada para as policies universais. O guard também
+governa `Edit`/`Write`: subagente que tenta escrever `status:
+approved|done` num artefato cai no default deny (aprovar é da thread
+principal, onde vive o Invoker), e principal com superfície de edição
+fechada na matriz — o Keeper — só edita o que ela concede (QA Notes e
+LESSONS). O guard nunca responde `allow` — só nega, escala ou silencia:
+o fluxo normal de permissão continua sendo a última palavra, e o hook
+jamais amplia autoridade. O que ele não detecta segue o fluxo normal de
+permissão. E a fronteira que o hook não alcança é
 auditada na verificação: o Keeper reprova diff de banco sem handoff do
 Oracle, e o Disruptor audita o `git log` da branch antes do PR.
 
