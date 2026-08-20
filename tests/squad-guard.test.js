@@ -16,11 +16,12 @@ import { fileURLToPath } from 'node:url';
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const GUARD = path.join(REPO, 'hooks', 'guard.mjs');
 
-function runGuard(command, toolName = 'Bash') {
+function runGuard(command, toolName = 'Bash', agentType = undefined) {
   const payload = JSON.stringify({
     hook_event_name: 'PreToolUse',
     tool_name: toolName,
     tool_input: { command },
+    ...(agentType ? { agent_type: agentType } : {}),
   });
   const result = spawnSync(process.execPath, [GUARD], { input: payload, encoding: 'utf8' });
   assert.equal(result.status, 0, result.stderr);
@@ -78,6 +79,52 @@ test('rm -rf fora do workspace: deny citando filesystem-outside-workspace-deny',
     assert.equal(decision?.permissionDecision, 'deny', command);
     assert.match(decision.permissionDecisionReason, /filesystem-outside-workspace-deny/);
   }
+});
+
+test('4B: com principal real, o default deny vale — banco e do Oracle', () => {
+  // namespaced e puro normalizam para o mesmo principal
+  for (const agentType of ['spectree-squad:oracle', 'oracle']) {
+    assert.equal(runGuard('psql -c "SELECT 1"', 'Bash', agentType), null, agentType);
+  }
+  for (const outsider of ['spectree-squad:jakiro', 'spectree-squad:keeper-of-the-light']) {
+    const decision = runGuard('psql -c "SELECT 1"', 'Bash', outsider);
+    assert.equal(decision?.permissionDecision, 'deny', outsider);
+    assert.match(decision.permissionDecisionReason, /no policy grants/);
+  }
+});
+
+test('4B: git mutavel e do Disruptor; leitura de git nao e governada', () => {
+  for (const command of ['git commit -m "x"', 'git push origin feat/x', 'git checkout -b feat/y']) {
+    assert.equal(runGuard(command, 'Bash', 'spectree-squad:disruptor'), null, command);
+    const decision = runGuard(command, 'Bash', 'spectree-squad:jakiro');
+    assert.equal(decision?.permissionDecision, 'deny', 'jakiro: ' + command);
+  }
+  // leitura passa para qualquer um — Keeper audita diff, Disruptor audita log
+  for (const command of ['git log --oneline', 'git diff HEAD~1', 'git status', 'git branch']) {
+    assert.equal(runGuard(command, 'Bash', 'spectree-squad:keeper-of-the-light'), null, command);
+  }
+});
+
+test('4B: a main nega ate o Disruptor, e o gate destrutivo vence o allow do Oracle', () => {
+  const main = runGuard('git push origin main', 'Bash', 'spectree-squad:disruptor');
+  assert.equal(main?.permissionDecision, 'deny');
+  assert.match(main.permissionDecisionReason, /no-direct-push-main/);
+  // precedencia real: oracle-database (allow) e o gate (approval-required)
+  // casam a mesma request — approval-required vence allow, vira ask
+  const drop = runGuard('psql -c "DROP TABLE users"', 'Bash', 'spectree-squad:oracle');
+  assert.equal(drop?.permissionDecision, 'ask');
+  assert.match(drop.permissionDecisionReason, /destructive-migration-founder-gate/);
+});
+
+test('4B: principal desconhecido ou ausente degrada para o modo 4A', () => {
+  // subagente fora do squad: default deny NAO e acionavel daqui
+  assert.equal(runGuard('psql -c "SELECT 1"', 'Bash', 'Explore'), null);
+  assert.equal(runGuard('git commit -m "x"', 'Bash', 'Explore'), null);
+  // thread principal (sem agent_type): idem
+  assert.equal(runGuard('git commit -m "x"'), null);
+  // mas as policies universais continuam valendo para qualquer um
+  const force = runGuard('git push --force origin feat/x', 'Bash', 'Explore');
+  assert.equal(force?.permissionDecision, 'ask');
 });
 
 test('ferramenta que nao e Bash e payload ilegivel: sem decisao, sem crash', () => {
