@@ -8,6 +8,7 @@ import {
   ProviderExecutionError,
   SandboxDeniedError,
   SandboxConfigurationError,
+  CapabilityError,
 } from '../errors.js';
 import { releaseSandbox } from '../sandbox/sandbox-resolver.js';
 import { describeSandboxPolicy } from '../sandbox/sandbox-policy.js';
@@ -331,6 +332,16 @@ export class ToolRuntime {
     let provider = null;
     try {
       const capability = this.#capabilityResolver.resolveCapability(tool, authorization.operation);
+      // Fase 6 (secoes 121/160, INV-624): capability que declara
+      // providerOnly nao aceita tool self-provided — o Provider e o gate
+      // unico da operacao fisica, e nao existe terceira rota. Generico:
+      // o Core nao conhece 'process' pelo nome.
+      if (typeof tool.execute === 'function' && capability.providerOnly === true) {
+        throw new CapabilityError(
+          "capability '" + capability.id + "' is provider-only: tool " + tool.id +
+          ' cannot carry its own execute()',
+        );
+      }
       if (typeof tool.execute !== 'function') {
         provider = this.#capabilityResolver.resolveProvider(capability.id, authorization.operation);
       }

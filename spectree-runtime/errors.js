@@ -141,6 +141,43 @@ export class SandboxEscalationRequiredError extends SandboxError {
   }
 }
 
+/**
+ * Taxonomia de Process (spec Fase 6, secoes 111/169). A distincao central
+ * (secao 112, INV-621): exitCode != 0 e um OUTCOME de execucao — a Tool
+ * decide o que significa —, nunca um ProcessError. ProcessError e falha
+ * do RUNTIME em cumprir o proprio contrato.
+ */
+export class ProcessError extends RuntimeError {}
+
+export class ProcessConfigurationError extends ProcessError {}
+
+export class ProcessExecutableNotFoundError extends ProcessError {
+  constructor(command) {
+    super('executable not found: ' + command);
+    this.command = command;
+  }
+}
+
+export class ProcessCwdError extends ProcessError {}
+
+/** O processo nunca iniciou (secao 43). Distinto de exit != 0. */
+export class ProcessSpawnError extends ProcessError {
+  constructor(message, options = {}) {
+    super(message);
+    this.cause = options.cause;
+  }
+}
+
+export class ProcessOutputLimitError extends ProcessError {}
+
+export class ProcessTerminationError extends ProcessError {}
+
+/** Session tentando controlar processo de outra Session (INV-617). */
+export class ProcessOwnershipError extends ProcessError {}
+
+/** Falha da fronteira durante preparo do processo (secao 115). */
+export class ProcessSandboxError extends ProcessError {}
+
 export class ApprovalError extends RuntimeError {}
 
 export class ApprovalNotFoundError extends ApprovalError {

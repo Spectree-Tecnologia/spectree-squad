@@ -51,9 +51,16 @@ export function executionBoundaryFor(mode) {
   if (!filesystem) throw new TypeError('unknown sandbox mode: ' + String(mode));
   return Object.freeze({
     filesystem: Object.freeze({ ...filesystem }),
-    // dimensoes declaradas, nao implementadas nesta fase (secoes 50-52)
+    // rede e ambiente: declarados, nao implementados (secoes 50-52)
     network: Object.freeze({ enabled: false, enforcement: 'unsupported' }),
-    process: Object.freeze({ allowSpawn: false, enforcement: 'unsupported' }),
+    // processo (Fase 6, secao 34): o primeiro consumidor do eixo. O
+    // boundary DECLARA se spawn cabe no modo; o isolamento fisico do
+    // processo continua 'unsupported' — verificacao no Provider, nao no
+    // kernel, e a honestidade da Fase 5 permanece (secoes 35-36).
+    process: Object.freeze({
+      allowSpawn: mode !== 'read-only',
+      enforcement: 'unsupported',
+    }),
     environment: Object.freeze({ inherit: false, enforcement: 'unsupported' }),
   });
 }
