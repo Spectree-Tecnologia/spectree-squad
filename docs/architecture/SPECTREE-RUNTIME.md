@@ -350,6 +350,38 @@ universais); `agent_type` PRESENTE mas fora do squad é principal
 desconhecido — fail closed, o default deny age. Como sempre: o arquivo é
 dado de entrada do adapter, nunca dependência — INV-007 preservada.
 
+## Fase 4.6 — Reachability & Audit
+
+Fase pequena, sem tocar o Core, nascida da primeira devolutiva de campo
+da v0.25.0. O Invoker observou que a policy `invoker-artifact-approval`
+tinha `principal: invoker` — nome que nao existe entre os oito agentes,
+logo inalcancavel por `agent_type`. A varredura mostrou que o padrao
+tinha irmaos: a capability `github` nao tinha detector no guard (`gh pr
+merge` passava para qualquer agente) e `no-direct-push-main` nunca
+recebia resource na operacao `commit` (commit direto na main passava).
+
+Correcoes: detector de `gh` por operacao (pr/release/ci governados;
+auth/repo/api nao), e o resource de `commit`/`merge` derivado da branch
+corrente lida de `.git/HEAD` — LEITURA de arquivo, jamais execucao de
+comando; o guard permanece read-only. `merge` entrou no deny da main,
+fechando o ciclo: nada muta a main localmente, e o caminho sancionado
+(`gh pr merge`) e capability `github`, intocada.
+
+Trilha de decisao: cada `deny`/`ask` vira uma linha JSON em
+`~/.claude/spectree/policy-decisions.jsonl` sob projecao R10 — policyId,
+efeito, principal, capability, operation, resource, cwd e sessao;
+NUNCA o comando bruto, que carrega segredo. Silencio nao e decisao e nao
+entra. Falha de escrita nunca afeta a decisao: auditoria e
+observabilidade, nao autoridade. E a correcao factual que a fase
+registrou: o guard e um processo separado por invocacao e nunca toca o
+EventBus — persistir o bus daria zero visibilidade sobre ele.
+
+O fecho e `tests/squad-policy-reachability.test.js`: cada policy declara
+quem a alcanca, e a declaracao e PROVADA executando o guard de verdade.
+Policy runtime-only e legitima, mas tem de justificar por escrito por
+que o guard nao a alcanca. Policy nova sem declaracao quebra a suite —
+R8 aplicado a matriz: autoridade decorativa deixa de ser invisivel.
+
 ## Limitações conhecidas (deliberadas, Fase 1)
 
 - Erro de tool falha a execução por padrão; um agente pode dar catch em

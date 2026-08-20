@@ -37,7 +37,8 @@
     "capability": "git",
     "operations": [
       "push",
-      "commit"
+      "commit",
+      "merge"
     ],
     "resources": [
       "refs/heads/main",
