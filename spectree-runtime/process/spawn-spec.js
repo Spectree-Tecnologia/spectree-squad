@@ -92,6 +92,13 @@ export function createProcessSpawnSpec(input) {
   if (input.signal !== undefined && typeof input.signal?.addEventListener !== 'function') {
     throw new ProcessConfigurationError('signal must be an AbortSignal when present');
   }
+  // F9 (spec secoes 38-39, E2): orcamento explicito de duracao. O TETO e
+  // do Runtime (injetado no Provider); aqui so validamos a forma — quem
+  // compara pedido contra teto e o Provider, e pedido > teto e reject.
+  const maxLifetimeMs = input.maxLifetimeMs ?? null;
+  if (maxLifetimeMs !== null && (!Number.isFinite(maxLifetimeMs) || maxLifetimeMs <= 0)) {
+    throw new ProcessConfigurationError('maxLifetimeMs must be a positive finite number when present');
+  }
   return Object.freeze({
     argv: Object.freeze([...argv]),
     cwd: input.cwd,
@@ -101,6 +108,7 @@ export function createProcessSpawnSpec(input) {
     env: Object.freeze({ ...(input.env ?? {}) }),
     allowedEnvironmentKeys: Object.freeze([...(input.allowedEnvironmentKeys ?? [])]),
     graceMs,
+    maxLifetimeMs,
     signal: input.signal ?? null,
   });
 }

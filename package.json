@@ -10,6 +10,8 @@
     "example:provider": "node spectree-runtime/example-provider.js",
     "example:sandbox": "node spectree-runtime/example-sandbox.js",
     "example:process": "node spectree-runtime/example-process.js",
-    "example:linux-sandbox": "node spectree-runtime/example-linux-sandbox.js"
+    "example:linux-sandbox": "node spectree-runtime/example-linux-sandbox.js",
+    "example:model-harness": "node spectree-runtime/example-model-harness.js",
+    "calibrate:model-harness": "node spectree-runtime/calibrate-model-harness.js"
   }
 }

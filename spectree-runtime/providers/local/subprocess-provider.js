@@ -131,8 +131,9 @@ export class LocalSubprocessProvider {
   #emit;
   #spawnImpl;
   #platform;
+  #maxLifetimeMs;
 
-  constructor({ workspaceRoot, hostEnv, registry, emit = null, spawnImpl = nodeSpawn, platform = process.platform }) {
+  constructor({ workspaceRoot, hostEnv, registry, emit = null, spawnImpl = nodeSpawn, platform = process.platform, maxLifetimeMs = null }) {
     if (typeof workspaceRoot !== 'string' || workspaceRoot.length === 0) {
       throw new ProcessConfigurationError('LocalSubprocessProvider requires workspaceRoot');
     }
@@ -148,6 +149,9 @@ export class LocalSubprocessProvider {
     this.#emit = emit;
     this.#spawnImpl = spawnImpl;
     this.#platform = platform;
+    // F9 (secao 39, E2): o teto de lifetime pertence ao Runtime — vem
+    // por DI, nunca de default magico de adapter
+    this.#maxLifetimeMs = maxLifetimeMs;
     this.capabilities = Object.freeze({
       platform: this.#platform,
       // posix: process group (detached + kill(-pid)); win32: taskkill /T.
@@ -240,6 +244,15 @@ export class LocalSubprocessProvider {
 
     // 1. spec valido ANTES de qualquer efeito (secao 14)
     const spec = createProcessSpawnSpec(input);
+    // F9 (secao 39, E2): pedido pode restringir o teto, nunca ampliar —
+    // requested > ceiling e REJECT, nao clamp silencioso
+    if (spec.maxLifetimeMs !== null && this.#maxLifetimeMs !== null &&
+        spec.maxLifetimeMs > this.#maxLifetimeMs) {
+      throw new ProcessConfigurationError(
+        'maxLifetimeMs ' + spec.maxLifetimeMs + ' exceeds the runtime ceiling ' + this.#maxLifetimeMs,
+      );
+    }
+    const lifetimeMs = spec.maxLifetimeMs ?? this.#maxLifetimeMs;
     this.#event('process.requested', {
       // projecao segura (secao 108): identidade e contagem, nunca o argv
       executable: spec.argv[0],
@@ -286,7 +299,7 @@ export class LocalSubprocessProvider {
     // spawn-primeiro-confina-depois
     const invocationId = 'prc_' + randomUUID();
     const finalArgv = confinement ? confinement.argv : exactArgv;
-    const handle = this.#spawn(spec, finalArgv, cwd, env, context, invocationId);
+    const handle = this.#spawn(spec, finalArgv, cwd, env, context, invocationId, lifetimeMs);
     this.#registry.register({
       handle,
       sessionId: context.sessionId ?? null,
@@ -317,6 +330,7 @@ export class LocalSubprocessProvider {
       outcome: {
         exitCode: outcome.exitCode,
         signal: outcome.signal,
+        timedOut: outcome.timedOut,
         startedAt: outcome.startedAt,
         endedAt: outcome.endedAt,
         durationMs: outcome.durationMs,
@@ -328,7 +342,7 @@ export class LocalSubprocessProvider {
   }
 
   /** Monta o ProcessHandle (secoes 38-42, 63-72). */
-  #spawn(spec, finalArgv, cwd, env, context, invocationId) {
+  #spawn(spec, finalArgv, cwd, env, context, invocationId, lifetimeMs = null) {
     const stdio = [
       spec.stdin.mode === 'ignore' ? 'ignore' : 'pipe',
       spec.stdout.mode === 'inherit' ? 'inherit' : 'pipe',
@@ -367,6 +381,7 @@ export class LocalSubprocessProvider {
     }
 
     let terminating = false;
+    let timedOut = false;
     const platform = this.#platform;
     const terminateTree = () => {
       if (child.exitCode !== null || child.signalCode !== null) return;
@@ -385,12 +400,16 @@ export class LocalSubprocessProvider {
       });
       child.once('close', async (exitCode, signal) => {
         // 'close' garante streams drenados ANTES do outcome (secao 73)
+        if (lifetimeTimer) clearTimeout(lifetimeTimer);
         const endedMs = Date.now();
         const stdout = collectors.stdout ? await collectors.stdout.finish() : null;
         const stderr = collectors.stderr ? await collectors.stderr.finish() : null;
         resolve(Object.freeze({
           exitCode,
           signal: signal ?? null,
+          // F9 (secoes 41-42, E2): timeout e FATO persistido no outcome,
+          // nunca inferido de signal — semanticamente distinto de exit
+          timedOut,
           startedAt,
           endedAt: new Date().toISOString(),
           durationMs: endedMs - startedMs,
@@ -441,6 +460,17 @@ export class LocalSubprocessProvider {
         await done.catch(() => null);
       },
     });
+
+    // F9 (secao 40): deadline -> terminate (graceful -> graceMs ->
+    // arvore). O timer marca o fato ANTES de encerrar; 'close' o limpa.
+    let lifetimeTimer = null;
+    if (lifetimeMs !== null) {
+      lifetimeTimer = setTimeout(() => {
+        timedOut = true;
+        handle.terminate();
+      }, lifetimeMs);
+      lifetimeTimer.unref?.();
+    }
 
     // AbortSignal (secao 67): abortar aciona terminate, nada alem disso
     if (spec.signal) {

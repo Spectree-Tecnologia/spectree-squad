@@ -266,6 +266,7 @@ diretório pai).
 | 6 | Process Capability — `ProcessSpawnSpec`, `ProcessRegistry`, `LocalSubprocessProvider` | Qual processo pode nascer? |
 | 7 | Linux Physical Sandbox — `LinuxPhysicalSandboxProvider`, `BubblewrapBackend`, functional probe | O kernel garante o limite? |
 | 8 | Execution Effects — `ExecutionEffectSet`, `EffectResolver`, fingerprint | O que exatamente vai ser afetado? |
+| 9 | Governed Model Harness — `ModelHarnessLauncher`, `declaredResources`, credential calibration | Como um modelo executa sem virar autoridade? |
 
 O Sandbox fecha a quinta dimensão: a Policy responde *se pode*, o Sandbox
 responde *dentro de quais limites físicos*. Três modos (`read-only`,
@@ -329,11 +330,25 @@ só o workspace". O Sandbox deriva o modo físico do conjunto: uma
 execução que só lê ganha boundary read-only, mesmo vinda de uma tool
 rotulada de escrita.
 
-A próxima fronteira é o **Shell** (F9): parser de comando de um lado, um
-`EffectPlan` do outro — o Shell não cria modelo de autorização, ele
-traduz a expressão para o modelo que a F8 acabou de estabelecer, e
-`filesystem.write(cwd)` como autorização de shell está explicitamente
-proibido.
+A Fase 9 pôs o primeiro consumidor real dentro desse modelo: um
+**harness de modelo** (o Claude CLI é o primeiro adapter) nasce como
+processo governado — launcher agnóstico, argv explícito, efeitos
+resolvidos antes do spawn, confinamento físico em Linux, lifetime com
+teto do runtime e `timedOut` como fato do outcome. A credencial do
+Founder virou **efeito**: `filesystem.read(credential://...)`, governada
+pela matriz única (`credential-founder-gate` → aprovação humana) e
+materializada como ro-bind **pontual** via `declaredResources` — o
+primeiro narrowing físico por recurso que a F8 modelou. O acesso não é
+presumido: é **calibrado** (PROFILE-0 → candidato mínimo, HOME jamais),
+declarado, aprovado e só então montado. E fica dito com todas as letras:
+nesta fase o confinamento é de filesystem/processo, **não de segredo** —
+um harness que recebe credencial pode exfiltrá-la; o `CredentialBroker`
+é o seam declarado para fechar isso.
+
+A próxima fronteira é o **Shell** (F10): parser de comando de um lado,
+um `EffectPlan` do outro — o Shell não cria modelo de autorização, ele
+traduz a expressão para o modelo da F8, e `filesystem.write(cwd)` como
+autorização de shell está explicitamente proibido.
 
 ### Rodando
 
@@ -346,6 +361,7 @@ npm run example:provider # até o arquivo real, com traversal morrendo na Policy
 npm run example:sandbox  # a mesma escrita permitida e negada, só mudando o boundary
 npm run example:process  # processo governado: argv explícito, mesmo mundo do filesystem
 npm run example:linux-sandbox  # (Linux/WSL2) processo confinado pelo kernel via bubblewrap
+npm run example:model-harness  # (Linux/WSL2) harness de modelo como processo governado
 ```
 
 Arquitetura em `docs/architecture/SPECTREE-RUNTIME.md`; as decisões que

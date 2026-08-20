@@ -202,6 +202,12 @@ export class LinuxPhysicalSandboxProvider {
       readableRoots.push(sessionTemp);
       if (policy.mode === 'workspace-write') writableRoots.push(sessionTemp);
     }
+    // F9 (E1): recursos declarados — ja autorizados pelo EffectSet —
+    // entram como roots de LEITURA pontuais, e o backend os monta ro
+    const declaredResources = policy.declaredResources ?? [];
+    for (const resource of declaredResources) {
+      readableRoots.push(physicalRoot(resource.physicalPath));
+    }
     const physicalWorkspace = policy.workspaceRoot ? physicalRoot(policy.workspaceRoot) : null;
 
     const boundary = Object.freeze({
@@ -245,6 +251,7 @@ export class LinuxPhysicalSandboxProvider {
           mode,
           workspaceRoot: physicalWorkspace,
           sessionTemp,
+          declaredResources,
         });
         return Object.freeze({ argv: confined, backendId: backend.backendId });
       },

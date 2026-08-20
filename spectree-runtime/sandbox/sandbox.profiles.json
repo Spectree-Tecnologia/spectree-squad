@@ -10,6 +10,13 @@
         "write": { "requires": "workspace-write" },
         "delete": { "requires": "workspace-write" }
       }
+    },
+    "process": {
+      "maxMode": "workspace-write",
+      "operations": {
+        "spawn": { "requires": "workspace-write" },
+        "terminate": { "requires": "workspace-write" }
+      }
     }
   }
 }

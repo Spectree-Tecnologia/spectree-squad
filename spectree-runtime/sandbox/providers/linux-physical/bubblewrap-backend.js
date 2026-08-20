@@ -77,7 +77,7 @@ export class BubblewrapBackend {
    * O resto do filesystem: apenas as roots de sistema, read-only —
    * outside nao e "negado", outside NAO EXISTE no namespace.
    */
-  buildConfinedArgv({ argv, cwd, mode, workspaceRoot, sessionTemp = null }) {
+  buildConfinedArgv({ argv, cwd, mode, workspaceRoot, sessionTemp = null, declaredResources = null }) {
     if (!this.#located) {
       throw new SandboxConfigurationError('bubblewrap backend not located — probe first');
     }
@@ -119,6 +119,12 @@ export class BubblewrapBackend {
     args.push(mode === 'read-only' ? '--ro-bind' : '--bind', physicalWorkspace, physicalWorkspace);
     if (sessionTemp && mode === 'workspace-write') {
       args.push('--bind', sessionTemp, sessionTemp);
+    }
+    // F9 (E1): narrowing por recurso — cada recurso JA AUTORIZADO pelo
+    // EffectSet vira um ro-bind PONTUAL. Nunca uma root ampla, nunca
+    // HOME, nunca algo que o EffectSet nao declarou.
+    for (const resource of declaredResources ?? []) {
+      args.push('--ro-bind', resource.physicalPath, resource.physicalPath);
     }
     args.push('--chdir', cwd ?? physicalWorkspace);
     args.push('--');

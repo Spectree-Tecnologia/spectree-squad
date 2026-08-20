@@ -84,6 +84,21 @@ export {
 } from './effects/execution-effect.js';
 export { createExecutionEffectSet, createEffectPlan } from './effects/effect-set.js';
 export { EffectResolver } from './effects/effect-resolver.js';
+// F9: superficie GENERICA do Governed Model Harness. O adapter concreto
+// (harness/claude-launcher.js) e deliberadamente NAO re-exportado aqui:
+// os literais do CLI ficam confinados ao arquivo do adapter (INV-903) e
+// quem o usa importa o adapter explicitamente.
+export {
+  createModelHarnessTool,
+  modelHarnessLauncherContract,
+  runModelHarness,
+} from './harness/model-harness.js';
+export { parseStructuredHarnessOutput } from './harness/harness-output.js';
+export {
+  runCredentialCalibration,
+  CALIBRATION_VERDICTS,
+  PROFILE_0,
+} from './harness/credential-calibration.js';
 export { createSandboxEscalationRequest } from './sandbox/sandbox-escalation.js';
 export { createProcessSpawnSpec } from './process/spawn-spec.js';
 export { buildProcessEnvironment, MINIMAL_SAFE_KEYS } from './process/environment.js';

@@ -114,5 +114,16 @@
       "docs/stories/*",
       "docs/LESSONS.md"
     ]
+  },
+  {
+    "id": "credential-founder-gate",
+    "effect": "approval-required",
+    "capability": "filesystem",
+    "operations": [
+      "read"
+    ],
+    "resources": [
+      "credential/*"
+    ]
   }
 ]

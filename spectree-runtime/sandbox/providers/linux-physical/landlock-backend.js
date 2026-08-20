@@ -69,7 +69,7 @@ export class LandlockBackend {
    * `--` + argv original intacto. O helper e quem traduz isso em regras
    * Landlock e faz exec — fail-closed (secao 54).
    */
-  buildConfinedArgv({ argv, cwd, mode, workspaceRoot, sessionTemp = null }) {
+  buildConfinedArgv({ argv, cwd, mode, workspaceRoot, sessionTemp = null, declaredResources = null }) {
     if (!this.#located) {
       throw new SandboxConfigurationError('landlock backend not located — probe first');
     }
@@ -81,6 +81,9 @@ export class LandlockBackend {
     }
     const args = [this.#located, '--mode', mode, '--workspace', workspaceRoot];
     if (sessionTemp && mode === 'workspace-write') args.push('--temp', sessionTemp);
+    for (const resource of declaredResources ?? []) {
+      args.push('--ro-path', resource.physicalPath);
+    }
     if (cwd) args.push('--chdir', cwd);
     args.push('--');
     args.push(...argv);

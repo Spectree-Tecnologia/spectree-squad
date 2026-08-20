@@ -64,12 +64,18 @@ export function normalizeSandboxProfileDocument(document) {
 export class SandboxProfileResolver {
   #document;
   #workspaceRoot;
+  #resourceBindings;
 
-  constructor({ document, workspaceRoot = null }) {
+  constructor({ document, workspaceRoot = null, resourceBindings = null }) {
     this.#document = normalizeSandboxProfileDocument(document);
     // sem autoridade ambiental (secao 129): a raiz e injetada, nunca
     // lida de cwd ou de variavel de ambiente
     this.#workspaceRoot = workspaceRoot ?? document.workspaceRoot ?? null;
+    // F9 (E1): mapa resourceId canonico -> physicalPath, vindo da
+    // CONFIGURACAO do host (resultado de calibracao aprovada). Um
+    // binding sozinho nao monta nada: so materializa quando um efeito
+    // AUTORIZADO o referencia.
+    this.#resourceBindings = resourceBindings ? Object.freeze({ ...resourceBindings }) : null;
   }
 
   get runtimeMaxMode() {
@@ -127,9 +133,30 @@ export class SandboxProfileResolver {
     // o modo efetivo e o MINIMO suficiente, nunca o teto inteiro: pedir
     // mais privilegio do que a operacao precisa e ampliacao silenciosa
     const mode = requiredMode;
+
+    // F9 (E1, secoes 57-58): efeitos autorizados x bindings declarados =
+    // declaredResources. Efeito de credencial SEM binding fisico e
+    // fail-closed — recurso autorizado que nao pode ser materializado
+    // nao vira execucao sem o recurso, vira recusa explicita.
+    const declaredResources = [];
+    for (const effect of effects ?? []) {
+      if (effect.operation !== 'read') continue;
+      const resourceId = effect.resource.type + '/' + effect.resource.id;
+      const physicalPath = this.#resourceBindings?.[resourceId];
+      if (physicalPath) {
+        declaredResources.push({ resourceId, physicalPath, mode: 'read' });
+      } else if (effect.resource.type === 'credential') {
+        throw new SandboxConfigurationError(
+          "credential resource '" + resourceId + "' is authorized but has no physical binding — " +
+          'run credential calibration and declare the approved binding (F9 secao 22)',
+        );
+      }
+    }
+
     const policy = createSandboxPolicy({
       mode,
       workspaceRoot: this.#workspaceRoot,
+      declaredResources,
       allowPartialEnforcement: this.#document.allowPartialEnforcement === true,
       requiredEnforcement: this.#document.requiredEnforcement,
     });

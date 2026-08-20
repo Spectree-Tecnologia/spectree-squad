@@ -73,6 +73,11 @@ export class LocalFilesystemSandboxProvider {
     }
     const readable = policy.readableRoots.map(realOf);
     const writable = policy.writableRoots.map(realOf);
+    // F9 (E1): recursos declarados sao legiveis — autoridade ja veio do
+    // EffectSet; aqui e so a materializacao (parcial, in-process)
+    for (const resource of policy.declaredResources ?? []) {
+      readable.push(realOf(resource.physicalPath));
+    }
 
     const boundary = Object.freeze({
       filesystem: Object.freeze({

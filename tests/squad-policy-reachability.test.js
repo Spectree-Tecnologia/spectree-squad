@@ -125,6 +125,14 @@ const REACHABILITY = {
     by: 'runtime-only',
     why: "principal 'invoker' nao e produzivel por agent_type; na thread principal vale o modo 4A",
   },
+  // F9 (E4): o guard nao tem detector de leitura de credencial em texto
+  // de Bash, e nao deve ganhar um artificial. O alcance e provado pelo
+  // Effect Pipeline da F8 em tests/credential-policy.test.js: o efeito
+  // filesystem.read(credential://...) chega nesta policy via engine real.
+  'credential-founder-gate': {
+    by: 'runtime-only',
+    why: 'alcancada pelo Effect Pipeline da F8 (filesystem.read sobre resource credential/*); guard nao detecta leitura de credencial e nao deve fingir que detecta',
+  },
 };
 
 test('toda policy da matriz declara quem a alcanca', () => {
