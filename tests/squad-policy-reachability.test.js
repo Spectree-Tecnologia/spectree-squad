@@ -239,15 +239,101 @@ test('4.6: a trilha registra a decisao sob projecao R10, nunca o comando bruto',
     assert.deepEqual(lines, ['policy-decisions.jsonl']);
     const entry = JSON.parse(readFileSync(log, 'utf8').trim().split('\n').pop());
     assert.deepEqual(Object.keys(entry).sort(), [
-      'at', 'capability', 'cwd', 'decision', 'operation', 'policyId',
-      'principal', 'principalKnown', 'resource', 'sessionId', 'tool',
+      'at', 'capability', 'cwd', 'decision', 'operation', 'outcome', 'policyId',
+      'principal', 'principalKnown', 'resource', 'sessionId', 'tool', 'toolUseId',
     ]);
+    // 4.7: ask e registro de PERGUNTA, e diz isso de si mesmo
+    assert.equal(entry.outcome, 'pending');
     assert.equal(entry.decision, 'ask');
     assert.equal(entry.policyId, 'destructive-migration-founder-gate');
     assert.equal(entry.principal, 'oracle');
     // R10: o segredo do comando jamais chega a trilha
     assert.ok(!JSON.stringify(entry).includes('SENHA-SECRETA'));
     assert.ok(!JSON.stringify(entry).includes('psql'));
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test('4.7: o alvo do push e resolvido do refspec, e a policy decide', () => {
+  const onMain = fakeRepo('refs/heads/main');
+  try {
+    // buraco 1: push puro na main passava em silencio
+    for (const command of ['git push', 'git push origin', 'git push -u origin HEAD']) {
+      const d = guard({ command, agentType: 'spectree-squad:disruptor', cwd: onMain });
+      assert.equal(d?.permissionDecision, 'deny', command);
+      assert.match(d.permissionDecisionReason, /no-direct-push-main/);
+    }
+    // buraco 2: a forma MAIS destrutiva tinha o tratamento MAIS fraco
+    for (const command of ['git push --force origin main', 'git push origin --delete main']) {
+      const d = guard({ command, agentType: 'spectree-squad:disruptor', cwd: onMain });
+      assert.equal(d?.permissionDecision, 'deny', command);
+      assert.match(d.permissionDecisionReason, /no-direct-push-main/);
+    }
+    // o destino do refspec manda: src:dst com dst fora da main nao e main
+    assert.equal(
+      guard({ command: 'git push origin main:refs/heads/outra', agentType: 'spectree-squad:disruptor', cwd: onMain }),
+      null,
+    );
+    // e HEAD:main continua sendo main
+    const spoof = guard({ command: 'git push origin HEAD:main', agentType: 'spectree-squad:disruptor', cwd: onMain });
+    assert.equal(spoof?.permissionDecision, 'deny');
+    // force-push fora da main segue sendo gate do Founder, nao deny
+    const gate = guard({ command: 'git push --force origin feat/x', agentType: 'spectree-squad:disruptor', cwd: onMain });
+    assert.equal(gate?.permissionDecision, 'ask');
+    assert.match(gate.permissionDecisionReason, /destructive-git-founder-gate/);
+  } finally {
+    rmSync(onMain, { recursive: true, force: true });
+  }
+});
+
+test('4.7: force-push registra o alvo, e ask/executed formam par auditavel', () => {
+  const home = mkdtempSync(path.join(tmpdir(), 'spectree-home47-'));
+  const env = { ...process.env, HOME: home, USERPROFILE: home };
+  const fire = (event, toolUseId) => spawnSync(process.execPath, [GUARD], {
+    env, encoding: 'utf8',
+    input: JSON.stringify({
+      hook_event_name: event, tool_name: 'Bash', tool_use_id: toolUseId,
+      tool_input: { command: 'git push --force origin feat/demo' },
+      agent_type: 'spectree-squad:disruptor', session_id: 's47',
+    }),
+  });
+  try {
+    fire('PreToolUse', 'toolu_A');
+    fire('PostToolUse', 'toolu_A'); // executou: o Founder aprovou na UI
+    fire('PreToolUse', 'toolu_B');  // negado: nenhum PostToolUse chega
+    const lines = readFileSync(path.join(home, '.claude', 'spectree', 'policy-decisions.jsonl'), 'utf8')
+      .trim().split('\n').map((l) => JSON.parse(l));
+    assert.deepEqual(lines.map((e) => e.decision), ['ask', 'executed', 'ask']);
+    assert.deepEqual(lines.map((e) => e.outcome), ['pending', 'final', 'pending']);
+    // buraco 3: o alvo do force-push deixou de ser null
+    for (const entry of lines) assert.equal(entry.resource, 'git/refs/heads/feat/demo');
+    // a trilha agora responde "passou ou nao passou"
+    const executed = new Set(lines.filter((e) => e.decision === 'executed').map((e) => e.toolUseId));
+    assert.ok(executed.has('toolu_A'));
+    assert.ok(!executed.has('toolu_B'));
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test('4.7: deny e desfecho, nao pergunta — outcome final e sem par pendente', () => {
+  const home = mkdtempSync(path.join(tmpdir(), 'spectree-deny47-'));
+  try {
+    spawnSync(process.execPath, [GUARD], {
+      env: { ...process.env, HOME: home, USERPROFILE: home }, encoding: 'utf8',
+      input: JSON.stringify({
+        hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_use_id: 'toolu_C',
+        tool_input: { command: 'git push origin main' }, agent_type: 'spectree-squad:disruptor',
+      }),
+    });
+    const entry = JSON.parse(
+      readFileSync(path.join(home, '.claude', 'spectree', 'policy-decisions.jsonl'), 'utf8').trim(),
+    );
+    assert.equal(entry.decision, 'deny');
+    assert.equal(entry.outcome, 'final');
+    assert.equal(entry.resource, 'git/refs/heads/main');
+    assert.equal(entry.toolUseId, 'toolu_C');
   } finally {
     rmSync(home, { recursive: true, force: true });
   }
