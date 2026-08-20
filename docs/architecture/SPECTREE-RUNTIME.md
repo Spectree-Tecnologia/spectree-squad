@@ -150,8 +150,10 @@ Snapshot imutavel construido pelo ToolRuntime apos resolver e validar:
 `{ principal {type, id}, session {id}, tool {id, capability}, operation,
 input, resource {type, id}|null }`. `operation` default e `execute`;
 `capability` default e `tool.id` (fallback de migracao); `resource` vem
-da metadata da tool — estatica ou funcao de input (o resource-resolver
-seam). O engine recebe contexto e devolve decisao, sem efeito colateral.
+**somente** da metadata da tool — estatica ou funcao do mesmo input que a
+tool executa (o resource-resolver seam). Nunca do request: o chamador nao
+escolhe o recurso contra o qual e autorizado, entao a Policy decide sobre
+o recurso efetivamente executado (R9). O engine recebe contexto e devolve decisao, sem efeito colateral.
 
 ### PolicyDecision e precedencia
 
@@ -212,8 +214,9 @@ policy explicita; nao existe allow-all de conveniencia.
 - Cancelamento é cooperativo: barra a próxima tool, não aborta uma tool em
   execução (o seam de abort é o mesmo choke point do timeout).
 - Validador de schema é subconjunto mínimo.
-- Redação de segredo tem seam pronto, não implementação: por padrão o
-  payload do evento espelha o da tool (`projectEventPayload` identidade).
+- A projeção default de eventos de tool é segura (R10): publica apenas
+  `toolId` (e a mensagem de erro em `tool.failed`). Input e output nunca
+  saem no bus sem um `projectEventPayload` customizado que opte por isso.
   Eventos de policy já nascem sem input/output por contrato.
 - Aprovação humana não existe ainda: `approval-required` bloqueia e lança;
   o Founder Gate e o resume/retry pertencem a fase futura.

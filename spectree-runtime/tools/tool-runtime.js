@@ -69,13 +69,14 @@ function matchesType(type, value) {
  * no mesmo ponto (spec secao 37).
  */
 /**
- * Projecao default: o payload do evento espelha o payload da tool.
+ * Projecao default e SEGURA (R10): publica apenas toolId - e a mensagem
+ * de erro em tool.failed. Input e output NUNCA saem no bus por default;
+ * um projector customizado (o seam da Fase 1) pode optar por publicar
+ * mais, e essa escolha fica explicita no codigo de quem montou o runtime.
  * @param {{phase: string, toolId: string, input?: object, output?: *, error?: string}} view
  */
-const identityProjection = (view) => {
-  const { phase, ...payload } = view; // eslint-disable-line no-unused-vars
-  return payload;
-};
+const defaultProjection = ({ phase, toolId, error }) =>
+  phase === 'failed' ? { toolId, error } : { toolId };
 
 export class ToolRuntime {
   #tools = new Map();
@@ -94,7 +95,7 @@ export class ToolRuntime {
    *   Recebe {phase: 'requested'|'started'|'completed'|'failed', toolId,
    *   input?, output?, error?} e devolve o payload publicado.
    */
-  constructor({ eventBus, policyEngine, projectEventPayload = identityProjection }) {
+  constructor({ eventBus, policyEngine, projectEventPayload = defaultProjection }) {
     if (!policyEngine || typeof policyEngine.decide !== 'function') {
       // Sem policy nao ha execucao (secao 63): um ToolRuntime sem engine
       // seria uma rota permanente de bypass, entao ele nao pode existir.
@@ -120,14 +121,15 @@ export class ToolRuntime {
   }
 
   /**
-   * Seam de resolucao de recurso (secao 22): a primeira implementacao usa
-   * metadata declarada pela Tool - estatica ({type, id} ou "type/id") ou
-   * funcao de input. Nao infere recurso de strings arbitrarias.
+   * Seam de resolucao de recurso (secao 22): o resource vem SOMENTE da
+   * metadata da Tool - estatica ({type, id} ou "type/id") ou funcao do
+   * mesmo input que a Tool vai executar. Nunca do request (R9): o
+   * chamador nao escolhe o recurso contra o qual e autorizado, entao a
+   * Policy decide sobre o recurso efetivamente executado.
    */
-  #resolveResource(request, tool, input) {
+  #resolveResource(tool, input) {
     const declared =
-      request.resource ??
-      (typeof tool.resource === 'function' ? tool.resource(input) : tool.resource);
+      typeof tool.resource === 'function' ? tool.resource(input) : tool.resource;
     if (!declared) return null;
     if (typeof declared === 'string') {
       const slash = declared.indexOf('/');
@@ -184,7 +186,7 @@ export class ToolRuntime {
     // AuthorizationContext (secao 7): snapshot imutavel da decisao.
     const operation = request.operation ?? tool.operation ?? 'execute';
     const capability = tool.capability ?? tool.id; // fallback de migracao (secao 21)
-    const resource = this.#resolveResource(request, tool, input);
+    const resource = this.#resolveResource(tool, input);
     const authorization = Object.freeze({
       principal: Object.freeze({ type: 'agent', id: context.agentId ?? null }),
       session: Object.freeze({ id: context.session?.id ?? null }),
