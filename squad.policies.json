@@ -97,5 +97,18 @@
     "resources": [
       "outside-workspace"
     ]
+  },
+  {
+    "id": "keeper-edit-scope",
+    "effect": "allow",
+    "principal": "keeper-of-the-light",
+    "capability": "artifact-edit",
+    "operations": [
+      "edit"
+    ],
+    "resources": [
+      "docs/stories/*",
+      "docs/LESSONS.md"
+    ]
   }
 ]

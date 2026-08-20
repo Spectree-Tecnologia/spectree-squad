@@ -157,7 +157,9 @@ orquestra; a disciplina é delas.
    `approved:` com a data e libere a etapa seguinte. A aprovação pertence ao
    conteúdo: artefato `approved` com `updated:` posterior a `approved:` foi
    editado depois — trate como `in-review` e reaprove antes de derivar
-   qualquer coisa dele (contrato na skill `spectree-artifacts`).
+   qualquer coisa dele. Exceção sancionada: story em ciclo de build
+   (`in-progress`/`done`, Dev Log e QA Notes) — contrato na skill
+   `spectree-artifacts`.
 11. **Reporte no fechamento.** O que entrou no produto, onde está, o que
    ficou registrado, bloqueios e o próximo passo. Passo que depende só de
    você, execute (regra 4).
