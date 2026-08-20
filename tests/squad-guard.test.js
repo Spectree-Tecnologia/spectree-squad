@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -17,11 +18,26 @@ import { fileURLToPath } from 'node:url';
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const GUARD = path.join(REPO, 'hooks', 'guard.mjs');
 
+/**
+ * Fixture de repo (4.8): o guard deriva o escopo de projeto do basename
+ * da raiz do repo da cwd, e a ref corrente de .git/HEAD. Um repo fixo
+ * chamado spectree-squad, numa branch de trabalho, mantem estes casos
+ * deterministicos — sem depender de qual branch o repo real esta.
+ */
+const FIXTURE = (() => {
+  const base = mkdtempSync(path.join(tmpdir(), 'spectree-guard-'));
+  const dir = path.join(base, 'spectree-squad');
+  mkdirSync(path.join(dir, '.git'), { recursive: true });
+  writeFileSync(path.join(dir, '.git', 'HEAD'), 'ref: refs/heads/feat/fixture\n', 'utf8');
+  return dir;
+})();
+
 function runGuard(command, toolName = 'Bash', agentType = undefined) {
   const payload = JSON.stringify({
     hook_event_name: 'PreToolUse',
     tool_name: toolName,
     tool_input: { command },
+    cwd: FIXTURE,
     ...(agentType ? { agent_type: agentType } : {}),
   });
   const result = spawnSync(process.execPath, [GUARD], { input: payload, encoding: 'utf8' });
@@ -140,6 +156,7 @@ function runGuardFile(toolName, toolInput, agentType = undefined) {
     hook_event_name: 'PreToolUse',
     tool_name: toolName,
     tool_input: toolInput,
+    cwd: FIXTURE,
     ...(agentType ? { agent_type: agentType } : {}),
   });
   const result = spawnSync(process.execPath, [GUARD], { input: payload, encoding: 'utf8' });

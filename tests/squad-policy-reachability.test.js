@@ -24,15 +24,23 @@ const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const GUARD = path.join(REPO, 'hooks', 'guard.mjs');
 const POLICIES = loadPolicyDocument(path.join(REPO, 'squad.policies.json'));
 
-/** Repo falso com a branch pedida em .git/HEAD, para exercitar currentRef. */
-function fakeRepo(ref) {
-  const dir = mkdtempSync(path.join(tmpdir(), 'spectree-reach-'));
+/**
+ * Repo falso com a branch pedida em .git/HEAD. O NOME do diretorio e a
+ * identidade de escopo (4.8): o guard usa o basename da raiz do repo
+ * como projeto, entao o nome decide quais policies se aplicam.
+ */
+function fakeRepo(ref, project = 'spectree-squad') {
+  const base = mkdtempSync(path.join(tmpdir(), 'spectree-reach-'));
+  const dir = path.join(base, project);
   mkdirSync(path.join(dir, '.git'), { recursive: true });
   writeFileSync(path.join(dir, '.git', 'HEAD'), 'ref: ' + ref + '\n', 'utf8');
   return dir;
 }
 
-function guard({ command, agentType, tool = 'Bash', input, cwd }) {
+/** cwd padrao das sondas: este projeto, numa branch de trabalho. */
+const HERE = fakeRepo('refs/heads/feat/reach');
+
+function guard({ command, agentType, tool = 'Bash', input, cwd = HERE }) {
   const payload = { tool_name: tool, tool_input: input ?? { command }, cwd };
   if (agentType) payload.agent_type = agentType;
   const result = spawnSync(process.execPath, [GUARD], {
@@ -70,6 +78,7 @@ const REACHABILITY = {
   'no-direct-push-main': {
     by: 'guard',
     expect: 'deny',
+    project: 'spectree-squad', // regime branch+PR e convencao DESTE repo
     probe: () => guard({ command: 'git push origin main', agentType: 'spectree-squad:disruptor' }),
   },
   'destructive-git-founder-gate': {
@@ -142,6 +151,59 @@ for (const [policyId, entry] of Object.entries(REACHABILITY)) {
     );
   });
 }
+
+test('4.8: escopo declarado bate com a matriz, e policy escopada nao vaza', () => {
+  for (const policy of POLICIES) {
+    const declared = REACHABILITY[policy.id].project ?? null;
+    const inMatrix = policy.project ?? null;
+    assert.equal(
+      inMatrix, declared,
+      "policy '" + policy.id + "': escopo da matriz e da declaracao divergem",
+    );
+  }
+  // a policy escopada NAO age em outro projeto — nem para negar
+  const canaryOnMain = fakeRepo('refs/heads/main', 'spectree-slack');
+  const squadOnMain = fakeRepo('refs/heads/main', 'spectree-squad');
+  try {
+    for (const command of ['git push origin main', 'git commit -m "x"']) {
+      assert.equal(
+        guard({ command, agentType: 'spectree-squad:disruptor', cwd: canaryOnMain }), null,
+        'fora do escopo deveria passar: ' + command,
+      );
+      const inScope = guard({ command, agentType: 'spectree-squad:disruptor', cwd: squadOnMain });
+      assert.equal(inScope?.permissionDecision, 'deny', 'no escopo deveria negar: ' + command);
+    }
+    // policy global continua valendo nos dois
+    for (const cwd of [canaryOnMain, squadOnMain]) {
+      const forced = guard({ command: 'git push --force origin feat/x', agentType: 'spectree-squad:disruptor', cwd });
+      assert.equal(forced?.permissionDecision, 'ask');
+      const wiped = guard({ command: 'rm -rf /', agentType: 'spectree-squad:jakiro', cwd });
+      assert.equal(wiped?.permissionDecision, 'deny');
+    }
+  } finally {
+    rmSync(canaryOnMain, { recursive: true, force: true });
+    rmSync(squadOnMain, { recursive: true, force: true });
+  }
+});
+
+test('4.8: supabase e governado — a autoridade do Oracle vale sem psql', () => {
+  const canary = fakeRepo('refs/heads/feat/x', 'spectree-slack');
+  try {
+    // db push aplica schema no projeto vinculado: producao
+    assert.equal(guard({ command: 'supabase db push', agentType: 'spectree-squad:oracle', cwd: canary }), null);
+    for (const command of ['supabase db push', 'npx supabase db reset', 'supabase migration new add_col']) {
+      const denied = guard({ command, agentType: 'spectree-squad:jakiro', cwd: canary });
+      assert.equal(denied?.permissionDecision, 'deny', command);
+      assert.match(denied.permissionDecisionReason, /no policy grants/);
+    }
+    // leitura e ciclo de vida local seguem livres
+    for (const command of ['supabase migration list', 'supabase db diff', 'supabase start', 'supabase status']) {
+      assert.equal(guard({ command, agentType: 'spectree-squad:jakiro', cwd: canary }), null, command);
+    }
+  } finally {
+    rmSync(canary, { recursive: true, force: true });
+  }
+});
 
 test('policies runtime-only declaram o motivo de nao serem alcancaveis pelo guard', () => {
   for (const [policyId, entry] of Object.entries(REACHABILITY)) {
@@ -325,6 +387,7 @@ test('4.7: deny e desfecho, nao pergunta — outcome final e sem par pendente', 
       input: JSON.stringify({
         hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_use_id: 'toolu_C',
         tool_input: { command: 'git push origin main' }, agent_type: 'spectree-squad:disruptor',
+        cwd: HERE, // escopo (4.8): a policy da main pertence a este projeto
       }),
     });
     const entry = JSON.parse(

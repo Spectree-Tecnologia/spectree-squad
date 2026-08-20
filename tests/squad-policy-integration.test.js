@@ -26,10 +26,15 @@ import {
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const MATRIX = new URL('../squad.policies.json', import.meta.url);
 const GUARD = path.join(REPO, 'hooks', 'guard.mjs');
+// escopo (4.8): o guard deriva o projeto do basename da raiz do repo da
+// cwd, e REPO e o proprio spectree-squad
+const PROJECT = path.basename(REPO);
 
 function guardDecision(command, agentType) {
   const result = spawnSync(process.execPath, [GUARD], {
-    input: JSON.stringify({ tool_name: 'Bash', tool_input: { command }, agent_type: agentType }),
+    input: JSON.stringify({
+      tool_name: 'Bash', tool_input: { command }, agent_type: agentType, cwd: REPO,
+    }),
     encoding: 'utf8',
   });
   assert.equal(result.status, 0, result.stderr);
@@ -38,7 +43,7 @@ function guardDecision(command, agentType) {
 
 /** Runtime completo com a matriz injetada pelo adapter — nenhuma copia. */
 function runtimeFromMatrix() {
-  const { registry } = policyEngineFromDocument(MATRIX);
+  const { registry } = policyEngineFromDocument(MATRIX, { project: PROJECT });
   const runtime = createRuntime({ policyRegistry: registry });
   runtime.capabilityRegistry.register({
     id: 'database', name: 'Database', description: 'd',
@@ -69,13 +74,38 @@ test('adapter: valida documento — inexistente, nao-JSON-array, e o feliz', () 
   assert.throws(() => loadPolicyDocument(path.join(REPO, 'package.json')), PolicyConfigurationError);
   const policies = loadPolicyDocument(MATRIX);
   assert.deepEqual(policies, JSON.parse(readFileSync(MATRIX, 'utf8'))); // igualdade com o arquivo
-  const { registry, engine } = policyEngineFromDocument(MATRIX);
-  assert.equal(registry.list().length, policies.length);
-  assert.ok(engine);
+  const loaded = policyEngineFromDocument(MATRIX, { project: PROJECT });
+  assert.deepEqual(loaded.document, policies); // documento inteiro, sem filtro
+  assert.equal(loaded.registry.list().length, loaded.policies.length);
+  assert.ok(loaded.engine);
+});
+
+test('4.8: o escopo mora no adapter — mesmo arquivo, projetos diferentes', () => {
+  const here = policyEngineFromDocument(MATRIX, { project: PROJECT });
+  const canary = policyEngineFromDocument(MATRIX, { project: 'spectree-slack' });
+  const nowhere = policyEngineFromDocument(MATRIX); // fora de qualquer repo
+  // o documento e identico nos tres; o que muda e o que se APLICA
+  assert.deepEqual(here.document, canary.document);
+  assert.deepEqual(here.document, nowhere.document);
+  const ids = (loaded) => loaded.policies.map((policy) => policy.id);
+  assert.ok(ids(here).includes('no-direct-push-main'));
+  assert.ok(!ids(canary).includes('no-direct-push-main'));
+  assert.ok(!ids(nowhere).includes('no-direct-push-main'), 'sem projeto: so as globais');
+  for (const loaded of [here, canary, nowhere]) {
+    assert.ok(ids(loaded).includes('destructive-git-founder-gate'), 'global vale em todo lugar');
+  }
+  // e a decisao acompanha o escopo, nos tres consumidores
+  const request = {
+    principal: { id: 'disruptor' }, tool: { id: 'git.push', capability: 'git' },
+    operation: 'push', resource: { type: 'git', id: 'refs/heads/main' },
+  };
+  assert.equal(here.engine.decide(request).policyId, 'no-direct-push-main');
+  assert.equal(canary.engine.decide(request).policyId, 'disruptor-git');
+  assert.equal(canary.engine.decide(request).effect, 'allow');
 });
 
 test('mesma decisao nos tres consumidores: allow — oracle e o banco', async () => {
-  const { engine } = policyEngineFromDocument(MATRIX);
+  const { engine } = policyEngineFromDocument(MATRIX, { project: PROJECT });
   const decision = engine.decide({
     principal: { id: 'oracle' }, tool: { id: 'database.query', capability: 'database' },
     operation: 'query',
@@ -92,7 +122,7 @@ test('mesma decisao nos tres consumidores: allow — oracle e o banco', async ()
 });
 
 test('mesma decisao nos tres consumidores: default deny — jakiro no banco', async () => {
-  const { engine } = policyEngineFromDocument(MATRIX);
+  const { engine } = policyEngineFromDocument(MATRIX, { project: PROJECT });
   const decision = engine.decide({
     principal: { id: 'jakiro' }, tool: { id: 'database.query', capability: 'database' },
     operation: 'query',
@@ -109,7 +139,7 @@ test('mesma decisao nos tres consumidores: default deny — jakiro no banco', as
 });
 
 test('mesma decisao nos tres consumidores: deny explicito — main nega ate o Disruptor', async () => {
-  const { engine } = policyEngineFromDocument(MATRIX);
+  const { engine } = policyEngineFromDocument(MATRIX, { project: PROJECT });
   const decision = engine.decide({
     principal: { id: 'disruptor' }, tool: { id: 'git.push', capability: 'git' },
     operation: 'push', resource: { type: 'git', id: 'refs/heads/main' },
@@ -128,7 +158,7 @@ test('mesma decisao nos tres consumidores: deny explicito — main nega ate o Di
 });
 
 test('mesma decisao nos tres consumidores: approval-required — gate vence o allow do Oracle', async () => {
-  const { engine } = policyEngineFromDocument(MATRIX);
+  const { engine } = policyEngineFromDocument(MATRIX, { project: PROJECT });
   const decision = engine.decide({
     principal: { id: 'oracle' }, tool: { id: 'database.drop', capability: 'database' },
     operation: 'destructive-migration',

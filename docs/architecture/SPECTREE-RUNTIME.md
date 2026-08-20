@@ -420,6 +420,46 @@ proprio guard. Contorno: escrever o arquivo por ferramenta de escrita,
 nao por heredoc. Correcao adiada de proposito — ignorar corpo de heredoc
 abriria a porta para `bash <<EOF ... EOF`, que executa de verdade.
 
+## Fase 4.8 — Escopo de projeto e detector de Supabase
+
+A analise do projeto canario mostrou que a matriz promovia a convencao de
+UM projeto a lei universal. O `squad.policies.json` vive no plugin,
+instalado em escopo user, e valia em todo repo aberto — mas os projetos
+tem regimes de governanca legitimamente diferentes: aqui e branch+PR
+sempre; no canario, artefato de planejamento e `scripts/` vao direto na
+main, e push na main publica em producao. Com a 4.6 e 4.7 o canario
+ficaria sem mecanismo de publicacao.
+
+Escopo: policy sem `project` e GLOBAL; policy com `project` (string ou
+lista) so vale nos projetos nomeados. A identidade do projeto e o
+basename da raiz do repo derivada da cwd — leitura de `.git`, nunca
+execucao. A filtragem mora no ADAPTER, que e o caminho unico de carga
+desde a 4.5: guard, runtime e testes aplicam o mesmo escopo por
+construcao. Espalhar a filtragem pelos consumidores traria de volta a
+divergencia que a 4.5 eliminou.
+
+Consumidor que nao sabe em qual projeto esta recebe SO as globais. Uma
+policy escopada nunca vaza para fora do escopo — nem para conceder (que
+seria escalacao) nem para negar (que seria bloqueio alheio). Nenhum
+agente alcanca a matriz: ela continua dentro do plugin, e nao existe
+arquivo local de policy que um agente pudesse escrever para se
+autorizar.
+
+Unica policy escopada nesta fase: `no-direct-push-main`, em
+`spectree-squad`. As demais seguem globais — autoridade de papel (banco e
+do Oracle, git e do Disruptor) e gate de operacao destrutiva valem onde
+quer que o squad rode.
+
+Detector de Supabase: sem ele a autoridade exclusiva do Oracle nao valia
+em projeto que nao usa `psql`. `supabase db push` aplica schema no
+projeto vinculado (producao) e passava para qualquer agente. Agora `db
+push`/`db reset`/`migration new` sao capability `database`, operacao
+`migration`; leitura (`db diff`, `db dump`, `migration list`) e ciclo de
+vida local (`start`, `status`) seguem livres. Limite declarado: o guard
+nao le o conteudo dos arquivos de migration, entao nao distingue aditiva
+de destrutiva — a regra "destrutiva passa pelo Founder" continua sendo
+verificacao humana naquele projeto, nao enforcement.
+
 ## Limitações conhecidas (deliberadas, Fase 1)
 
 - Erro de tool falha a execução por padrão; um agente pode dar catch em

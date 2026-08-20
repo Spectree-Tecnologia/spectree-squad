@@ -38,6 +38,12 @@ import { policyEngineFromDocument } from '../spectree-runtime/adapters/policy-do
  * PostToolUse registra `executed` correlacionado pelo mesmo
  * `toolUseId` — a pergunta e a resposta viram um par auditavel.
  *
+ * 4.8: escopo de projeto. A identidade do projeto e o basename da raiz
+ * do repo da cwd; policy com `project` so vale la, policy sem `project`
+ * vale em todo lugar. Fora de repo, so as globais. E detector de
+ * `supabase`, para que a autoridade do Oracle valha em projeto que nao
+ * usa psql.
+ *
  * Regra de honestidade: o guard NUNCA responde "allow" — so "deny",
  * "ask" (gate do Founder na UI) ou silencio. Allow do engine vira
  * passagem sem decisao: o fluxo normal de permissao e a ultima palavra.
@@ -45,10 +51,10 @@ import { policyEngineFromDocument } from '../spectree-runtime/adapters/policy-do
  */
 
 // Adapter oficial (Fase 4.5): o MESMO caminho de carga que o runtime,
-// os exemplos e os testes usam — uma autoridade, mesma decisao.
-const { policies: POLICIES, engine } = policyEngineFromDocument(
-  new URL('../squad.policies.json', import.meta.url),
-);
+// os exemplos e os testes usam — uma autoridade, mesma decisao. A carga
+// acontece dentro de main() porque o escopo de projeto (4.8) depende da
+// cwd que chega no payload.
+const MATRIX = new URL('../squad.policies.json', import.meta.url);
 
 /** Principais reconhecidos: os agentes que o plugin embarca. */
 const KNOWN_AGENTS = new Set(
@@ -61,11 +67,14 @@ const KNOWN_AGENTS = new Set(
  * Principais com superficie de edicao fechada: quem declara policy de
  * artifact-edit na matriz so edita o que ela concede. Quem nao declara
  * segue livre — mesma semantica do whitelist tools: declarar e fechar.
+ * Calculado sobre as policies JA filtradas pelo escopo (4.8).
  */
-const CLOSED_EDIT_PRINCIPALS = new Set(
-  POLICIES.filter((p) => (p.capability ?? p.capabilities) === 'artifact-edit')
-    .flatMap((p) => [p.principal ?? p.principals ?? []].flat()),
-);
+function closedEditPrincipals(policies) {
+  return new Set(
+    policies.filter((p) => (p.capability ?? p.capabilities) === 'artifact-edit')
+      .flatMap((p) => [p.principal ?? p.principals ?? []].flat()),
+  );
+}
 
 /**
  * Regra da Fase 4.5: agent_type AUSENTE e a thread principal — la vivem
@@ -187,6 +196,38 @@ function detectGit(tokens) {
 }
 
 /**
+ * Supabase (4.8): o ferramental de banco do canario. Sem este detector a
+ * autoridade exclusiva do Oracle nao valia onde o projeto nao usa psql —
+ * `supabase db push` aplica schema no projeto vinculado (producao) e
+ * passava para qualquer agente.
+ *
+ * Limite declarado: o guard nao le o conteudo dos arquivos de migration,
+ * entao nao distingue migration aditiva de destrutiva. `db push` e
+ * governado como `migration`; a regra "destrutiva passa pelo Founder"
+ * continua sendo verificacao humana, nao enforcement.
+ */
+function detectSupabase(tokens) {
+  const rest = tokens.slice(tokens.indexOf('supabase') + 1).filter((t) => !t.startsWith('-'));
+  const [group, sub] = rest;
+  if (group === 'db') {
+    // leitura de schema nao e governada
+    if (['dump', 'diff', 'lint'].includes(sub)) return null;
+    if (sub === 'push') {
+      return { capability: 'database', operation: 'migration', resource: { type: 'database', id: 'production' } };
+    }
+    if (sub === 'reset') {
+      return { capability: 'database', operation: 'migration', resource: { type: 'database', id: 'local' } };
+    }
+    return { capability: 'database', operation: 'migration' };
+  }
+  if (group === 'migration') {
+    if (sub === 'list') return null; // leitura
+    return { capability: 'database', operation: 'migration' };
+  }
+  return null; // login, start, stop, status, functions: nao governados
+}
+
+/**
  * Detecta operacao governada num segmento Bash. Conservador: falso
  * negativo antes de falso positivo — o que nao casar segue o fluxo
  * normal de permissao.
@@ -195,6 +236,7 @@ function detectBash(segment) {
   const tokens = tokenize(segment);
   if (tokens.includes('gh')) return detectGitHub(tokens);
   if (tokens.includes('git')) return detectGit(tokens);
+  if (tokens.includes('supabase')) return detectSupabase(tokens);
   if (/\b(psql|mysql|mariadb|sqlite3)\b/.test(segment)) {
     const destructive = /\b(drop\s+(table|database|schema|index)|truncate)\b/i.test(segment);
     return { capability: 'database', operation: destructive ? 'destructive-migration' : 'query' };
@@ -223,24 +265,27 @@ function detectBash(segment) {
 }
 
 /**
- * Ref da branch corrente lida de .git/HEAD — LEITURA de arquivo, nunca
- * execucao de comando (o guard permanece read-only). Sobe da cwd ate
- * achar o .git; detached HEAD ou ausencia devolve null.
+ * Contexto de git a partir da cwd — LEITURA de arquivo, nunca execucao
+ * de comando (o guard permanece read-only). Sobe da cwd ate achar o
+ * .git e devolve a raiz do repo, o nome do projeto (basename da raiz, a
+ * identidade de escopo da 4.8) e a ref corrente. Fora de repo, tudo
+ * null: sem projeto, so as policies globais se aplicam.
  */
-function currentRef(cwd) {
+function gitContext(cwd) {
+  const none = { root: null, project: null, ref: null };
   let dir = typeof cwd === 'string' && cwd.length > 0 ? path.resolve(cwd) : null;
   while (dir) {
     try {
       const head = readFileSync(path.join(dir, '.git', 'HEAD'), 'utf8').trim();
       const match = head.match(/^ref:\s*(refs\/heads\/.+)$/);
-      return match ? match[1] : null;
+      return { root: dir, project: path.basename(dir), ref: match ? match[1] : null };
     } catch {
       const parent = path.dirname(dir);
-      if (parent === dir) return null;
+      if (parent === dir) return none;
       dir = parent;
     }
   }
-  return null;
+  return none;
 }
 
 /** Caminho em forma posix; recorta a partir de docs/ quando existir. */
@@ -256,7 +301,7 @@ const STATUS_OPS = { approved: 'approve', done: 'done', 'in-progress': 'in-progr
  * Deteccoes para Edit/Write (4C). Devolve a lista de operacoes
  * governadas encontradas — status primeiro, escopo depois.
  */
-function detectFileTool(payload, principal) {
+function detectFileTool(payload, principal, closedEdit) {
   const input = payload.tool_input ?? {};
   const { posix, docs } = docsRelative(input.file_path ?? '');
   const detections = [];
@@ -271,7 +316,7 @@ function detectFileTool(payload, principal) {
     });
   }
   // superficie de edicao fechada (Keeper): toda edicao e governada
-  if (principal && CLOSED_EDIT_PRINCIPALS.has(principal.id)) {
+  if (principal && closedEdit.has(principal.id)) {
     detections.push({
       capability: 'artifact-edit',
       operation: 'edit',
@@ -316,24 +361,26 @@ function main() {
   // um `ask` anterior. Nunca imprime decisao — apenas fecha o par.
   const isOutcome = payload.hook_event_name === 'PostToolUse';
   const toolName = payload.tool_name;
+  // escopo de projeto (4.8): a identidade vem da raiz do repo da cwd
+  const git = gitContext(payload.cwd);
+  const { policies, engine } = policyEngineFromDocument(MATRIX, { project: git.project });
+  const principal = principalFrom(payload.agent_type);
   let detections = [];
   if (toolName === 'Bash') {
     const command = payload.tool_input?.command;
     if (typeof command !== 'string') return;
     detections = segments(command).map(detectBash).filter(Boolean);
   } else if (toolName === 'Edit' || toolName === 'Write') {
-    detections = detectFileTool(payload, principalFrom(payload.agent_type));
+    detections = detectFileTool(payload, principal, closedEditPrincipals(policies));
   } else {
     return;
   }
   if (detections.length === 0) return;
 
-  const principal = principalFrom(payload.agent_type);
   for (const detected of detections) {
     let resource = detected.resource;
-    if (detected.needsCurrentRef && !resource) {
-      const ref = currentRef(payload.cwd);
-      if (ref) resource = { type: 'git', id: ref };
+    if (detected.needsCurrentRef && !resource && git.ref) {
+      resource = { type: 'git', id: git.ref };
     }
     const decision = engine.decide({
       principal: principal ?? UNKNOWN_PRINCIPAL,
