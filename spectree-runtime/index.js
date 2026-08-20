@@ -60,6 +60,13 @@ export {
 } from './sandbox/sandbox-profile-resolver.js';
 export { LocalFilesystemSandboxProvider } from './sandbox/providers/local-filesystem-sandbox.js';
 export { TestSandboxProvider } from './sandbox/providers/test-sandbox-provider.js';
+export {
+  LinuxPhysicalSandboxProvider,
+  detectWsl,
+} from './sandbox/providers/linux-physical/linux-physical-sandbox-provider.js';
+export { BubblewrapBackend } from './sandbox/providers/linux-physical/bubblewrap-backend.js';
+export { LandlockBackend } from './sandbox/providers/linux-physical/landlock-backend.js';
+export { functionalProbe } from './sandbox/providers/linux-physical/probe.js';
 export { createSandboxEscalationRequest } from './sandbox/sandbox-escalation.js';
 export { createProcessSpawnSpec } from './process/spawn-spec.js';
 export { buildProcessEnvironment, MINIMAL_SAFE_KEYS } from './process/environment.js';

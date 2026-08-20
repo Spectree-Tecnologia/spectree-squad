@@ -273,8 +273,12 @@ test('SandboxHandle: superficie travada e dispose idempotente (secoes 89, 107, 1
     const handle = await provider.apply(policy, { sessionId: 'sess_a', agentId: 'oracle' });
     // R8 aplicado ao Handle (secao 89/166)
     assert.deepEqual(Object.keys(handle), [
-      'mode', 'enforcement', 'providerId', 'boundary', 'sessionTemp', 'assertPathAllowed', 'dispose',
+      'mode', 'enforcement', 'providerId', 'sandboxInstanceId', 'boundary', 'sessionTemp',
+      'assertPathAllowed', 'confineProcess', 'dispose',
     ]);
+    // backend sem confinement fisico de processo: a porta e null (F7)
+    assert.equal(handle.confineProcess, null);
+    assert.match(handle.sandboxInstanceId, /^sbx_/);
     assert.ok(Object.isFrozen(handle));
     assert.equal(handle.enforcement, 'partial', 'secao 143: nunca mascarar partial como full');
     // o mecanismo bruto do SO nao vaza pelo handle

@@ -9,6 +9,7 @@
     "example:approval": "node spectree-runtime/example-approval.js",
     "example:provider": "node spectree-runtime/example-provider.js",
     "example:sandbox": "node spectree-runtime/example-sandbox.js",
-    "example:process": "node spectree-runtime/example-process.js"
+    "example:process": "node spectree-runtime/example-process.js",
+    "example:linux-sandbox": "node spectree-runtime/example-linux-sandbox.js"
   }
 }

@@ -264,6 +264,7 @@ diretório pai).
 | 4 | Capability Providers — `CapabilityResolver`, `LocalFilesystemProvider` | Como isso vira efeito real no mundo? |
 | 5 | Sandbox Runtime — `SandboxPolicy`, `SandboxResolver`, `LocalFilesystemSandboxProvider` | Sob quais limites físicos? |
 | 6 | Process Capability — `ProcessSpawnSpec`, `ProcessRegistry`, `LocalSubprocessProvider` | Qual processo pode nascer? |
+| 7 | Linux Physical Sandbox — `LinuxPhysicalSandboxProvider`, `BubblewrapBackend`, functional probe | O kernel garante o limite? |
 
 O Sandbox fecha a quinta dimensão: a Policy responde *se pode*, o Sandbox
 responde *dentro de quais limites físicos*. Três modos (`read-only`,
@@ -286,17 +287,37 @@ governada como qualquer processo.
 
 E o runtime não executa prometendo um limite que não aplica: modo
 restritivo (`read-only`, `workspace-write`) é promessa de confinamento
-físico, e nenhum backend hoje confina um processo do sistema operacional.
-Sob esses modos, portanto, **o processo não nasce** — quem precisa
-executar declara `danger-full-access`, que não promete nada. Execução não
-confinada vira escolha explícita e auditável em vez de efeito colateral
-de um modo que diz "workspace". Quando um backend físico chegar
-(Landlock, job object, container), ele declara enforcement `full` e o
-mesmo cálculo libera o spawn sob modo restritivo, sem tocar no agente.
+físico. Sob esses modos, sem backend físico, **o processo não nasce** —
+quem precisa executar declara `danger-full-access`, que não promete
+nada. Execução não confinada é escolha explícita e auditável, nunca
+efeito colateral de um modo que diz "workspace".
 
-A próxima fronteira é o **Shell**: parser de comando de um lado,
-`process.spawn` do outro — sem que o provider de processo vire um
-executor gigante.
+A Fase 7 entregou o backend que essa regra esperava: em Linux (nativo ou
+WSL2) com **bubblewrap**, `workspace-write` volta a parir processo —
+agora fisicamente confinado por mount namespace. Fora do workspace não é
+"negado": fora **não existe** dentro do namespace, e é o kernel quem
+recusa escrita, leitura, rename, symlink e hard-link atravessando a
+fronteira — para o processo, os filhos e os netos. Nada disso é
+configuração: um **functional probe** executa um processo confinado num
+mundo descartável e só promove o backend a `full` se o comportamento
+observado corresponder ao contrato. Sem backend utilizável, o chain
+falha fechado com o diagnóstico de cada tentativa — nunca execução sem
+confinamento como consolo. Landlock participa do chain como seam formal
+(o launcher nativo fica para quando for a vez dele), e WSL2 é host de
+desenvolvimento, não sandbox.
+
+| Plataforma | Backend | Resultado |
+|---|---|---|
+| Linux + bubblewrap | físico (`full`) | testado (CI + WSL2) |
+| Linux + Landlock | seam formal | aguarda launcher nativo |
+| WSL2 + bubblewrap | físico (`full`) | testado |
+| Windows nativo | indisponível | esperado |
+| macOS | indisponível | esperado |
+
+A próxima fronteira é o **Execution Effects / Resource Model** (F8): o
+`cwd` deixa de ser suficiente como modelo de efeito antes de o Shell
+(F9) existir — um comando expressivo toca vários mundos, e a Policy
+precisa julgar o conjunto de efeitos, não só onde o processo começou.
 
 ### Rodando
 
@@ -308,6 +329,7 @@ npm run example:approval # approve/resume, deny e revalidação bloqueando
 npm run example:provider # até o arquivo real, com traversal morrendo na Policy
 npm run example:sandbox  # a mesma escrita permitida e negada, só mudando o boundary
 npm run example:process  # processo governado: argv explícito, mesmo mundo do filesystem
+npm run example:linux-sandbox  # (Linux/WSL2) processo confinado pelo kernel via bubblewrap
 ```
 
 Arquitetura em `docs/architecture/SPECTREE-RUNTIME.md`; as decisões que
@@ -345,6 +367,7 @@ spectree-runtime/
   capabilities/ providers/           # Fase 4: como vira efeito real
   sandbox/                           # Fase 5: sob quais limites físicos
   process/                           # Fase 6: qual processo pode nascer
+  sandbox/providers/linux-physical/  # Fase 7: o kernel garante o limite
   tools/tool-runtime.js              # o ponto onde as quatro se encontram
   adapters/squad-agent.js            # ponte Squad -> Runtime
   adapters/policy-document.js        # o caminho unico da matriz (Fase 4.5)

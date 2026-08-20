@@ -64,9 +64,13 @@ export class TestSandboxProvider {
       mode: policy.mode,
       enforcement: this.#declaredEnforcement,
       providerId: this.providerId,
+      sandboxInstanceId: 'sbx_test_' + this.applied.length,
       boundary: policy.boundary,
       sessionTemp: null,
       assertPathAllowed() {},
+      // superficie uniforme (R8): backend sem confinement fisico de
+      // processo expoe a porta como null, nunca a omite
+      confineProcess: null,
       async dispose() {
         if (disposed) return;
         disposed = true;

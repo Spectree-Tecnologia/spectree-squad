@@ -1,4 +1,5 @@
 import { mkdirSync, rmSync, realpathSync, existsSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { SandboxDeniedError } from '../../errors.js';
 
@@ -94,6 +95,7 @@ export class LocalFilesystemSandboxProvider {
       mode: policy.mode,
       enforcement: this.enforcement,
       providerId: this.providerId,
+      sandboxInstanceId: 'sbx_' + randomUUID(),
       boundary,
       sessionTemp,
       /**
@@ -103,6 +105,9 @@ export class LocalFilesystemSandboxProvider {
       assertPathAllowed(targetPath, operation) {
         assertWithinBoundary(boundary, targetPath, operation, policy.mode);
       },
+      // este backend nao confina processo fisicamente: a porta existe
+      // na superficie uniforme (R8) e e honestamente null
+      confineProcess: null,
       /** Idempotente (secao 107): dispose duas vezes nao quebra nada. */
       async dispose() {
         if (disposed) return;

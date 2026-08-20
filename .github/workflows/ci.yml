@@ -1,0 +1,39 @@
+# CI da Fase 7 (spec secoes 98-100): Linux REAL com backend fisico.
+#
+# Regra da secao 99: o job Linux nao pode ficar verde com os testes
+# fisicos silenciosamente pulados — em Linux, probe inutilizavel FALHA o
+# primeiro teste de linux-sandbox-physical.test.js com o diagnostico do
+# chain. Nao existe caminho "all skipped -> green" nesta plataforma.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  linux-physical:
+    name: linux + bubblewrap (physical sandbox)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: install bubblewrap
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq bubblewrap
+      - name: allow unprivileged user namespaces (ubuntu 24.04+ apparmor)
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+      - name: full suite (physical tests MUST run, secao 99)
+        run: npm test
+
+  windows-native:
+    name: windows (physical sandbox expected unavailable)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: full suite (linux-physical skips as expected, secao 100)
+        run: npm test
