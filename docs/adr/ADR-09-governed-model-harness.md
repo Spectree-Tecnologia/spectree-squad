@@ -81,6 +81,19 @@ reduzir essa exposicao e o `CredentialBroker` (credencial fora do
 namespace, interface controlada: unix socket / host proxy / ephemeral
 credential service) — NAO implementado nesta fase.
 
+## Adendo (follow-up do review, E6)
+
+O review do Founder no PR #28 encontrou o INV-906 enforcado so na
+calibracao — o lado que propoe, nao o lado que monta. Corrigido no
+padrao da F4 (defense in depth): `assertBindablePhysicalPath` vive em
+`createSandboxPolicy` (autoridade) e a calibracao consome a MESMA regra.
+Recusas tipadas: raiz do filesystem; HOME ou ancestral do HOME
+(igual-ou-ancestral — `HOME/..` morre); raiz de sistema que o backend ja
+monta; e sobreposicao com o workspace em qualquer direcao (no bwrap o
+ultimo bind vence — sombreamento seria mudanca de comportamento
+silenciosa). Um teste por recusa em
+`tests/declared-resources-floor.test.js`.
+
 ## Consequencia
 
 Um segundo harness entra criando apenas outro launcher + calibracao +

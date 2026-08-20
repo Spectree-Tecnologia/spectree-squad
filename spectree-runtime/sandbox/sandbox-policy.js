@@ -1,4 +1,5 @@
 import { realpathSync, existsSync } from 'node:fs';
+import { homedir } from 'node:os';
 import path from 'node:path';
 import { SandboxConfigurationError } from '../errors.js';
 import {
@@ -107,6 +108,12 @@ export function createSandboxPolicy(input) {
   // Deliberadamente FORA de assertRootWithin: o ponto e montar um
   // recurso pontual fora do workspace (ex.: credencial calibrada),
   // ro-bind a ro-bind, nunca uma root ampla.
+  // Follow-up F9 (review do Founder): o PISO do physicalPath vive AQUI,
+  // no lado com AUTORIDADE — a calibracao e apenas um consumidor da
+  // mesma proibicao (INV-906 corrigido: a invariante e do BINDING).
+  // Defense in depth no padrao da F4: a proposta ja veta, e o binding
+  // veta de novo.
+  const declaredHome = input.homePath ?? safeHomedir();
   const declaredResources = (input.declaredResources ?? []).map((entry, i) => {
     const label = 'declaredResources[' + i + ']';
     if (!entry || typeof entry.resourceId !== 'string' || entry.resourceId.length === 0) {
@@ -115,9 +122,21 @@ export function createSandboxPolicy(input) {
     if (entry.mode !== 'read') {
       throw new SandboxConfigurationError(label + " mode must be 'read' in this phase");
     }
+    const physicalPath = canonicalRoot(entry.physicalPath, label + '.physicalPath');
+    assertBindablePhysicalPath(physicalPath, { homePath: declaredHome, label });
+    // sobreposicao com o workspace (review, item menor): no bwrap o
+    // ultimo bind vence — um recurso dentro do workspace sombrearia uma
+    // subarvore gravavel com read-only, e um ancestral do workspace o
+    // sombrearia inteiro. Mudanca de comportamento silenciosa: recusada.
+    if (workspaceRoot && (isPathWithinOrEqual(physicalPath, workspaceRoot) ||
+        isPathWithinOrEqual(workspaceRoot, physicalPath))) {
+      throw new SandboxConfigurationError(
+        label + ' overlaps the workspace - a declared resource never shadows workspace binds',
+      );
+    }
     return Object.freeze({
       resourceId: entry.resourceId,
-      physicalPath: canonicalRoot(entry.physicalPath, label + '.physicalPath'),
+      physicalPath,
       mode: 'read',
     });
   });
@@ -164,6 +183,51 @@ export function describeSandboxPolicy(policy) {
     declaredResourceCount: policy.declaredResources.length,
     network: policy.network.enforcement,
   });
+}
+
+/** target e igual a root ou vive dentro dela? (fisico, pos-realpath) */
+export function isPathWithinOrEqual(target, root) {
+  return target === root || target.startsWith(root + path.sep);
+}
+
+function safeHomedir() {
+  try { return homedir() || null; } catch { return null; }
+}
+
+/** Raizes de sistema que o backend fisico ja monta read-only (F7). */
+const PROTECTED_SYSTEM_ROOTS = Object.freeze([
+  '/usr', '/etc', '/opt', '/bin', '/sbin', '/lib', '/lib32', '/lib64', '/libx32',
+]);
+
+/**
+ * O PISO do binding fisico (follow-up F9): um declaredResource e um
+ * recurso PONTUAL. Nunca a raiz do filesystem (um ro-bind da raiz
+ * anularia o confinement que a fase existe para provar), nunca o HOME
+ * ou um ANCESTRAL dele (ancestral e estritamente pior que o HOME), e
+ * nunca uma raiz de sistema que o backend ja monta. Igual-ou-ancestral,
+ * nunca igualdade exata: HOME/.. resolve para o pai e morre aqui tambem.
+ */
+export function assertBindablePhysicalPath(physicalPath, { homePath = null, label = 'declaredResource' } = {}) {
+  const fsRoot = path.parse(physicalPath).root;
+  if (fsRoot && physicalPath === fsRoot) {
+    throw new SandboxConfigurationError(
+      label + ': the filesystem root is never a bindable resource',
+    );
+  }
+  if (homePath) {
+    const home = existsSync(homePath) ? realpathSync(homePath) : path.resolve(homePath);
+    if (isPathWithinOrEqual(home, physicalPath)) {
+      // physicalPath == HOME ou ancestral do HOME
+      throw new SandboxConfigurationError(
+        label + ': HOME (or an ancestor of HOME) is never a bindable resource (INV-906)',
+      );
+    }
+  }
+  if (PROTECTED_SYSTEM_ROOTS.includes(physicalPath)) {
+    throw new SandboxConfigurationError(
+      label + ': system root ' + physicalPath + ' is already mounted by the backend and is never a declared resource',
+    );
+  }
 }
 
 /** O modo `a` e ao menos tao permissivo quanto o necessario em `b`? */

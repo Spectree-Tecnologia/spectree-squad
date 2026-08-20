@@ -1,9 +1,9 @@
 # Spectree Runtime v2 — F09 Governed Model Harness
 
-status: approved
+status: in-review
 owner: TechLeader
 updated: 2026-08-20
-approved: 2026-08-20
+approved: — (aguarda re-aprovacao do Founder: conteudo alterado pela E6 — regra "aprovacao pertence ao conteudo")
 depends_on: F1 Runtime Core, F2 Policy Engine, F3 Founder Gate, F4 Capability Providers, F4.5 Squad/Runtime Integration, F5 Sandbox Runtime, F6 Process/Subprocess, F7 Linux Physical Sandbox, F8 Execution Effects / Resource Model
 
 > Transcrito da proposta do TechLeader (2026-08-20) e aprovado com as
@@ -116,11 +116,18 @@ no ambiente governado NÃO concede `/home/<user>` no filesystem do
 namespace. Comportamento testado fisicamente: HOME definido + HOME não
 montado = leitura falha.
 
-**INV-906 — ~/.claude não é candidato automático.** O diretório completo
-`~/.claude` MUST NOT ser etapa automática ou manual da política de
-calibração de credencial. Se somente o HOME inteiro permitir execução
-autenticada, o resultado é **C — confined harness unavailable**, e não
-uma ampliação automática do namespace.
+**INV-906 — HOME nunca é recurso bindável (escopo corrigido, E6).** A
+proibição pertence ao BINDING — `declaredResources`, o lado com
+autoridade — e a calibração é apenas um dos consumidores dela. Um
+`physicalPath` igual à raiz do filesystem, igual ao HOME OU A UM
+ANCESTRAL do HOME (igual-ou-ancestral, nunca igualdade exata: `HOME/..`
+morre também), ou igual a uma raiz de sistema que o backend já monta,
+MUST ser recusado com erro tipado em `createSandboxPolicy` E na
+calibração. Recurso declarado também não pode sobrepor o workspace (em
+nenhuma direção): no bwrap o último bind vence, e o sombreamento seria
+mudança de comportamento silenciosa. Se somente o HOME inteiro permitir
+execução autenticada, o resultado é **C — confined harness
+unavailable**, e não uma ampliação do namespace.
 
 ## 9. Credential Calibration Probe
 
@@ -707,3 +714,9 @@ F8; nenhum detector artificial no guard.
 **E5 — Texto commitado é o contrato.** Spec -> arquivo commitado ->
 Founder APPROVE -> implementação. Nunca implementar contra versão
 "quase igual" da conversa.
+
+**E6 — Piso do binding (review do Founder, PR #28).** O INV-906 estava
+com o escopo na calibração — o lado sem autoridade. Corrigido: a
+invariante é do BINDING (ver INV-906 acima), com defense in depth no
+padrão da F4 (proposta E binding vetam), semântica igual-ou-ancestral
+nos dois lados, e um teste por recusa.

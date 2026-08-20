@@ -79,7 +79,7 @@ test('o HOME inteiro NUNCA e candidato (INV-906, criterio 13)', async () => {
       candidates: [{ resourceId: 'claude/home', physicalPath: '/home/founder' }],
       runCandidate: async () => ({ verdict: 'auth-ok' }),
     }),
-    (e) => e instanceof SandboxConfigurationError && /never a credential candidate/.test(e.message),
+    (e) => e instanceof SandboxConfigurationError && /never a bindable resource \(INV-906\)/.test(e.message),
   );
 });
 

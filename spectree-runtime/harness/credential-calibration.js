@@ -1,6 +1,7 @@
 import { realpathSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { SandboxConfigurationError } from '../errors.js';
+import { assertBindablePhysicalPath } from '../sandbox/sandbox-policy.js';
 
 /**
  * Credential Calibration (spec F9, secoes 9-13, 18-25, 80, E3):
@@ -31,20 +32,14 @@ function validateCandidate(candidate, index, homePath) {
   if (typeof candidate.physicalPath !== 'string' || candidate.physicalPath.length === 0) {
     throw new SandboxConfigurationError(label + ' requires a physicalPath');
   }
-  if (homePath) {
-    const physical = existsSync(candidate.physicalPath)
-      ? realpathSync(candidate.physicalPath)
-      : path.resolve(candidate.physicalPath);
-    const home = existsSync(homePath) ? realpathSync(homePath) : path.resolve(homePath);
-    if (physical === home) {
-      // INV-906 / criterio 13: o HOME inteiro NUNCA e candidato. Se so o
-      // HOME inteiro autentica, o resultado e C — nao uma ampliacao.
-      throw new SandboxConfigurationError(
-        label + ': the entire HOME is never a credential candidate (INV-906) — ' +
-        'if only full HOME authenticates, the result is C: confined harness unavailable',
-      );
-    }
-  }
+  // Follow-up F9: o MESMO piso do binding (sandbox-policy), aplicado na
+  // proposta — igual-ou-ancestral do HOME, raiz do filesystem e raiz de
+  // sistema morrem aqui tambem. Se so o HOME inteiro autentica, o
+  // resultado e C — nunca uma ampliacao (INV-906).
+  const physical = existsSync(candidate.physicalPath)
+    ? realpathSync(candidate.physicalPath)
+    : path.resolve(candidate.physicalPath);
+  assertBindablePhysicalPath(physical, { homePath, label });
 }
 
 /**

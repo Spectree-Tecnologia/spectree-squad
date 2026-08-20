@@ -1,12 +1,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync, statSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { ClaudeModelHarnessLauncher } from '../harness/claude-launcher.js';
 import { createProcessSpawnSpec } from '../process/spawn-spec.js';
 import { createSandboxPolicy } from '../sandbox/sandbox-policy.js';
+
+const require_dirs = (...dirs) => dirs.forEach((dir) => mkdirSync(dir, { recursive: true }));
 
 /** R8 da F9 (spec secoes 81-87, 112, E1-E2): superficies travadas. */
 
@@ -64,12 +66,16 @@ test('R8 E2: ProcessSpawnSpec ganhou maxLifetimeMs — superficie exata', () => 
 
 test('R8 E1: declaredResources com superficie e invariantes exatas', () => {
   const root = mkdtempSync(path.join(tmpdir(), 'mh-sfc-'));
-  const credential = path.join(root, 'cred.json');
+  const workspaceRoot = path.join(root, 'workspace');
+  // fora do workspace: recurso dentro dele agora e recusado (floor)
+  const credential = path.join(root, 'vault', 'cred.json');
+  writeFileSync(path.join(root, 'placeholder.txt'), 'x', 'utf8');
+  require_dirs(workspaceRoot, path.dirname(credential));
   writeFileSync(credential, '{}', 'utf8');
   try {
     const policy = createSandboxPolicy({
       mode: 'workspace-write',
-      workspaceRoot: root,
+      workspaceRoot,
       declaredResources: [{ resourceId: 'credential/claude/auth', physicalPath: credential, mode: 'read' }],
     });
     assert.ok(Object.isFrozen(policy.declaredResources));
@@ -80,11 +86,11 @@ test('R8 E1: declaredResources com superficie e invariantes exatas', () => {
     assert.equal(entry.mode, 'read');
     // read-only nesta fase (E1): write nao existe como modo declarado
     assert.throws(() => createSandboxPolicy({
-      mode: 'workspace-write', workspaceRoot: root,
+      mode: 'workspace-write', workspaceRoot,
       declaredResources: [{ resourceId: 'x', physicalPath: credential, mode: 'write' }],
     }), /mode must be 'read'/);
     assert.throws(() => createSandboxPolicy({
-      mode: 'workspace-write', workspaceRoot: root,
+      mode: 'workspace-write', workspaceRoot,
       declaredResources: [{ physicalPath: credential, mode: 'read' }],
     }), /canonical resourceId/);
   } finally {
