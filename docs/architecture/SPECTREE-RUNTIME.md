@@ -460,6 +460,117 @@ nao le o conteudo dos arquivos de migration, entao nao distingue aditiva
 de destrutiva — a regra "destrutiva passa pelo Founder" continua sendo
 verificacao humana naquele projeto, nao enforcement.
 
+## Fase 5 — Sandbox Runtime
+
+Ate aqui o runtime respondia "o Agent pode fazer isso?". A partir do
+`LocalFilesystemProvider`, porem, um `ALLOW filesystem.write` significava
+acesso ao filesystem do host limitado apenas pelas invariantes do
+proprio Provider — autorizacao e isolamento fisico eram a mesma coisa,
+e nao sao. O Sandbox e a segunda fronteira:
+
+```
+Policy  ->  "pode?"
+Sandbox ->  "dentro de quais limites fisicos?"
+```
+
+### O modelo
+
+`SandboxPolicy` descreve o ambiente de UMA execucao: modo, roots
+legiveis e graváveis (canonicalizadas por realpath, mesmo principio do
+R12), temp, rede e ambiente. Congelada por execucao. `ExecutionBoundary`
+traduz o modo em limites por dimensao — filesystem implementado nesta
+fase; rede, processo e ambiente declarados como `unsupported`, porque
+declarar e honesto e fingir nao e.
+
+Tres modos: `read-only` (le no workspace, nao escreve), `workspace-write`
+(le e escreve dentro das roots declaradas) e `danger-full-access` (o
+Sandbox nao acrescenta fronteira — o que NAO e bypass de Policy,
+Approval ou invariante de Provider).
+
+### As pecas
+
+`SandboxProvider` restringe; o `CapabilityProvider` executa — nunca o
+mesmo objeto. `SandboxProviderRegistry` registra backends validando
+plataforma, capabilities e enforcement declarados. `SandboxResolver`
+escolhe o backend capaz, ou falha fechado. `SandboxProfileResolver`
+decide o modo efetivo pela camada MAIS RESTRITIVA entre Runtime,
+Capability e o pedido da Tool: uma Tool pode restringir a si mesma,
+jamais ampliar. Operacao nao classificada no perfil nao executa — e
+assim que uma Tool mutante nova nao aparece sem fronteira.
+
+### Enforcement honesto
+
+`full`, `partial` e `none` sao estados explicitos. O primeiro backend,
+`LocalFilesystemSandboxProvider`, declara **partial** — a verificacao
+acontece em JavaScript, dentro do processo do runtime: impede o Provider
+de sair do workspace, nao impede o processo de faze-lo por outro
+caminho. Chamar isso de `full` seria mentira; `full` fica reservado para
+isolamento de kernel (Landlock no Linux, Restricted Token no Windows).
+Pedir `full` a um backend `partial` resulta em `SandboxUnavailableError`
+— nunca downgrade silencioso.
+
+O contrato `sandboxProviderContract` e o portao: todo backend futuro
+passa por ele, e ele reprova quem alega mais do que entrega. Durante a
+propria fase o contrato pegou uma incoerencia no backend de teste do
+Spectree, que aceitava pedido de `full` declarando `none`.
+
+### Ordem e ciclo de vida
+
+```
+tool.requested -> policy.evaluated -> sandbox.requested -> sandbox.applied
+  -> tool.started -> provider.started -> provider.completed -> tool.completed
+  -> sandbox.released
+```
+
+Policy e Approval vem ANTES do Sandbox: ambiente nao se monta para
+operacao que nunca foi autorizada. O Sandbox vem antes de qualquer sinal
+de execucao fisica: quando ele recusa, `tool.started` e
+`provider.started` nao acontecem. O cleanup roda em `finally` —
+sucesso, falha ou excecao — e falha de cleanup vira
+`sandbox.cleanup.failed`, sem falsificar o resultado da operacao
+principal.
+
+Os eventos carregam modo, enforcement e providerId; nunca roots,
+ambiente ou credencial.
+
+### Classificacao de execucao (R13)
+
+O efeito fisico nao muda de natureza por a tool carregar o proprio
+`execute()`. Tool self-provided declara `execution: 'physical'` — e passa
+pela MESMA fronteira de Sandbox da rota provider-backed, recebendo o
+handle no contexto — ou `execution: 'pure'` — sem efeito fisico,
+explicitamente fora da fronteira, com a decisao registrada e nunca
+implicita. Em runtime com sandbox configurado, tool self-provided sem
+classificacao nao entra no registry (fail closed, fail early — mesma
+filosofia da operacao nao classificada no perfil). Runtime sem sandbox
+configurado segue aceitando tools legadas, como nas Fases 1-4.
+
+### Taxonomia
+
+`SandboxDeniedError` nao e `PolicyDeniedError`. O primeiro diz "esta
+autorizado, mas o ambiente fisico nao permite"; o segundo, "nao esta
+autorizado". A distincao e diagnostica e normativa.
+
+### Escalonamento
+
+`SandboxEscalationRequest` existe como SEAM: representa o pedido de uma
+fronteira mais ampla, com escopo de invocacao unica. Nada o executa
+automaticamente — nao existe "sandbox negou, tenta de novo com mais
+privilegio". Quando uma fase futura o ligar ao Founder Gate, deve compor
+com o ApprovalManager existente, nunca duplicar Approval.
+
+### Matriz de plataforma
+
+| Plataforma | Backend | Enforcement |
+|---|---|---|
+| qualquer | `local-filesystem-sandbox` | partial |
+| linux | Landlock | reservado |
+| win32 | Restricted Token / ACL | reservado |
+| darwin | — | reservado |
+
+Reservado significa reservado: o Registry responde indisponivel em vez
+de oferecer isolamento falso.
+
 ## Limitações conhecidas (deliberadas, Fase 1)
 
 - Erro de tool falha a execução por padrão; um agente pode dar catch em

@@ -1,0 +1,15 @@
+{
+  "runtimeMaxMode": "workspace-write",
+  "allowPartialEnforcement": true,
+  "requiredEnforcement": "partial",
+  "capabilities": {
+    "filesystem": {
+      "maxMode": "workspace-write",
+      "operations": {
+        "read": { "requires": "read-only" },
+        "write": { "requires": "workspace-write" },
+        "delete": { "requires": "workspace-write" }
+      }
+    }
+  }
+}

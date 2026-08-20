@@ -6,7 +6,11 @@ import {
   ToolNotFoundError,
   ToolValidationError,
   ProviderExecutionError,
+  SandboxDeniedError,
+  SandboxConfigurationError,
 } from '../errors.js';
+import { releaseSandbox } from '../sandbox/sandbox-resolver.js';
+import { describeSandboxPolicy } from '../sandbox/sandbox-policy.js';
 
 /**
  * Contrato de Tool (spec secao 10):
@@ -100,6 +104,8 @@ export class ToolRuntime {
   #bus;
   #policyEngine;
   #capabilityResolver;
+  #sandboxResolver;
+  #sandboxProfileResolver;
   #projectEventPayload;
   #onApprovalRequired;
 
@@ -114,7 +120,15 @@ export class ToolRuntime {
    *   Recebe {phase: 'requested'|'started'|'completed'|'failed', toolId,
    *   input?, output?, error?} e devolve o payload publicado.
    */
-  constructor({ eventBus, policyEngine, capabilityResolver, projectEventPayload = defaultProjection, onApprovalRequired = null }) {
+  constructor({
+    eventBus,
+    policyEngine,
+    capabilityResolver,
+    sandboxResolver = null,
+    sandboxProfileResolver = null,
+    projectEventPayload = defaultProjection,
+    onApprovalRequired = null,
+  }) {
     if (!policyEngine || typeof policyEngine.decide !== 'function') {
       // Sem policy nao ha execucao (secao 63): um ToolRuntime sem engine
       // seria uma rota permanente de bypass, entao ele nao pode existir.
@@ -127,6 +141,10 @@ export class ToolRuntime {
     this.#bus = eventBus;
     this.#policyEngine = policyEngine;
     this.#capabilityResolver = capabilityResolver;
+    // Fase 5: a fronteira de Sandbox e UNICA no runtime (INV-526) e vive
+    // aqui, entre a autorizacao e a execucao fisica.
+    this.#sandboxResolver = sandboxResolver;
+    this.#sandboxProfileResolver = sandboxProfileResolver;
     this.#projectEventPayload = projectEventPayload;
     this.#onApprovalRequired = onApprovalRequired;
     AUTHORIZED_EXECUTORS.set(this, (invocation) => this.#runAuthorized(invocation));
@@ -141,6 +159,24 @@ export class ToolRuntime {
     // Provider da capability dela realiza a operacao (secao 3).
     if (tool.execute !== undefined && typeof tool.execute !== 'function') {
       throw new ToolError('tool ' + tool.id + ': execute must be a function when present');
+    }
+    // R13: classificacao de execucao. Tool self-provided declara se e
+    // 'pure' (sem efeito fisico — explicitamente fora do sandbox) ou
+    // 'physical' (efeito fisico — sandbox obrigatorio). Provider-backed
+    // e fisica por definicao e ja passa pela fronteira.
+    if (tool.execution !== undefined && !['pure', 'physical'].includes(tool.execution)) {
+      throw new ToolError(
+        "tool " + tool.id + ": execution must be 'pure' or 'physical' when present",
+      );
+    }
+    // Fail closed e fail early: com sandbox configurado, tool
+    // self-provided SEM classificacao nao entra no registry — e a mesma
+    // filosofia da secao 132 (nao classificada -> configuration-required).
+    if (this.#sandboxProfileResolver && typeof tool.execute === 'function' && !tool.execution) {
+      throw new SandboxConfigurationError(
+        "tool " + tool.id + " is self-provided and unclassified: declare execution 'pure' " +
+        "or 'physical' before it can register on a sandbox-enabled runtime",
+      );
     }
     if (this.#tools.has(tool.id)) {
       throw new ToolError('tool already registered: ' + tool.id);
@@ -199,7 +235,45 @@ export class ToolRuntime {
   }
 
   /** Pipeline fisico de execucao: started -> execute -> completed/failed. */
-  async #runTool(tool, input, meta) {
+  /** Libera o sandbox e publica os eventos do ciclo (secoes 65-66). */
+  async #releaseWithEvents(sandbox, meta, capabilityId, operation) {
+    let cleanupError = null;
+    await releaseSandbox(sandbox, (error) => { cleanupError = error; });
+    this.#bus.publish('sandbox.released', {
+      ...meta,
+      payload: {
+        capabilityId,
+        operation,
+        mode: sandbox.mode,
+        enforcement: sandbox.enforcement,
+        providerId: sandbox.providerId,
+        cleanupFailed: cleanupError !== null,
+      },
+    });
+    if (cleanupError) {
+      this.#bus.publish('sandbox.cleanup.failed', {
+        ...meta,
+        payload: {
+          capabilityId,
+          providerId: sandbox.providerId,
+          reason: String(cleanupError.message),
+        },
+      });
+    }
+  }
+
+  /**
+   * Rota self-provided (R13). Tool 'physical' passa pela MESMA fronteira
+   * de Sandbox que a rota provider-backed — o efeito fisico nao muda de
+   * natureza por a tool carregar o proprio execute(). Tool 'pure' e
+   * explicitamente nao-sandboxed: sem efeito fisico, sem fronteira, e a
+   * decisao esta declarada no registro, nunca implicita.
+   */
+  async #runTool(tool, input, meta, authorization) {
+    let sandbox = null;
+    if (tool.execution === 'physical' && this.#sandboxProfileResolver && this.#sandboxResolver) {
+      sandbox = await this.#applySandbox(tool, meta, authorization);
+    }
     try {
       this.#bus.publish('tool.started', {
         ...meta,
@@ -208,6 +282,9 @@ export class ToolRuntime {
       const output = await tool.execute(input, {
         sessionId: meta.sessionId,
         agentId: meta.agentId,
+        // o handle so existe na rota physical; tool pure segue com o
+        // contexto minimo de sempre (INV-002)
+        ...(sandbox ? { sandbox } : {}),
       });
       this.#bus.publish('tool.completed', {
         ...meta,
@@ -224,6 +301,10 @@ export class ToolRuntime {
         }),
       });
       throw error;
+    } finally {
+      if (sandbox) {
+        await this.#releaseWithEvents(sandbox, meta, authorization.tool.capability, authorization.operation);
+      }
     }
   }
 
@@ -264,8 +345,81 @@ export class ToolRuntime {
       });
       throw error;
     }
-    if (!provider) return this.#runTool(tool, input, meta);
+    if (!provider) return this.#runTool(tool, input, meta, authorization);
     return this.#runProvider(provider, tool, input, meta, authorization);
+  }
+
+  /**
+   * Fronteira de Sandbox (spec Fase 5, secoes 60, 68-70). Roda DEPOIS da
+   * Policy e da Approval (secoes 104, 113) e ANTES de qualquer execucao
+   * fisica (INV-513). Sem profileResolver configurado nao ha sandbox: o
+   * runtime segue como nas fases anteriores — o boundary so passa a ser
+   * exigido quando alguem o configura, e ai falha fechado.
+   *
+   * @returns {Promise<object|null>} SandboxHandle ou null
+   */
+  async #applySandbox(tool, meta, authorization) {
+    if (!this.#sandboxProfileResolver || !this.#sandboxResolver) return null;
+    const capabilityId = authorization.tool.capability;
+    const operation = authorization.operation;
+    this.#bus.publish('sandbox.requested', {
+      ...meta,
+      payload: { capabilityId, operation },
+    });
+    let resolved;
+    let provider;
+    try {
+      // teto: Runtime > Capability > Tool (secoes 134, 137)
+      resolved = this.#sandboxProfileResolver.resolve({ tool, capabilityId, operation });
+      provider = this.#sandboxResolver.resolve(resolved.policy, { capabilityId });
+      this.#sandboxResolver.assertCapabilitySupported(provider, capabilityId, resolved.policy.mode);
+    } catch (error) {
+      // denied = autorizado, mas o ambiente recusa (secao 31)
+      // unavailable/config = nao ha fronteira confiavel a aplicar
+      const type = error instanceof SandboxDeniedError ? 'sandbox.denied' : 'sandbox.failed';
+      this.#bus.publish(type, {
+        ...meta,
+        payload: {
+          capabilityId,
+          operation,
+          reason: String(error?.message ?? error),
+        },
+      });
+      throw error;
+    }
+    try {
+      const context = Object.freeze({
+        sessionId: meta.sessionId ?? null,
+        agentId: meta.agentId ?? null,
+        capabilityId,
+        operation,
+        resource: authorization.resource,
+        sandboxMode: resolved.policy.mode,
+        workspaceRoot: resolved.policy.workspaceRoot,
+      });
+      const handle = await provider.apply(resolved.policy, context);
+      // projecao segura (secao 123): modo, enforcement e id — nunca roots,
+      // ambiente ou credencial
+      this.#bus.publish('sandbox.applied', {
+        ...meta,
+        payload: {
+          capabilityId,
+          operation,
+          mode: handle.mode,
+          enforcement: handle.enforcement,
+          providerId: provider.providerId,
+          requested: resolved.requiredMode,
+          policy: describeSandboxPolicy(resolved.policy),
+        },
+      });
+      return handle;
+    } catch (error) {
+      this.#bus.publish('sandbox.failed', {
+        ...meta,
+        payload: { capabilityId, operation, reason: String(error?.message ?? error) },
+      });
+      throw error;
+    }
   }
 
   /**
@@ -284,6 +438,9 @@ export class ToolRuntime {
       operation: authorization.operation,
       resource: resourceStr,
     };
+    // Sandbox ANTES de qualquer sinal de execucao (secoes 68-69): se o
+    // boundary recusa, tool.started e provider.started nao acontecem.
+    const sandbox = await this.#applySandbox(tool, meta, authorization);
     this.#bus.publish('tool.started', {
       ...meta,
       payload: this.#projectEventPayload({ phase: 'started', toolId: tool.id }),
@@ -299,6 +456,8 @@ export class ToolRuntime {
         operation: authorization.operation,
         resource,
         metadata: Object.freeze({}),
+        // o Provider recebe o HANDLE, nunca o SandboxProvider (secao 63)
+        sandbox,
       });
       const result = await provider.execute(request, context);
       // projecao segura (secao 36): metadata tecnica, nunca o output
@@ -328,6 +487,13 @@ export class ToolRuntime {
         payload: this.#projectEventPayload({ phase: 'failed', toolId: tool.id, error: String(wrapped.message) }),
       });
       throw wrapped;
+    } finally {
+      // cleanup SEMPRE (secoes 65, 119-121): sucesso, falha ou excecao.
+      // Falha de cleanup vira evento proprio e NAO falsifica o resultado
+      // da operacao principal (secao 66).
+      if (sandbox) {
+        await this.#releaseWithEvents(sandbox, meta, provider.capabilityId, authorization.operation);
+      }
     }
   }
 

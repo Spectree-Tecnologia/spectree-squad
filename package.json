@@ -7,6 +7,7 @@
     "example": "node spectree-runtime/example.js",
     "example:policy": "node spectree-runtime/example-policy.js",
     "example:approval": "node spectree-runtime/example-approval.js",
-    "example:provider": "node spectree-runtime/example-provider.js"
+    "example:provider": "node spectree-runtime/example-provider.js",
+    "example:sandbox": "node spectree-runtime/example-sandbox.js"
   }
 }

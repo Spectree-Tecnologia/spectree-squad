@@ -8,6 +8,8 @@ import { CapabilityRegistry } from './capabilities/capability-registry.js';
 import { CapabilityProviderRegistry } from './capabilities/capability-provider-registry.js';
 import { CapabilityResolver } from './capabilities/capability-resolver.js';
 import { InMemoryApprovalStore } from './approval/approval-store.js';
+import { SandboxProviderRegistry } from './sandbox/sandbox-provider-registry.js';
+import { SandboxResolver } from './sandbox/sandbox-resolver.js';
 import { ApprovalManager } from './approval/approval-manager.js';
 import { InMemoryFounderGate } from './approval/founder-gate.js';
 import { acquireAuthorizedExecutor } from './tools/tool-runtime.js';
@@ -36,6 +38,28 @@ export {
   policyEngineFromDocument,
   policyAppliesToProject,
 } from './adapters/policy-document.js';
+export {
+  SANDBOX_MODES,
+  ENFORCEMENT_LEVELS,
+  executionBoundaryFor,
+  modeRank,
+  enforcementRank,
+  mostRestrictiveMode,
+} from './sandbox/execution-boundary.js';
+export {
+  createSandboxPolicy,
+  describeSandboxPolicy,
+  modeSatisfies,
+} from './sandbox/sandbox-policy.js';
+export { SandboxProviderRegistry } from './sandbox/sandbox-provider-registry.js';
+export { SandboxResolver, releaseSandbox } from './sandbox/sandbox-resolver.js';
+export {
+  SandboxProfileResolver,
+  normalizeSandboxProfileDocument,
+} from './sandbox/sandbox-profile-resolver.js';
+export { LocalFilesystemSandboxProvider } from './sandbox/providers/local-filesystem-sandbox.js';
+export { TestSandboxProvider } from './sandbox/providers/test-sandbox-provider.js';
+export { createSandboxEscalationRequest } from './sandbox/sandbox-escalation.js';
 export * from './errors.js';
 
 /**
@@ -62,10 +86,19 @@ export function createRuntime(options = {}) {
     clock: options.clock,
     defaultTtlMs: options.approvalTtlMs ?? null,
   });
+  // Sandbox (Fase 5) por injecao, nunca singleton (secoes 130, 168).
+  // Runtime sem sandbox configurado segue funcionando: o boundary so e
+  // exigido quando ha profile — e ai falha fechado se nao houver backend.
+  const sandboxProviderRegistry = options.sandboxProviderRegistry ?? new SandboxProviderRegistry();
+  const sandboxResolver = options.sandboxResolver
+    ?? new SandboxResolver({ registry: sandboxProviderRegistry, platform: options.platform });
+  const sandboxProfileResolver = options.sandboxProfileResolver ?? null;
   const toolRuntime = new ToolRuntime({
     eventBus,
     policyEngine,
     capabilityResolver,
+    sandboxResolver,
+    sandboxProfileResolver,
     projectEventPayload: options.projectEventPayload,
     onApprovalRequired: (invocation, decisionContext) =>
       approvalManager.request(invocation, decisionContext),
@@ -87,6 +120,9 @@ export function createRuntime(options = {}) {
     capabilityRegistry,
     providerRegistry,
     capabilityResolver,
+    sandboxProviderRegistry,
+    sandboxResolver,
+    sandboxProfileResolver,
     approvalStore,
     approvalManager,
     founderGate,

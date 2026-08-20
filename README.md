@@ -262,10 +262,20 @@ diretório pai).
 | 2 | Policy Engine — `PolicyRegistry`, `PolicyEngine`, `CapabilityRegistry` | O agente **pode** fazer isso? |
 | 3 | Founder Gate — `ApprovalRequest`, `FounderGate`, `resume()` | E quando só um humano pode decidir? |
 | 4 | Capability Providers — `CapabilityResolver`, `LocalFilesystemProvider` | Como isso vira efeito real no mundo? |
+| 5 | Sandbox Runtime — `SandboxPolicy`, `SandboxResolver`, `LocalFilesystemSandboxProvider` | Sob quais limites físicos? |
 
-A próxima fronteira é o **Sandbox**: deixar de perguntar apenas se o
-Agent pode, e passar a responder também em qual ambiente, com quais
-recursos e sob quais limites físicos a execução acontece.
+O Sandbox fecha a quinta dimensão: a Policy responde *se pode*, o Sandbox
+responde *dentro de quais limites físicos*. Três modos (`read-only`,
+`workspace-write`, `danger-full-access`), e um enforcement declarado com
+honestidade — o primeiro backend verifica dentro do processo e por isso
+se declara `partial`, nunca `full`, que fica reservado para isolamento de
+kernel. Pedir mais garantia do que o backend entrega falha fechado, em vez
+de degradar em silêncio.
+
+A próxima fronteira é o **Process/Subprocess Capability**: com a fronteira
+pronta, a pergunta deixa de ser só "o agente pode executar este comando?"
+e passa a incluir qual processo nasce, com qual filesystem, qual rede e
+qual limite de vida.
 
 ### Rodando
 
@@ -275,6 +285,7 @@ npm run example        # lifecycle completo de um agente
 npm run example:policy # allow, deny e approval-required
 npm run example:approval # approve/resume, deny e revalidação bloqueando
 npm run example:provider # até o arquivo real, com traversal morrendo na Policy
+npm run example:sandbox  # a mesma escrita permitida e negada, só mudando o boundary
 ```
 
 Arquitetura em `docs/architecture/SPECTREE-RUNTIME.md`; as decisões que
@@ -310,6 +321,7 @@ spectree-runtime/
   policy/                            # Fase 2: quem autoriza
   approval/                          # Fase 3: quando o humano decide
   capabilities/ providers/           # Fase 4: como vira efeito real
+  sandbox/                           # Fase 5: sob quais limites físicos
   tools/tool-runtime.js              # o ponto onde as quatro se encontram
   adapters/squad-agent.js            # ponte Squad -> Runtime
   adapters/policy-document.js        # o caminho unico da matriz (Fase 4.5)
