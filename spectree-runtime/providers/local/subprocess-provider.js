@@ -223,16 +223,28 @@ export class LocalSubprocessProvider {
 
     // 4. executavel pelo PATH CONTROLADO do ambiente composto (secao 75)
     const executable = resolveExecutable(spec.argv[0], env.PATH ?? env.Path, this.#platform);
+
+    // 4.5. confinement fisico (Fase 7, INV-703/713): se o SandboxHandle
+    // oferece a porta generica confineProcess, o argv resolvido e
+    // prefixado pelo launcher do backend ANTES do spawn — o processo ja
+    // INICIA dentro da boundary. Este provider nao sabe qual mecanismo
+    // esta por tras; ele conhece apenas a porta.
+    const exactArgv = [executable.path, ...spec.argv.slice(1)];
+    const confinement = typeof context.sandbox?.confineProcess === 'function'
+      ? context.sandbox.confineProcess({ argv: exactArgv, cwd })
+      : null;
     this.#event('process.resolved', {
       executable: executable.path,
       source: executable.source,
+      confined: confinement !== null,
     }, context);
 
     // 5. spawn — o Sandbox ja foi aplicado pelo ToolRuntime ANTES de o
     // Provider existir nesta invocacao (secoes 30-32): nao ha rota
     // spawn-primeiro-confina-depois
     const invocationId = 'prc_' + randomUUID();
-    const handle = this.#spawn(spec, executable.path, cwd, env, context, invocationId);
+    const finalArgv = confinement ? confinement.argv : exactArgv;
+    const handle = this.#spawn(spec, finalArgv, cwd, env, context, invocationId);
     this.#registry.register({
       handle,
       sessionId: context.sessionId ?? null,
@@ -274,7 +286,7 @@ export class LocalSubprocessProvider {
   }
 
   /** Monta o ProcessHandle (secoes 38-42, 63-72). */
-  #spawn(spec, executablePath, cwd, env, context, invocationId) {
+  #spawn(spec, finalArgv, cwd, env, context, invocationId) {
     const stdio = [
       spec.stdin.mode === 'ignore' ? 'ignore' : 'pipe',
       spec.stdout.mode === 'inherit' ? 'inherit' : 'pipe',
@@ -285,7 +297,7 @@ export class LocalSubprocessProvider {
     const startedAt = new Date().toISOString();
     const startedMs = Date.now();
     try {
-      child = this.#spawnImpl(executablePath, spec.argv.slice(1), {
+      child = this.#spawnImpl(finalArgv[0], finalArgv.slice(1), {
         cwd,
         env,
         stdio,

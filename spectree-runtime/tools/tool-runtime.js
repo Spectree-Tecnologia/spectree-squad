@@ -420,6 +420,8 @@ export class ToolRuntime {
           mode: handle.mode,
           enforcement: handle.enforcement,
           providerId: provider.providerId,
+          // secao 67 (F7): identidade do backend fisico, sem internals
+          backend: provider.describe(resolved.policy)?.backend ?? null,
           requested: resolved.requiredMode,
           policy: describeSandboxPolicy(resolved.policy),
         },

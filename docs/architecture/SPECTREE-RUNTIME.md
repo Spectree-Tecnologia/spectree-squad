@@ -692,6 +692,92 @@ capability declara; o Core nao conhece 'process' pelo nome).
 segura: identidade do executavel e contagem de argumentos — nunca argv
 bruto (pode carregar segredo), stdin, env ou saida completa.
 
+## Fase 7 — Linux Physical Sandbox
+
+O primeiro backend em que o sistema operacional participa da enforcement
+boundary: o R14 encontra o `processEnforcement: 'full'` que o seam
+esperava.
+
+```
+SandboxResolver -> LinuxPhysicalSandboxProvider
+                        |-- BubblewrapBackend   (preferencial)
+                        `-- LandlockBackend     (fallback, seam formal)
+```
+
+### Probe funcional e a autoridade (INV-724)
+
+`which bwrap` nao prova nada. Antes de qualquer `full`, o provider
+executa um processo confinado num mundo DESCARTAVEL e verifica o
+contrato do modo: allowed read passa, outside read falha, write conforme
+o modo — com timeout, sem rede, sem credencial, e destruindo tudo
+depois. `enforcement` comeca `'none'` e so vira `'full'` depois do probe
+(secao 14: full e fato, nao configuracao). Probe reprovado nao some: a
+razao de cada backend fica em `verdict.attempts` e viaja no
+`SandboxUnavailableError` quando o chain esgota — nunca fallback
+unconfined (INV-726).
+
+### Bubblewrap: fora nao e negado, fora NAO EXISTE
+
+O backend monta explicitamente o que o processo pode ver: roots de
+sistema read-only (`/usr`, `/etc`, symlinks merged-usr recriados),
+`/proc` e `/dev` proprios, o workspace (`ro-bind` em read-only, `bind`
+em workspace-write), o temp privado da invocation — e NADA mais. Ler
+fora do workspace falha porque o caminho nao existe no namespace; a
+escrita em read-only morre no kernel (`EROFS`), nao em JavaScript.
+Symlink, hard-link e rename atravessando a fronteira morrem pelo mesmo
+motivo, e filhos e netos herdam o namespace: a arvore inteira nasce
+dentro da boundary (INV-713) — nao existe pos-confinamento (INV-714).
+
+### A porta generica: confineProcess
+
+O SandboxHandle ganhou `confineProcess({argv, cwd})` -> `{argv, backendId}`:
+launcher prefixado, `--`, argv original INTACTO (secao 26). O
+LocalSubprocessProvider usa a porta sem saber o que ha por tras — nenhum
+`if linux`/`if bwrap` fora de `sandbox/providers/linux-physical/`
+(INV-702/703/730). Backends que nao confinam processo expoem a porta
+como `null` na mesma superficie R8 (agora com `sandboxInstanceId` por
+invocation):
+
+```
+['mode','enforcement','providerId','sandboxInstanceId','boundary',
+ 'sessionTemp','assertPathAllowed','confineProcess','dispose']
+```
+
+### Policy por invocation (INV-708)
+
+Nenhum modo global no provider: cada `apply()` recebe a policy da
+chamada, instancia propria (`sandboxInstanceId`) e temp privado por
+Session/invocation — Sessions concorrentes rodam read-only e
+workspace-write ao mesmo tempo, e o temp de A e invisivel para o
+processo de B.
+
+### Landlock: seam formal
+
+O LandlockBackend participa do chain com locate controlado (nunca um
+helper achado por acaso no PATH, secao 56) e forma de invocacao travada
+por teste. O launcher nativo que ele exige nao acompanha esta fase: sem
+helper, `unusable` com razao. Quando existir, a ABI do kernel decide o
+enforcement — ABI incompleta = `partial`, e profile exigindo `full`
+rejeita em vez de degradar (INV-711).
+
+### WSL2 e host, nao sandbox (INV-723)
+
+No ambiente de desenvolvimento do Founder (Windows + WSL2), o Runtime
+roda DENTRO do Linux e o confinement e do bubblewrap dentro dele — o
+WSL2 nao e security boundary. `diagnostics()` detecta WSL (interop env /
+assinatura do kernel) para troubleshooting, sem dado pessoal. No kernel
+WSL atual o Landlock nao esta habilitado — exatamente o caso em que o
+chain cai para bubblewrap (secao 96).
+
+### O resultado estrategico
+
+Antes: `workspace-write + process.spawn -> SandboxDeniedError` (R14).
+Agora, onde o Linux prova a garantia: `workspace-write -> sandbox fisico
+-> processo confinado` — sem `danger-full-access`. O teste de arquitetura
+mostra o kernel negando: dentro do workspace read/write/delete passam;
+fora, read, write, delete, rename, symlink e hard-link falham — e o neto
+do processo continua confinado.
+
 ## Limitações conhecidas (deliberadas, Fase 1)
 
 - Erro de tool falha a execução por padrão; um agente pode dar catch em
