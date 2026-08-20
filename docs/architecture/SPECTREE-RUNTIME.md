@@ -222,4 +222,8 @@ policy explicita; nao existe allow-all de conveniencia.
   o Founder Gate e o resume/retry pertencem a fase futura.
 - Matching de policy é glob simples — sem CEL, OPA, RBAC/ABAC completos,
   por decisão de fase (spec §37).
+- CapabilityRegistry é catálogo, não gate (R11): a execução não consulta o
+  registry nesta fase. A validação capability↔registry é requisito
+  registrado da fase de Providers — quando um provider real se registrar,
+  o gate nasce lá.
 - Session vive em memória; replay/persistência é fase posterior.
