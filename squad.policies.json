@@ -4,56 +4,101 @@
     "effect": "allow",
     "principal": "oracle",
     "capability": "database",
-    "operations": ["schema", "migration", "query", "seed"]
+    "operations": [
+      "schema",
+      "migration",
+      "query",
+      "seed"
+    ]
   },
   {
     "id": "destructive-migration-founder-gate",
     "effect": "approval-required",
     "capability": "database",
-    "operations": ["destructive-migration"]
+    "operations": [
+      "destructive-migration"
+    ]
   },
   {
     "id": "disruptor-git",
     "effect": "allow",
     "principal": "disruptor",
     "capability": "git",
-    "operations": ["branch", "commit", "push", "merge"],
-    "resources": ["refs/heads/*"]
+    "operations": [
+      "branch",
+      "commit",
+      "push",
+      "merge"
+    ],
+    "resources": [
+      "refs/heads/*"
+    ]
   },
   {
     "id": "no-direct-push-main",
     "effect": "deny",
     "capability": "git",
-    "operations": ["push", "commit"],
-    "resources": ["refs/heads/main", "refs/heads/master"]
+    "operations": [
+      "push",
+      "commit"
+    ],
+    "resources": [
+      "refs/heads/main",
+      "refs/heads/master"
+    ]
   },
   {
     "id": "destructive-git-founder-gate",
     "effect": "approval-required",
-    "principal": "disruptor",
     "capability": "git",
-    "operations": ["force-push", "delete-remote-branch"]
+    "operations": [
+      "force-push",
+      "delete-remote-branch"
+    ]
   },
   {
     "id": "disruptor-github",
     "effect": "allow",
     "principal": "disruptor",
     "capability": "github",
-    "operations": ["pr", "ci", "release", "label"]
+    "operations": [
+      "pr",
+      "ci",
+      "release",
+      "label"
+    ]
   },
   {
     "id": "invoker-artifact-approval",
     "effect": "allow",
     "principal": "invoker",
     "capability": "artifact-status",
-    "operations": ["approve", "done"]
+    "operations": [
+      "approve",
+      "done"
+    ]
   },
   {
     "id": "jakiro-story-in-progress",
     "effect": "allow",
     "principal": "jakiro",
     "capability": "artifact-status",
-    "operations": ["in-progress"],
-    "resources": ["docs/stories/*"]
+    "operations": [
+      "in-progress"
+    ],
+    "resources": [
+      "docs/stories/*"
+    ]
+  },
+  {
+    "id": "filesystem-outside-workspace-deny",
+    "effect": "deny",
+    "capability": "filesystem",
+    "operations": [
+      "recursive-delete"
+    ],
+    "resources": [
+      "outside-workspace"
+    ]
   }
 ]
