@@ -22,53 +22,71 @@ import {
   SandboxProfileResolver,
   LocalFilesystemSandboxProvider,
   PolicyDeniedError,
+  SandboxDeniedError,
 } from './index.js';
 
 const NODE = process.execPath;
 const workspaceRoot = mkdtempSync(path.join(tmpdir(), 'spectree-process-'));
 
-const sandboxProviderRegistry = new SandboxProviderRegistry();
-sandboxProviderRegistry.register(new LocalFilesystemSandboxProvider());
-const sandboxProfileResolver = new SandboxProfileResolver({
-  document: {
-    runtimeMaxMode: 'workspace-write',
-    allowPartialEnforcement: true,
-    requiredEnforcement: 'partial',
-    capabilities: {
-      filesystem: {
-        operations: {
-          read: { requires: 'read-only' },
-          write: { requires: 'workspace-write' },
-          delete: { requires: 'workspace-write' },
+/**
+ * `spawnRequires` e a decisao operacional do R14: qual modo de sandbox
+ * uma execucao de processo exige. Enquanto nenhum backend confinar
+ * processo de verdade, so 'danger-full-access' — o modo que nao promete
+ * confinement — pode parir um.
+ */
+function makeRuntime({ runtimeMaxMode, spawnRequires, verbose = false }) {
+  const sandboxProviderRegistry = new SandboxProviderRegistry();
+  sandboxProviderRegistry.register(new LocalFilesystemSandboxProvider());
+  const sandboxProfileResolver = new SandboxProfileResolver({
+    document: {
+      runtimeMaxMode,
+      allowPartialEnforcement: true,
+      requiredEnforcement: 'partial',
+      capabilities: {
+        filesystem: {
+          operations: {
+            read: { requires: 'read-only' },
+            write: { requires: 'workspace-write' },
+            delete: { requires: 'workspace-write' },
+          },
         },
+        process: { operations: { spawn: { requires: spawnRequires } } },
       },
-      process: { operations: { spawn: { requires: 'workspace-write' } } },
     },
-  },
-  workspaceRoot,
-});
-const processRegistry = new ProcessRegistry();
-const runtime = createRuntime({ sandboxProviderRegistry, sandboxProfileResolver, processRegistry });
-runtime.eventBus.subscribe('*', (event) => {
-  if (event.type.startsWith('process.') || event.type.startsWith('sandbox.')) {
-    console.log('    ' + event.type);
+    workspaceRoot,
+  });
+  const processRegistry = new ProcessRegistry();
+  const runtime = createRuntime({ sandboxProviderRegistry, sandboxProfileResolver, processRegistry });
+  if (verbose) {
+    runtime.eventBus.subscribe('*', (event) => {
+      if (event.type.startsWith('process.') || event.type.startsWith('sandbox.')) {
+        console.log('    ' + event.type);
+      }
+    });
   }
-});
 
-runtime.capabilityRegistry.register(filesystemCapability);
-runtime.capabilityRegistry.register(processCapability);
-runtime.providerRegistry.register(new LocalFilesystemProvider({ workspaceRoot }));
-runtime.providerRegistry.register(new LocalSubprocessProvider({
-  workspaceRoot,
-  hostEnv: { PATH: process.env.PATH ?? '', SYSTEMROOT: process.env.SYSTEMROOT ?? '', FAKE_HOST_SECRET: 'nunca-me-viu' },
-  registry: processRegistry,
-  emit: (type, envelope) => runtime.eventBus.publish(type, envelope),
-}));
-for (const tool of [...filesystemTools(), ...processTools()]) runtime.toolRuntime.register(tool);
-runtime.policyRegistry.registerMany([
-  { id: 'oracle-fs', effect: 'allow', principal: 'oracle', capability: 'filesystem', resources: ['filesystem/workspace*'] },
-  { id: 'oracle-process', effect: 'allow', principal: 'oracle', capability: 'process', operations: ['spawn'], resources: ['workspace*'] },
-]);
+  runtime.capabilityRegistry.register(filesystemCapability);
+  runtime.capabilityRegistry.register(processCapability);
+  runtime.providerRegistry.register(new LocalFilesystemProvider({ workspaceRoot }));
+  runtime.providerRegistry.register(new LocalSubprocessProvider({
+    workspaceRoot,
+    hostEnv: { PATH: process.env.PATH ?? '', SYSTEMROOT: process.env.SYSTEMROOT ?? '', FAKE_HOST_SECRET: 'nunca-me-viu' },
+    registry: processRegistry,
+    emit: (type, envelope) => runtime.eventBus.publish(type, envelope),
+  }));
+  for (const tool of [...filesystemTools(), ...processTools()]) runtime.toolRuntime.register(tool);
+  runtime.policyRegistry.registerMany([
+    { id: 'oracle-fs', effect: 'allow', principal: 'oracle', capability: 'filesystem', resources: ['filesystem/workspace*'] },
+    { id: 'oracle-process', effect: 'allow', principal: 'oracle', capability: 'process', operations: ['spawn'], resources: ['workspace*'] },
+  ]);
+  return runtime;
+}
+
+const runtime = makeRuntime({
+  runtimeMaxMode: 'danger-full-access',
+  spawnRequires: 'danger-full-access',
+  verbose: true,
+});
 
 const ctx = { agentId: 'oracle', session: { id: 'sess_demo' } };
 const stdio = { stdin: { mode: 'ignore' }, stdout: { mode: 'collect' }, stderr: { mode: 'collect' } };
@@ -108,6 +126,20 @@ try {
 } catch (error) {
   console.log('    ' + (error instanceof PolicyDeniedError ? 'PolicyDeniedError' : error.name) +
     ' (resource outside-workspace nao casa workspace*)');
+}
+
+console.log('\n6. R14: o MESMO spawn sob um modo que promete confinement');
+const confined = makeRuntime({ runtimeMaxMode: 'workspace-write', spawnRequires: 'workspace-write' });
+try {
+  await confined.toolRuntime.execute({ toolId: 'process.spawn', input: {
+    argv: [NODE, '-e', "require('fs').writeFileSync('nunca-nasci.txt','x')"], cwd: '.', ...stdio,
+  } }, ctx);
+  console.log('    ERRO: o processo nasceu sob uma promessa que ninguem aplica');
+} catch (error) {
+  console.log('    ' + (error instanceof SandboxDeniedError ? 'SandboxDeniedError' : error.name) +
+    ' — autorizado pela Policy, recusado pelo ambiente: nenhum backend');
+  console.log('    confina um processo do SO, entao o modo nao pode prometer');
+  console.log('    o que nao cumpre. Zero processo, nada no disco.');
 }
 
 rmSync(workspaceRoot, { recursive: true, force: true });

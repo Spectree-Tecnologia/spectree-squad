@@ -81,6 +81,10 @@ export class LocalFilesystemSandboxProvider {
         writableRoots: Object.freeze(writable),
       }),
       network: policy.boundary.network,
+      // este backend nao confina processo: repassa o eixo como o modo o
+      // declarou ('unsupported' => R14 fecha o spawn em modo restritivo).
+      // Um backend que confine processo de verdade constroi o proprio
+      // eixo com executionBoundaryFor(mode, { processEnforcement: 'full' })
       process: policy.boundary.process,
       environment: policy.boundary.environment,
     });

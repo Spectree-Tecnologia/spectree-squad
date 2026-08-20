@@ -6,6 +6,7 @@ import {
   ToolNotFoundError,
   ToolValidationError,
   ProviderExecutionError,
+  SandboxError,
   SandboxDeniedError,
   SandboxConfigurationError,
   CapabilityError,
@@ -482,7 +483,11 @@ export class ToolRuntime {
       });
       return { ok: true, toolId: tool.id, output: result?.output };
     } catch (error) {
-      const wrapped = error instanceof ProviderExecutionError
+      // secao 31 (F5): negacao de Sandbox NAO vira erro de Provider — nem
+      // aqui. Um limite fisico recusado e decisao do ambiente e chega ao
+      // chamador com o proprio tipo; rotula-la 'io-error' seria mentir
+      // sobre o que aconteceu
+      const wrapped = error instanceof ProviderExecutionError || error instanceof SandboxError
         ? error
         : new ProviderExecutionError(
             'io-error',

@@ -284,6 +284,16 @@ criou, e uma Session nunca alcança processo de outra. Shell não existe
 nesta camada — quando existir, será semântica sobre `process.spawn`,
 governada como qualquer processo.
 
+E o runtime não executa prometendo um limite que não aplica: modo
+restritivo (`read-only`, `workspace-write`) é promessa de confinamento
+físico, e nenhum backend hoje confina um processo do sistema operacional.
+Sob esses modos, portanto, **o processo não nasce** — quem precisa
+executar declara `danger-full-access`, que não promete nada. Execução não
+confinada vira escolha explícita e auditável em vez de efeito colateral
+de um modo que diz "workspace". Quando um backend físico chegar
+(Landlock, job object, container), ele declara enforcement `full` e o
+mesmo cálculo libera o spawn sob modo restritivo, sem tocar no agente.
+
 A próxima fronteira é o **Shell**: parser de comando de um lado,
 `process.spawn` do outro — sem que o provider de processo vire um
 executor gigante.

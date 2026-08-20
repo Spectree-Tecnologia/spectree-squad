@@ -480,7 +480,9 @@ legiveis e graváveis (canonicalizadas por realpath, mesmo principio do
 R12), temp, rede e ambiente. Congelada por execucao. `ExecutionBoundary`
 traduz o modo em limites por dimensao — filesystem implementado nesta
 fase; rede, processo e ambiente declarados como `unsupported`, porque
-declarar e honesto e fingir nao e.
+declarar e honesto e fingir nao e. A Fase 6 deu consequencia a essa
+declaracao no eixo de processo: `unsupported` nao e so um rotulo, e um
+veto — ver "Honestidade operacional (R14)".
 
 Tres modos: `read-only` (le no workspace, nao escreve), `workspace-write`
 (le e escreve dentro das roots declaradas) e `danger-full-access` (o
@@ -590,6 +592,37 @@ conhecido, sob uma Policy conhecida. Nao existe `shell: true`; nao
 existem operadores de shell no Provider (INV-606/622). Um futuro
 ShellProvider consumira a capability `process` pedindo
 `argv: ['/bin/bash', ...]` — e sera governado como qualquer processo.
+
+### Honestidade operacional (R14)
+
+**Sem enforcement fisico + modo que promete confinement = nao executar.**
+
+Um modo restritivo (`read-only`, `workspace-write`) e uma PROMESSA de
+limite fisico. O `LocalFilesystemSandboxProvider` entrega `partial`:
+verificacao em JavaScript dentro do Runtime — o que impede o Provider de
+sair do workspace, mas nao alcanca um processo filho, que nao roda o
+nosso codigo. Enquanto nenhum backend confinar processo de verdade,
+cumprir a promessa e impossivel; entao o Runtime nao executa, em vez de
+executar mentindo.
+
+Consequencia pratica: para rodar um processo hoje, o operador classifica
+`process.spawn` como `danger-full-access` — o modo que nao promete
+confinement nenhum. A execucao nao confinada vira escolha explicita e
+auditavel (o proprio filho recebe `SPECTREE_SANDBOX=danger-full-access`),
+nunca efeito colateral silencioso de um modo que diz "workspace". Um
+runtime com teto `workspace-write` simplesmente nao pare processo — e o
+perfil que acompanha o runtime nem classifica `process`, entao a postura
+de fabrica e fechada.
+
+A regra vive em UM lugar (`executionBoundaryFor`, eixo `process`), que
+devolve `{ allowSpawn, enforcement, denialReason }`. O Provider obedece,
+nao reinterpreta, e a recusa e `SandboxDeniedError` — nao erro de
+Provider: a operacao estava autorizada; o ambiente e que nao pode
+cumprir o limite. Esse e tambem o seam do backend fisico futuro
+(Landlock, job object, container): ele constroi o boundary do handle com
+`processEnforcement: 'full'` e o mesmo calculo libera spawn sob modo
+restritivo, sem tocar no Agent nem no Provider de processo. `partial`
+nao conta — so `full` e fisico.
 
 ### O contrato
 

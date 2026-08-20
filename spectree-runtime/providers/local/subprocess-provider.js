@@ -6,7 +6,7 @@ import {
   ProcessConfigurationError,
   ProcessCwdError,
   ProcessSpawnError,
-  ProcessSandboxError,
+  SandboxDeniedError,
 } from '../../errors.js';
 import { createProcessSpawnSpec } from '../../process/spawn-spec.js';
 import { buildProcessEnvironment } from '../../process/environment.js';
@@ -128,6 +128,31 @@ export class LocalSubprocessProvider {
     });
   }
 
+  /**
+   * R14 — honestidade operacional. O boundary do Sandbox diz se um
+   * processo pode NASCER neste modo; aqui nada e reinterpretado, apenas
+   * obedecido. Sem enforcement fisico, um modo que promete confinement
+   * nao pare processo: zero spawn, e a razao vem do proprio boundary.
+   *
+   * A recusa e SandboxDeniedError, nao erro de Provider (F5 secao 31):
+   * a operacao estava autorizada — o ambiente e que nao pode cumprir o
+   * limite que o modo promete.
+   */
+  #assertSpawnAllowed(sandbox) {
+    const axis = sandbox?.boundary?.process;
+    if (!axis || axis.allowSpawn !== false) return;
+    const detail = axis.denialReason === 'unenforced-confinement'
+      ? "promises confinement but no backend physically enforces process isolation (process enforcement: '" +
+        axis.enforcement + "') — declare 'danger-full-access' to execute a process that is honestly unconfined"
+      : 'does not allow process spawn';
+    throw new SandboxDeniedError("sandbox mode '" + sandbox.mode + "' " + detail, {
+      boundary: sandbox.mode,
+      capabilityId: 'process',
+      operation: 'spawn',
+      requiredMode: 'danger-full-access',
+    });
+  }
+
   /** cwd fisico validado: workspace, sandbox e resource concordam (secao 29). */
   #resolveCwd(rawCwd, resource, sandbox) {
     const canonical = canonicalProcessWorld(rawCwd);
@@ -145,16 +170,9 @@ export class LocalSubprocessProvider {
       throw new ProcessCwdError('cwd does not exist or is not a directory: ' + canonical);
     }
     const physical = realpathSync(resolved);
-    // o Sandbox precisa permitir spawn E o cwd (secoes 27, 30-33)
-    if (sandbox) {
-      if (sandbox.boundary?.process && sandbox.boundary.process.allowSpawn === false) {
-        throw new ProcessSandboxError(
-          "sandbox mode '" + sandbox.mode + "' does not allow process spawn",
-        );
-      }
-      if (typeof sandbox.assertPathAllowed === 'function') {
-        sandbox.assertPathAllowed(physical, 'read');
-      }
+    // o cwd tambem tem de caber no boundary (secoes 27, 30-33)
+    if (sandbox && typeof sandbox.assertPathAllowed === 'function') {
+      sandbox.assertPathAllowed(physical, 'read');
     }
     return physical;
   }
@@ -172,6 +190,11 @@ export class LocalSubprocessProvider {
     if (operation !== 'spawn') {
       throw new ProcessConfigurationError('operation not supported: ' + operation);
     }
+
+    // 0. o ambiente permite um processo nascer? (R14) — pergunta que nao
+    // depende do conteudo do pedido, entao vem antes de tudo: zero evento
+    // de processo para um spawn que o boundary ja recusou
+    this.#assertSpawnAllowed(context.sandbox);
 
     // 1. spec valido ANTES de qualquer efeito (secao 14)
     const spec = createProcessSpawnSpec(input);

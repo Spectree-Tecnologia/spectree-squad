@@ -46,6 +46,16 @@ fronteira nenhuma.
 12. **Self-provided nao bypassa.** A capability declara `providerOnly`
     e o ToolRuntime recusa tool de process com execute() proprio — o
     Provider e o gate unico.
+13. **R14 — sem enforcement fisico, modo que promete confinement nao
+    executa.** `read-only` e `workspace-write` prometem limite fisico, e
+    nenhum backend atual aplica esse limite a um processo do SO. Em vez
+    de executar sob uma promessa que nao cumpre, o Runtime recusa:
+    `SandboxDeniedError`, zero processo. Executar hoje exige declarar
+    `danger-full-access` — o modo que nao promete confinement — de modo
+    que a execucao nao confinada seja escolha explicita e auditavel.
+    `partial` nao conta como fisico (verificacao em JS nao alcanca o
+    filho); quando um backend declarar `processEnforcement: 'full'`, o
+    mesmo calculo libera spawn sob modo restritivo.
 
 ## Alternativas descartadas
 
@@ -60,6 +70,17 @@ seam interno; o Agent recebe outcome.
 **Persistencia de processos atraves de crash do Runtime.** Fora de
 fase; a mitigacao e cleanup por grupo/arvore, e a limitacao fica
 declarada.
+
+**Flag de "aceito rodar sem enforcement" mantendo o modo restritivo.**
+Seria manter `workspace-write` na cara e um `allowUnenforcedProcess`
+escondido no perfil — ou seja, exatamente a mentira que o R14 elimina,
+com uma camada a mais de configuracao. Descartada: o modo E a promessa,
+entao a unica forma de nao mentir e nao prometer.
+
+**Implementar Landlock/bwrap/Restricted Token agora.** Transformaria a
+Fase 6 em outra fase. O seam esta aberto e testado
+(`processEnforcement: 'full'`); o backend fisico entra quando for a vez
+dele.
 
 ## Consequencia
 

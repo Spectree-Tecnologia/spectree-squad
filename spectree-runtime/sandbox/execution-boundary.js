@@ -32,17 +32,60 @@ export function enforcementRank(level) {
 /** O mais restritivo entre dois modos — nunca o mais permissivo (secao 137). */
 export const mostRestrictiveMode = (a, b) => (modeRank(a) <= modeRank(b) ? a : b);
 
+/** Valores aceitos no eixo de processo: os niveis + a ausencia de backend. */
+const PROCESS_ENFORCEMENT = Object.freeze(['unsupported', ...ENFORCEMENT_LEVELS]);
+
+/**
+ * Eixo de processo — R14, honestidade operacional.
+ *
+ * A regra: **sem enforcement fisico + modo que promete confinement = nao
+ * executar.** Um modo restritivo (`read-only`, `workspace-write`) e uma
+ * PROMESSA de limite fisico. Enquanto nenhum backend souber confinar um
+ * processo do SO, cumprir a promessa e impossivel — entao o Runtime nao
+ * executa, em vez de executar mentindo. Quem precisa de processo hoje
+ * declara `danger-full-access`, que nao promete confinement nenhum: a
+ * execucao nao confinada passa a ser uma escolha explicita e auditavel,
+ * nunca um efeito colateral silencioso de um modo que diz "workspace".
+ *
+ * `partial` NAO conta como fisico aqui: verificacao em JavaScript dentro
+ * do Runtime nao alcanca um processo filho, que nao roda o nosso codigo.
+ * So `full` (kernel-level: Landlock, job object, container) libera spawn
+ * sob modo restritivo — e este e exatamente o seam do backend futuro: ele
+ * declara `processEnforcement: 'full'` e o mesmo calculo abre o spawn,
+ * sem tocar no Agent nem no Provider de processo.
+ */
+function processAxis(mode, processEnforcement) {
+  if (!PROCESS_ENFORCEMENT.includes(processEnforcement)) {
+    throw new TypeError('unknown process enforcement: ' + String(processEnforcement));
+  }
+  const promisesConfinement = mode !== 'danger-full-access';
+  // read-only nao pare processo em nenhuma hipotese (secao 34 F6)
+  const allowSpawn = mode === 'read-only'
+    ? false
+    : !promisesConfinement || processEnforcement === 'full';
+  return Object.freeze({
+    allowSpawn,
+    enforcement: processEnforcement,
+    // por que nao — fonte unica da razao, consumida pelo Provider
+    denialReason: allowSpawn
+      ? null
+      : (mode === 'read-only' ? 'mode-forbids-spawn' : 'unenforced-confinement'),
+  });
+}
+
 /**
  * Boundary de cada modo (secao 55). `filesystem.write` e `filesystem.read`
  * assumem tres valores: 'none' (nada), 'workspace' (so as roots
  * declaradas) e 'unrestricted' (o Sandbox nao acrescenta fronteira —
  * secao 11: isso NAO e bypass de Policy nem de Provider).
  *
- * network/process/environment ficam fechados em todos os modos nesta
- * fase: o backend declara `unsupported` em vez de fingir isolamento
- * (secoes 50-51).
+ * network/environment ficam fechados em todos os modos nesta fase: o
+ * backend declara `unsupported` em vez de fingir isolamento (secoes
+ * 50-51). O eixo de processo segue o R14 (ver `processAxis`); um
+ * SandboxProvider que confine processo de verdade constroi o boundary do
+ * seu handle passando `processEnforcement`.
  */
-export function executionBoundaryFor(mode) {
+export function executionBoundaryFor(mode, { processEnforcement = 'unsupported' } = {}) {
   const filesystem = {
     'read-only': { read: 'workspace', write: 'none' },
     'workspace-write': { read: 'workspace', write: 'workspace' },
@@ -53,14 +96,7 @@ export function executionBoundaryFor(mode) {
     filesystem: Object.freeze({ ...filesystem }),
     // rede e ambiente: declarados, nao implementados (secoes 50-52)
     network: Object.freeze({ enabled: false, enforcement: 'unsupported' }),
-    // processo (Fase 6, secao 34): o primeiro consumidor do eixo. O
-    // boundary DECLARA se spawn cabe no modo; o isolamento fisico do
-    // processo continua 'unsupported' — verificacao no Provider, nao no
-    // kernel, e a honestidade da Fase 5 permanece (secoes 35-36).
-    process: Object.freeze({
-      allowSpawn: mode !== 'read-only',
-      enforcement: 'unsupported',
-    }),
+    process: processAxis(mode, processEnforcement),
     environment: Object.freeze({ inherit: false, enforcement: 'unsupported' }),
   });
 }

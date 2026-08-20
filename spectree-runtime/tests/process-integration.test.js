@@ -52,13 +52,21 @@ const PROFILE = {
     },
     process: {
       maxMode: 'workspace-write',
-      // spawn e mutante por natureza: exige workspace-write (secao 25 F5)
-      operations: { spawn: { requires: 'workspace-write' }, terminate: { requires: 'workspace-write' } },
+      // R14: nenhum backend confina processo hoje, entao um modo que
+      // PROMETE confinement nao pode pari-lo. Executar exige declarar
+      // 'danger-full-access' — a execucao nao confinada vira escolha
+      // explicita do operador, nunca efeito colateral de um modo que
+      // diz "workspace"
+      operations: { spawn: { requires: 'danger-full-access' }, terminate: { requires: 'workspace-write' } },
     },
   },
 };
 
-function build({ runtimeMaxMode = 'workspace-write', policies = null } = {}) {
+function build({
+  runtimeMaxMode = 'danger-full-access',
+  spawnRequires = 'danger-full-access',
+  policies = null,
+} = {}) {
   const workspaceRoot = mkdtempSync(path.join(tmpdir(), 'prc-int-'));
   const sandboxProviderRegistry = new SandboxProviderRegistry();
   sandboxProviderRegistry.register(new LocalFilesystemSandboxProvider());
@@ -68,7 +76,14 @@ function build({ runtimeMaxMode = 'workspace-write', policies = null } = {}) {
       runtimeMaxMode,
       capabilities: {
         filesystem: { ...PROFILE.capabilities.filesystem, maxMode: runtimeMaxMode },
-        process: { ...PROFILE.capabilities.process, maxMode: runtimeMaxMode },
+        process: {
+          ...PROFILE.capabilities.process,
+          maxMode: runtimeMaxMode,
+          operations: {
+            ...PROFILE.capabilities.process.operations,
+            spawn: { requires: spawnRequires },
+          },
+        },
       },
     },
     workspaceRoot,
@@ -239,6 +254,48 @@ test('teto read-only: spawn e negado pelo Sandbox, nao pela Policy (secao 158)',
     );
     assert.ok(env.types().includes('sandbox.denied'));
     assert.ok(!env.types().includes('process.requested'));
+  } finally {
+    env.cleanup();
+  }
+});
+
+test('R14: modo que promete confinement nao pare processo — zero spawn', async () => {
+  // o operador classifica spawn como workspace-write: autorizado pela
+  // Policy, sandbox construido, e mesmo assim NENHUM processo nasce —
+  // porque nenhum backend aplica esse limite a um processo do SO
+  const env = build({ runtimeMaxMode: 'workspace-write', spawnRequires: 'workspace-write' });
+  try {
+    await assert.rejects(
+      env.runtime.toolRuntime.execute({ toolId: 'process.spawn', input: spawnInput() }, ctx),
+      (error) => error instanceof SandboxDeniedError
+        && error.capabilityId === 'process'
+        && /no backend physically enforces/.test(error.message),
+    );
+    // a recusa vem DEPOIS da autorizacao e do sandbox: e o ambiente, nao
+    // a autoridade, que disse nao
+    assert.ok(env.types().includes('policy.evaluated'));
+    assert.ok(env.types().includes('sandbox.applied'));
+    // e nada de processo aconteceu — nem o evento de pedido
+    assert.ok(!env.types().includes('process.requested'));
+    assert.ok(!env.types().includes('process.started'));
+    assert.equal(env.processRegistry.list().length, 0);
+    // sandbox liberado mesmo na recusa (secao 65 F5)
+    assert.ok(env.types().includes('sandbox.released'));
+  } finally {
+    env.cleanup();
+  }
+});
+
+test('R14: sob danger-full-access o mesmo spawn executa — a promessa e que muda', async () => {
+  const env = build(); // danger-full-access: nao promete confinement
+  try {
+    const result = await env.runtime.toolRuntime.execute(
+      { toolId: 'process.spawn', input: spawnInput() }, ctx,
+    );
+    assert.equal(result.output.outcome.exitCode, 0);
+    // o processo recebe a verdade sobre o proprio confinamento
+    const started = env.events.find((e) => e.type === 'process.started');
+    assert.equal(started.payload.sandboxMode, 'danger-full-access');
   } finally {
     env.cleanup();
   }

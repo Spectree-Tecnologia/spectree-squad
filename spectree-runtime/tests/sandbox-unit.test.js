@@ -64,6 +64,39 @@ test('SandboxPolicy: modos, boundary e ordem de restritividade', () => {
   assert.equal(executionBoundaryFor('workspace-write').network.enforcement, 'unsupported');
 });
 
+test('R14: modo que promete confinement nao pare processo sem enforcement fisico', () => {
+  // R8: superficie exata do eixo, sem chave a mais nem a menos
+  assert.deepEqual(executionBoundaryFor('read-only').process, {
+    allowSpawn: false, enforcement: 'unsupported', denialReason: 'mode-forbids-spawn',
+  });
+  // o coracao do R14: workspace-write PROMETE limite fisico, nenhum
+  // backend o aplica a um processo do SO => nao executa
+  assert.deepEqual(executionBoundaryFor('workspace-write').process, {
+    allowSpawn: false, enforcement: 'unsupported', denialReason: 'unenforced-confinement',
+  });
+  // danger-full-access nao promete confinement nenhum: executar nao mente
+  assert.deepEqual(executionBoundaryFor('danger-full-access').process, {
+    allowSpawn: true, enforcement: 'unsupported', denialReason: null,
+  });
+
+  // 'partial' NAO e fisico: verificacao em JS nao alcanca o processo filho
+  assert.equal(
+    executionBoundaryFor('workspace-write', { processEnforcement: 'partial' }).process.allowSpawn,
+    false,
+  );
+  // seam do backend fisico futuro: 'full' abre o spawn sob modo restritivo
+  assert.deepEqual(executionBoundaryFor('workspace-write', { processEnforcement: 'full' }).process, {
+    allowSpawn: true, enforcement: 'full', denialReason: null,
+  });
+  // read-only nao pare processo nem com backend fisico
+  assert.equal(
+    executionBoundaryFor('read-only', { processEnforcement: 'full' }).process.allowSpawn,
+    false,
+  );
+  // typo nao abre fronteira por acidente
+  assert.throws(() => executionBoundaryFor('workspace-write', { processEnforcement: 'Full' }), TypeError);
+});
+
 test('SandboxPolicy: defaults, imutabilidade e combinacoes invalidas', () => {
   const root = workspace();
   try {
