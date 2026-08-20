@@ -39,7 +39,12 @@ e isolamento fisico viraram a mesma coisa, e nao sao.
 7. **O primeiro backend e filesystem.** Provar a arquitetura com o
    provider que ja existe, em vez de perseguir uma demonstracao mais
    chamativa com Shell ou container.
-8. **O backend especifico de SO e substituivel.** Landlock, Restricted
+8. **Tool self-provided nao escapa da fronteira (R13).** Toda tool com
+   `execute()` proprio declara `execution: 'pure'` ou `'physical'`.
+   Physical passa pelo mesmo Sandbox da rota provider-backed; pure fica
+   explicitamente fora; sem classificacao, nao registra em runtime com
+   sandbox. O efeito fisico nao muda de natureza pela rota de execucao.
+9. **O backend especifico de SO e substituivel.** Landlock, Restricted
    Token e container entram pelo mesmo contrato
    (`sandboxProviderContract`), sem tocar Tool, Agent ou Policy.
 

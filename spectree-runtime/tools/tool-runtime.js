@@ -7,6 +7,7 @@ import {
   ToolValidationError,
   ProviderExecutionError,
   SandboxDeniedError,
+  SandboxConfigurationError,
 } from '../errors.js';
 import { releaseSandbox } from '../sandbox/sandbox-resolver.js';
 import { describeSandboxPolicy } from '../sandbox/sandbox-policy.js';
@@ -159,6 +160,24 @@ export class ToolRuntime {
     if (tool.execute !== undefined && typeof tool.execute !== 'function') {
       throw new ToolError('tool ' + tool.id + ': execute must be a function when present');
     }
+    // R13: classificacao de execucao. Tool self-provided declara se e
+    // 'pure' (sem efeito fisico — explicitamente fora do sandbox) ou
+    // 'physical' (efeito fisico — sandbox obrigatorio). Provider-backed
+    // e fisica por definicao e ja passa pela fronteira.
+    if (tool.execution !== undefined && !['pure', 'physical'].includes(tool.execution)) {
+      throw new ToolError(
+        "tool " + tool.id + ": execution must be 'pure' or 'physical' when present",
+      );
+    }
+    // Fail closed e fail early: com sandbox configurado, tool
+    // self-provided SEM classificacao nao entra no registry — e a mesma
+    // filosofia da secao 132 (nao classificada -> configuration-required).
+    if (this.#sandboxProfileResolver && typeof tool.execute === 'function' && !tool.execution) {
+      throw new SandboxConfigurationError(
+        "tool " + tool.id + " is self-provided and unclassified: declare execution 'pure' " +
+        "or 'physical' before it can register on a sandbox-enabled runtime",
+      );
+    }
     if (this.#tools.has(tool.id)) {
       throw new ToolError('tool already registered: ' + tool.id);
     }
@@ -216,7 +235,45 @@ export class ToolRuntime {
   }
 
   /** Pipeline fisico de execucao: started -> execute -> completed/failed. */
-  async #runTool(tool, input, meta) {
+  /** Libera o sandbox e publica os eventos do ciclo (secoes 65-66). */
+  async #releaseWithEvents(sandbox, meta, capabilityId, operation) {
+    let cleanupError = null;
+    await releaseSandbox(sandbox, (error) => { cleanupError = error; });
+    this.#bus.publish('sandbox.released', {
+      ...meta,
+      payload: {
+        capabilityId,
+        operation,
+        mode: sandbox.mode,
+        enforcement: sandbox.enforcement,
+        providerId: sandbox.providerId,
+        cleanupFailed: cleanupError !== null,
+      },
+    });
+    if (cleanupError) {
+      this.#bus.publish('sandbox.cleanup.failed', {
+        ...meta,
+        payload: {
+          capabilityId,
+          providerId: sandbox.providerId,
+          reason: String(cleanupError.message),
+        },
+      });
+    }
+  }
+
+  /**
+   * Rota self-provided (R13). Tool 'physical' passa pela MESMA fronteira
+   * de Sandbox que a rota provider-backed — o efeito fisico nao muda de
+   * natureza por a tool carregar o proprio execute(). Tool 'pure' e
+   * explicitamente nao-sandboxed: sem efeito fisico, sem fronteira, e a
+   * decisao esta declarada no registro, nunca implicita.
+   */
+  async #runTool(tool, input, meta, authorization) {
+    let sandbox = null;
+    if (tool.execution === 'physical' && this.#sandboxProfileResolver && this.#sandboxResolver) {
+      sandbox = await this.#applySandbox(tool, meta, authorization);
+    }
     try {
       this.#bus.publish('tool.started', {
         ...meta,
@@ -225,6 +282,9 @@ export class ToolRuntime {
       const output = await tool.execute(input, {
         sessionId: meta.sessionId,
         agentId: meta.agentId,
+        // o handle so existe na rota physical; tool pure segue com o
+        // contexto minimo de sempre (INV-002)
+        ...(sandbox ? { sandbox } : {}),
       });
       this.#bus.publish('tool.completed', {
         ...meta,
@@ -241,6 +301,10 @@ export class ToolRuntime {
         }),
       });
       throw error;
+    } finally {
+      if (sandbox) {
+        await this.#releaseWithEvents(sandbox, meta, authorization.tool.capability, authorization.operation);
+      }
     }
   }
 
@@ -281,7 +345,7 @@ export class ToolRuntime {
       });
       throw error;
     }
-    if (!provider) return this.#runTool(tool, input, meta);
+    if (!provider) return this.#runTool(tool, input, meta, authorization);
     return this.#runProvider(provider, tool, input, meta, authorization);
   }
 
@@ -383,7 +447,6 @@ export class ToolRuntime {
     });
     this.#bus.publish('provider.started', { ...meta, payload: providerPayload });
     const startedAt = Date.now();
-    let cleanupError = null;
     try {
       const request = Object.freeze({ operation: authorization.operation, input, resource });
       const context = Object.freeze({
@@ -429,28 +492,7 @@ export class ToolRuntime {
       // Falha de cleanup vira evento proprio e NAO falsifica o resultado
       // da operacao principal (secao 66).
       if (sandbox) {
-        await releaseSandbox(sandbox, (error) => { cleanupError = error; });
-        this.#bus.publish('sandbox.released', {
-          ...meta,
-          payload: {
-            capabilityId: provider.capabilityId,
-            operation: authorization.operation,
-            mode: sandbox.mode,
-            enforcement: sandbox.enforcement,
-            providerId: sandbox.providerId,
-            cleanupFailed: cleanupError !== null,
-          },
-        });
-        if (cleanupError) {
-          this.#bus.publish('sandbox.cleanup.failed', {
-            ...meta,
-            payload: {
-              capabilityId: provider.capabilityId,
-              providerId: sandbox.providerId,
-              reason: String(cleanupError.message),
-            },
-          });
-        }
+        await this.#releaseWithEvents(sandbox, meta, provider.capabilityId, authorization.operation);
       }
     }
   }

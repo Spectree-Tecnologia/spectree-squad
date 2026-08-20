@@ -533,6 +533,18 @@ principal.
 Os eventos carregam modo, enforcement e providerId; nunca roots,
 ambiente ou credencial.
 
+### Classificacao de execucao (R13)
+
+O efeito fisico nao muda de natureza por a tool carregar o proprio
+`execute()`. Tool self-provided declara `execution: 'physical'` — e passa
+pela MESMA fronteira de Sandbox da rota provider-backed, recebendo o
+handle no contexto — ou `execution: 'pure'` — sem efeito fisico,
+explicitamente fora da fronteira, com a decisao registrada e nunca
+implicita. Em runtime com sandbox configurado, tool self-provided sem
+classificacao nao entra no registry (fail closed, fail early — mesma
+filosofia da operacao nao classificada no perfil). Runtime sem sandbox
+configurado segue aceitando tools legadas, como nas Fases 1-4.
+
 ### Taxonomia
 
 `SandboxDeniedError` nao e `PolicyDeniedError`. O primeiro diz "esta
