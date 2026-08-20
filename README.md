@@ -132,7 +132,11 @@ mutável fora do Disruptor é negado, enquanto `git log`/`diff`/`status` não
 são governados e passam para todos. Principal ausente é a thread
 principal — contexto do Invoker/Founder, valem só as policies
 universais; principal desconhecido (subagente fora do squad) é fail
-closed: o default deny nega as operações governadas. O guard também
+closed: o default deny nega as operações governadas. Cada `deny`/`ask`
+vira uma linha em `~/.claude/spectree/policy-decisions.jsonl` sob a mesma
+projeção do event bus — a decisão, nunca o comando bruto — e um teste de
+alcançabilidade exige que toda policy da matriz declare qual consumidor a
+alcança, provando a declaração ao executar o guard. O guard também
 governa `Edit`/`Write`: subagente que tenta escrever `status:
 approved|done` num artefato cai no default deny (aprovar é da thread
 principal, onde vive o Invoker), e principal com superfície de edição

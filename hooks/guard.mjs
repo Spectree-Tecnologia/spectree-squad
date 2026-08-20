@@ -1,4 +1,6 @@
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, appendFileSync, mkdirSync } from 'node:fs';
+import { homedir } from 'node:os';
+import path from 'node:path';
 import { policyEngineFromDocument } from '../spectree-runtime/adapters/policy-document.js';
 
 /**
@@ -19,6 +21,13 @@ import { policyEngineFromDocument } from '../spectree-runtime/adapters/policy-do
  * default deny (so a thread principal, onde vive o Invoker, passa).
  * E principal com superficie de edicao FECHADA na matriz (declarou
  * policy de artifact-edit, caso do Keeper) so edita o que ela concede.
+ *
+ * 4.6: detector de `gh` (capability github) e resource de branch lido de
+ * .git/HEAD — leitura de arquivo, jamais execucao de comando. Toda
+ * decisao (deny/ask) e registrada em ~/.claude/spectree/
+ * policy-decisions.jsonl sob projecao R10: policyId, efeito, principal,
+ * capability, operation e resource — NUNCA o comando bruto, que carrega
+ * segredo.
  *
  * Regra de honestidade: o guard NUNCA responde "allow" — so "deny",
  * "ask" (gate do Founder na UI) ou silencio. Allow do engine vira
@@ -93,6 +102,18 @@ function gitSubcommand(tokens) {
   return null;
 }
 
+// operacoes do gh que a matriz governa (capability github)
+const GH_OPERATIONS = {
+  pr: 'pr', release: 'release', label: 'label', run: 'ci', workflow: 'ci', cache: 'ci',
+};
+
+function detectGitHub(tokens) {
+  const sub = tokens.slice(tokens.indexOf('gh') + 1).find((t) => !t.startsWith('-'));
+  const operation = GH_OPERATIONS[sub];
+  if (!operation) return null; // gh auth, gh repo view, ... nao sao governados
+  return { capability: 'github', operation };
+}
+
 function detectGit(tokens) {
   const sub = gitSubcommand(tokens);
   if (sub === 'push') {
@@ -109,7 +130,9 @@ function detectGit(tokens) {
     return { capability: 'git', operation: 'push' };
   }
   if (sub === 'commit' || sub === 'merge') {
-    return { capability: 'git', operation: sub };
+    // resource preenchido pelo chamador com a branch corrente (4.6):
+    // commit direto na main tem de cair no no-direct-push-main
+    return { capability: 'git', operation: sub, needsCurrentRef: true };
   }
   // criacao de branch: git branch <nome>, checkout -b, switch -c
   if (sub === 'branch' && tokens.slice(tokens.indexOf('branch') + 1).some((t) => !t.startsWith('-'))) {
@@ -128,6 +151,7 @@ function detectGit(tokens) {
  */
 function detectBash(segment) {
   const tokens = tokenize(segment);
+  if (tokens.includes('gh')) return detectGitHub(tokens);
   if (tokens.includes('git')) return detectGit(tokens);
   if (/\b(psql|mysql|mariadb|sqlite3)\b/.test(segment)) {
     const destructive = /\b(drop\s+(table|database|schema|index)|truncate)\b/i.test(segment);
@@ -151,6 +175,27 @@ function detectBash(segment) {
           resource: { type: 'filesystem', id: 'outside-workspace' },
         };
       }
+    }
+  }
+  return null;
+}
+
+/**
+ * Ref da branch corrente lida de .git/HEAD — LEITURA de arquivo, nunca
+ * execucao de comando (o guard permanece read-only). Sobe da cwd ate
+ * achar o .git; detached HEAD ou ausencia devolve null.
+ */
+function currentRef(cwd) {
+  let dir = typeof cwd === 'string' && cwd.length > 0 ? path.resolve(cwd) : null;
+  while (dir) {
+    try {
+      const head = readFileSync(path.join(dir, '.git', 'HEAD'), 'utf8').trim();
+      const match = head.match(/^ref:\s*(refs\/heads\/.+)$/);
+      return match ? match[1] : null;
+    } catch {
+      const parent = path.dirname(dir);
+      if (parent === dir) return null;
+      dir = parent;
     }
   }
   return null;
@@ -194,6 +239,22 @@ function detectFileTool(payload, principal) {
   return detections;
 }
 
+/**
+ * Trilha de decisao (4.6). Uma linha JSON por decisao efetiva (deny ou
+ * ask) — silencio nao e decisao e nao entra. Projecao R10: o comando
+ * bruto NUNCA e registrado; so o que a Policy julgou. Falha de escrita
+ * jamais afeta a decisao: auditoria quebrada nao pode virar bloqueio.
+ */
+function audit(entry) {
+  try {
+    const dir = path.join(homedir(), '.claude', 'spectree');
+    mkdirSync(dir, { recursive: true });
+    appendFileSync(path.join(dir, 'policy-decisions.jsonl'), JSON.stringify(entry) + '\n', 'utf8');
+  } catch {
+    // trilha e observabilidade, nao autoridade
+  }
+}
+
 function main() {
   let payload;
   try {
@@ -216,17 +277,35 @@ function main() {
 
   const principal = principalFrom(payload.agent_type);
   for (const detected of detections) {
+    let resource = detected.resource;
+    if (detected.needsCurrentRef && !resource) {
+      const ref = currentRef(payload.cwd);
+      if (ref) resource = { type: 'git', id: ref };
+    }
     const decision = engine.decide({
       principal: principal ?? UNKNOWN_PRINCIPAL,
       tool: { id: detected.capability + '.' + detected.operation, capability: detected.capability },
       operation: detected.operation,
-      resource: detected.resource,
+      resource,
     });
     if (decision.effect === 'allow') continue; // passagem, nunca "allow" explicito
     // thread principal (4A): default-deny nao e acionavel daqui.
     // Principal DESCONHECIDO nao entra aqui: fail closed (Fase 4.5).
     if (principal === null && decision.policyId === 'default-deny') continue;
     const permissionDecision = decision.effect === 'deny' ? 'deny' : 'ask';
+    audit({
+      at: new Date().toISOString(),
+      decision: permissionDecision,
+      policyId: decision.policyId,
+      principal: principal ? principal.id : null,
+      principalKnown: principal ? principal.known : null,
+      capability: detected.capability,
+      operation: detected.operation,
+      resource: resource ? resource.type + '/' + resource.id : null,
+      tool: toolName,
+      cwd: typeof payload.cwd === 'string' ? payload.cwd : null,
+      sessionId: typeof payload.session_id === 'string' ? payload.session_id : null,
+    });
     process.stdout.write(JSON.stringify({
       hookSpecificOutput: {
         hookEventName: 'PreToolUse',
