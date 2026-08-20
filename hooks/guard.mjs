@@ -8,10 +8,10 @@ import { policyEngineFromDocument } from '../spectree-runtime/adapters/policy-do
  * Edit/Write) e pergunta ao PolicyEngine real, carregado do MESMO
  * squad.policies.json que os testes travam.
  *
- * 4B: dentro de um subagente o payload traz `agent_type` — o principal
- * real. Agente do squad reconhecido -> default deny vale. `agent_type`
- * ausente (thread principal) ou desconhecido -> modo 4A: so agem as
- * policies sem principal.
+ * 4B/4.5: dentro de um subagente o payload traz `agent_type` — o
+ * principal real. Agente do squad reconhecido -> default deny vale.
+ * `agent_type` AUSENTE e a thread principal (Invoker/Founder) -> modo
+ * 4A, so policies universais. PRESENTE mas fora do squad -> fail closed.
  *
  * 4C: Edit/Write tambem sao governados. Conteudo novo que escreve
  * `status: approved|done|in-progress` num artefato de docs/ e uma
