@@ -114,8 +114,12 @@ mesmo shape que o `PolicyRegistry` do runtime aceita, e provada por teste
 no motor real: `tests/squad-policies.test.js` carrega o arquivo no
 `PolicyRegistry` e decide cada fronteira no `PolicyEngine` (banco é do
 Oracle, main nega até o Disruptor, operação destrutiva é gate do Founder).
-Prosa e matriz em conflito, a matriz vence — e quando o Squad rodar sobre
-o runtime, o mesmo arquivo alimenta o registry sem tradução.
+Prosa e matriz em conflito, a matriz vence — e o caminho de carga é um
+só: o adapter oficial (`spectree-runtime/adapters/policy-document.js`)
+alimenta guard, runtime (`npm run example:policy` roda a matriz real no
+runtime completo) e testes, e o teste de integração prova a mesma
+decisão, com o mesmo policyId, nos três — além de travar que existe
+exatamente uma matriz no repo.
 
 A matriz também é aplicada em execução: o hook `PreToolUse`
 (`hooks/guard.mjs`, requer `node` no PATH) inspeciona cada comando Bash e
@@ -125,8 +129,10 @@ prompt de confirmação na UI (force-push, `DROP` via CLI de banco). Dentro
 de um subagente o payload do hook traz `agent_type`, e o guard decide com
 o principal real: default deny vale — Jakiro rodando `psql` é negado, git
 mutável fora do Disruptor é negado, enquanto `git log`/`diff`/`status` não
-são governados e passam para todos. Principal ausente (thread principal)
-ou desconhecido degrada para as policies universais. O guard também
+são governados e passam para todos. Principal ausente é a thread
+principal — contexto do Invoker/Founder, valem só as policies
+universais; principal desconhecido (subagente fora do squad) é fail
+closed: o default deny nega as operações governadas. O guard também
 governa `Edit`/`Write`: subagente que tenta escrever `status:
 approved|done` num artefato cai no default deny (aprovar é da thread
 principal, onde vive o Invoker), e principal com superfície de edição
@@ -278,6 +284,7 @@ spectree-runtime/
   capabilities/ providers/           # Fase 4: como vira efeito real
   tools/tool-runtime.js              # o ponto onde as quatro se encontram
   adapters/squad-agent.js            # ponte Squad -> Runtime
+  adapters/policy-document.js        # o caminho unico da matriz (Fase 4.5)
   tests/                             # a suíte; cada invariante tem seu teste
 
 squad.policies.json                  # a matriz de autoridade, no shape do PolicyRegistry

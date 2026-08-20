@@ -1,57 +1,66 @@
 /**
- * Prova minima da Fase 2 (spec secao 68):
+ * Prova minima da Fase 2, atualizada na Fase 4.5:
  *   node spectree-runtime/example-policy.js
  *
- * Mesmo Agent + mesma Tool + mesmo Runtime produzem ALLOW num contexto
- * autorizado e DENY num contexto nao autorizado, sem modificar Agent,
- * Tool ou AgentLoop. As policies chegam de um arquivo JSON — configuracao
- * desacoplada do PolicyEngine (secao 42).
+ * Mesmo Agent + mesma Tool + mesmo Runtime produzem ALLOW, DENY ou
+ * APPROVAL-REQUIRED conforme o contexto, sem modificar Agent, Tool ou
+ * AgentLoop. As policies chegam da MATRIZ OFICIAL do squad
+ * (squad.policies.json), pelo adapter oficial — o mesmo arquivo e o
+ * mesmo caminho de carga que o guard PreToolUse e os testes usam.
+ * Uma autoridade, mesma decisao em todo consumidor.
  */
-import { readFileSync } from 'node:fs';
-import { createRuntime, Agent, PolicyDeniedError, PolicyApprovalRequiredError } from './index.js';
+import {
+  createRuntime,
+  policyEngineFromDocument,
+  Agent,
+  PolicyDeniedError,
+  PolicyApprovalRequiredError,
+} from './index.js';
 
-const policies = JSON.parse(
-  readFileSync(new URL('./policy/spectree.policies.json', import.meta.url), 'utf8'),
-);
+const MATRIX = new URL('../squad.policies.json', import.meta.url);
 
-class MigrationAgent extends Agent {
+class DatabaseAgent extends Agent {
   async run(context) {
-    const result = await context.runtime.requestTool('database.migrate', {
-      target: context.mission,
-    });
+    const result = await context.runtime.requestTool(context.mission, { target: 'app' });
     return result.output;
   }
 }
 
 function build() {
-  const runtime = createRuntime();
-  runtime.policyRegistry.registerMany(policies);
+  const { registry } = policyEngineFromDocument(MATRIX);
+  const runtime = createRuntime({ policyRegistry: registry });
   runtime.capabilityRegistry.register({
     id: 'database',
     name: 'Database',
     description: 'familia de operacoes de banco de dados',
-    operations: ['query', 'migration'],
+    operations: ['query', 'migration', 'destructive-migration'],
   });
   runtime.toolRuntime.register({
     id: 'database.migrate',
     name: 'Database Migrate',
-    description: 'aplica migrations no banco alvo',
+    description: 'aplica migrations no banco',
     capability: 'database',
     operation: 'migration',
-    resource: (input) => ({ type: 'database', id: input.target }),
-    inputSchema: { type: 'object', required: ['target'], properties: { target: { type: 'string' } } },
     execute: async ({ target }) => 'migrated ' + target,
+  });
+  runtime.toolRuntime.register({
+    id: 'database.drop',
+    name: 'Database Drop',
+    description: 'operacao destrutiva de banco',
+    capability: 'database',
+    operation: 'destructive-migration',
+    execute: async ({ target }) => 'dropped ' + target,
   });
   return runtime;
 }
 
-async function scenario(label, agentId, target) {
+async function scenario(label, agentId, toolId) {
   const runtime = build();
   runtime.eventBus.subscribe('policy.evaluated', (event) =>
     console.log('  policy.evaluated -> ' + event.payload.effect + ' (' + event.payload.policyId + ')'),
   );
-  const agent = new MigrationAgent({ id: agentId, name: agentId, instructions: 'migrate the database' });
-  const session = runtime.createSession({ agentId, mission: target });
+  const agent = new DatabaseAgent({ id: agentId, name: agentId, instructions: 'operate the database' });
+  const session = runtime.createSession({ agentId, mission: toolId });
   console.log(label);
   const result = await runtime.loop.run(agent, session);
   if (result.status === 'completed') {
@@ -64,6 +73,6 @@ async function scenario(label, agentId, target) {
   console.log('');
 }
 
-await scenario('1. oracle -> database.migrate -> development (policy allow)', 'oracle', 'development');
-await scenario('2. jakiro -> mesma tool, mesmo recurso (nenhuma policy compativel)', 'jakiro', 'development');
-await scenario('3. oracle -> database.migrate -> production (approval-required)', 'oracle', 'production');
+await scenario('1. oracle -> database.migrate (allow nominal da matriz)', 'oracle', 'database.migrate');
+await scenario('2. jakiro -> mesma tool (default deny: banco nao e dele)', 'jakiro', 'database.migrate');
+await scenario('3. oracle -> database.drop (gate do Founder vence o allow)', 'oracle', 'database.drop');

@@ -1,6 +1,5 @@
 import { readFileSync, readdirSync } from 'node:fs';
-import { PolicyRegistry } from '../spectree-runtime/policy/policy-registry.js';
-import { PolicyEngine } from '../spectree-runtime/policy/policy-engine.js';
+import { policyEngineFromDocument } from '../spectree-runtime/adapters/policy-document.js';
 
 /**
  * Guard PreToolUse (itens 4A+4B+4C da sintonia Squad/Runtime): a matriz
@@ -9,10 +8,10 @@ import { PolicyEngine } from '../spectree-runtime/policy/policy-engine.js';
  * Edit/Write) e pergunta ao PolicyEngine real, carregado do MESMO
  * squad.policies.json que os testes travam.
  *
- * 4B: dentro de um subagente o payload traz `agent_type` — o principal
- * real. Agente do squad reconhecido -> default deny vale. `agent_type`
- * ausente (thread principal) ou desconhecido -> modo 4A: so agem as
- * policies sem principal.
+ * 4B/4.5: dentro de um subagente o payload traz `agent_type` — o
+ * principal real. Agente do squad reconhecido -> default deny vale.
+ * `agent_type` AUSENTE e a thread principal (Invoker/Founder) -> modo
+ * 4A, so policies universais. PRESENTE mas fora do squad -> fail closed.
  *
  * 4C: Edit/Write tambem sao governados. Conteudo novo que escreve
  * `status: approved|done|in-progress` num artefato de docs/ e uma
@@ -27,8 +26,10 @@ import { PolicyEngine } from '../spectree-runtime/policy/policy-engine.js';
  * O hook e somente-leitura: le stdin, imprime JSON, nunca executa nada.
  */
 
-const POLICIES = JSON.parse(
-  readFileSync(new URL('../squad.policies.json', import.meta.url), 'utf8'),
+// Adapter oficial (Fase 4.5): o MESMO caminho de carga que o runtime,
+// os exemplos e os testes usam — uma autoridade, mesma decisao.
+const { policies: POLICIES, engine } = policyEngineFromDocument(
+  new URL('../squad.policies.json', import.meta.url),
 );
 
 /** Principais reconhecidos: os agentes que o plugin embarca. */
@@ -48,10 +49,16 @@ const CLOSED_EDIT_PRINCIPALS = new Set(
     .flatMap((p) => [p.principal ?? p.principals ?? []].flat()),
 );
 
+/**
+ * Regra da Fase 4.5: agent_type AUSENTE e a thread principal — la vivem
+ * o Invoker e o Founder, e vale o modo 4A (so policies universais).
+ * agent_type PRESENTE mas fora do squad e principal desconhecido:
+ * fail closed — o default deny da matriz age.
+ */
 function principalFrom(agentType) {
-  if (typeof agentType !== 'string' || agentType.length === 0) return null;
+  if (typeof agentType !== 'string' || agentType.length === 0) return null; // thread principal
   const base = agentType.split(':').pop();
-  return KNOWN_AGENTS.has(base) ? { id: base } : null;
+  return { id: base, known: KNOWN_AGENTS.has(base) };
 }
 
 // Principal de fallback (modo 4A): policies com principal nao casam com
@@ -208,10 +215,6 @@ function main() {
   if (detections.length === 0) return;
 
   const principal = principalFrom(payload.agent_type);
-  const registry = new PolicyRegistry();
-  registry.registerMany(POLICIES);
-  const engine = new PolicyEngine({ registry });
-
   for (const detected of detections) {
     const decision = engine.decide({
       principal: principal ?? UNKNOWN_PRINCIPAL,
@@ -220,7 +223,8 @@ function main() {
       resource: detected.resource,
     });
     if (decision.effect === 'allow') continue; // passagem, nunca "allow" explicito
-    // modo 4A (principal desconhecido): default-deny nao e acionavel daqui
+    // thread principal (4A): default-deny nao e acionavel daqui.
+    // Principal DESCONHECIDO nao entra aqui: fail closed (Fase 4.5).
     if (principal === null && decision.policyId === 'default-deny') continue;
     const permissionDecision = decision.effect === 'deny' ? 'deny' : 'ask';
     process.stdout.write(JSON.stringify({
