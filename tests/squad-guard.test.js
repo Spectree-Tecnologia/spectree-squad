@@ -117,13 +117,20 @@ test('4B: a main nega ate o Disruptor, e o gate destrutivo vence o allow do Orac
   assert.match(drop.permissionDecisionReason, /destructive-migration-founder-gate/);
 });
 
-test('4B: principal desconhecido ou ausente degrada para o modo 4A', () => {
-  // subagente fora do squad: default deny NAO e acionavel daqui
-  assert.equal(runGuard('psql -c "SELECT 1"', 'Bash', 'Explore'), null);
-  assert.equal(runGuard('git commit -m "x"', 'Bash', 'Explore'), null);
-  // thread principal (sem agent_type): idem
+test('4.5: principal ausente e a thread principal (4A); desconhecido e fail closed', () => {
+  // desconhecido (subagente fora do squad): DENY nas operacoes governadas
+  for (const command of ['psql -c "SELECT 1"', 'git commit -m "x"']) {
+    const decision = runGuard(command, 'Bash', 'Explore');
+    assert.equal(decision?.permissionDecision, 'deny', command);
+    assert.match(decision.permissionDecisionReason, /no policy grants/);
+  }
+  // operacao nao governada segue livre, mesmo para desconhecido
+  assert.equal(runGuard('git status', 'Bash', 'Explore'), null);
+  assert.equal(runGuard('npm test', 'Bash', 'Explore'), null);
+  // thread principal (sem agent_type): modo 4A — Invoker e Founder vivem la
   assert.equal(runGuard('git commit -m "x"'), null);
-  // mas as policies universais continuam valendo para qualquer um
+  assert.equal(runGuard('psql -c "SELECT 1"'), null);
+  // policies universais valem para ambos
   const force = runGuard('git push --force origin feat/x', 'Bash', 'Explore');
   assert.equal(force?.permissionDecision, 'ask');
 });

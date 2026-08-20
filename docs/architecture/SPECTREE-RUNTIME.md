@@ -329,6 +329,27 @@ depth).
 | SessionStore / EventStore | consumidores dependem só de `publish/subscribe`; um bus persistente implementa o mesmo contrato | nada no AgentLoop |
 | Orchestrator | camada acima do loop, compondo N execuções | consome, não altera |
 
+## Fase 4.5 — Policy Integration & Principal Hardening
+
+Fase pequena, sem tocar o Core. Fecha o último desalinhamento entre as
+camadas: a matriz de autoridade do squad (`squad.policies.json`, raiz do
+repo) passa a ter UM caminho de carga — o adapter oficial
+`adapters/policy-document.js` (`loadPolicyDocument` /
+`policyEngineFromDocument`) — consumido por Guard (hook PreToolUse),
+Runtime (`createRuntime({ policyRegistry })`, demonstrado no
+`example-policy.js`) e Tests. O teste de integração
+(`tests/squad-policy-integration.test.js`) prova a MESMA decisão, com o
+mesmo policyId, nos três consumidores para os quatro efeitos canônicos
+(allow, default deny, deny explícito, approval-required), e trava por
+igualdade estrita que existe exatamente uma matriz no repo (a cópia de
+exemplo `spectree.policies.json` foi eliminada).
+
+Regra de principal endurecida no guard: `agent_type` AUSENTE é a thread
+principal — contexto do Invoker/Founder, modo 4A (só policies
+universais); `agent_type` PRESENTE mas fora do squad é principal
+desconhecido — fail closed, o default deny age. Como sempre: o arquivo é
+dado de entrada do adapter, nunca dependência — INV-007 preservada.
+
 ## Limitações conhecidas (deliberadas, Fase 1)
 
 - Erro de tool falha a execução por padrão; um agente pode dar catch em
