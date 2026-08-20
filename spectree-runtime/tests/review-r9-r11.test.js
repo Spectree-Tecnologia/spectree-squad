@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { PolicyDeniedError, PolicyApprovalRequiredError } from '../errors.js';
+import { PolicyDeniedError, PolicyApprovalRequiredError, CapabilityNotFoundError } from '../errors.js';
 import { recordedRuntime, makeAgent } from './helpers.js';
 
 function migrateTool() {
@@ -18,6 +18,15 @@ function migrateTool() {
     },
   };
   return tool;
+}
+
+function installDatabaseCapability(runtime) {
+  runtime.capabilityRegistry.register({
+    id: 'database',
+    name: 'Database',
+    description: 'test capability',
+    operations: ['query', 'migration', 'execute'],
+  });
 }
 
 function devOnlyPolicies(runtime) {
@@ -41,6 +50,7 @@ function devOnlyPolicies(runtime) {
 test('R9: request.resource forjado e ignorado - a Policy decide sobre o recurso efetivo', async () => {
   const runtime = recordedRuntime();
   const tool = migrateTool();
+  installDatabaseCapability(runtime);
   runtime.toolRuntime.register(tool);
   devOnlyPolicies(runtime);
 
@@ -64,6 +74,7 @@ test('R9: request.resource forjado e ignorado - a Policy decide sobre o recurso 
 test('R9: o Agent nao consegue transformar production em development', async () => {
   const runtime = recordedRuntime();
   const tool = migrateTool();
+  installDatabaseCapability(runtime);
   runtime.toolRuntime.register(tool);
   devOnlyPolicies(runtime);
 
@@ -94,6 +105,7 @@ test('R10: projecao default nao publica input nem output - segredo nao alcanca o
     description: 'grava um segredo',
     execute: async () => 'stored: token-xyz789',
   };
+  runtime.capabilityRegistry.register({ id: 'vault.write', name: 'v', description: 'test', operations: ['execute'] });
   runtime.toolRuntime.register(tool);
   runtime.policyRegistry.register({ id: 'allow-vault', effect: 'allow', tools: ['vault.write'] });
   await runtime.toolRuntime.execute(
@@ -120,6 +132,7 @@ test('R10: tool.failed default publica toolId e mensagem de erro, nada de input'
       throw new Error('exploded');
     },
   });
+  runtime.capabilityRegistry.register({ id: 'boom2', name: 'b', description: 'test', operations: ['execute'] });
   runtime.policyRegistry.register({ id: 'allow-boom2', effect: 'allow', tools: ['boom2'] });
   await assert.rejects(
     runtime.toolRuntime.execute({ toolId: 'boom2', input: { secret: 'hush' } }, {}),
@@ -141,25 +154,34 @@ test('R10: o seam customizado continua valendo - quem monta o runtime pode optar
     description: 'projecao customizada',
     execute: async () => 'ok',
   });
+  runtime.capabilityRegistry.register({ id: 'custom', name: 'c', description: 'test', operations: ['execute'] });
   runtime.policyRegistry.register({ id: 'allow-custom', effect: 'allow', tools: ['custom'] });
   await runtime.toolRuntime.execute({ toolId: 'custom', input: { a: 1, b: 2 } }, {});
   const requested = runtime.events.find((e) => e.type === 'tool.requested');
   assert.deepEqual(requested.payload, { toolId: 'custom', inputKeys: ['a', 'b'] });
 });
 
-test('R11: CapabilityRegistry e catalogo, nao gate - execucao nao consulta o registry nesta fase', async () => {
+test('R11 -> Fase 4: o catalogo virou gate - capability nao registrada bloqueia (secao 58)', async () => {
   const runtime = recordedRuntime();
-  // capability declarada pela tool NAO esta no CapabilityRegistry
   assert.equal(runtime.capabilityRegistry.has('database'), false);
   const tool = migrateTool();
   runtime.toolRuntime.register(tool);
   devOnlyPolicies(runtime);
+  // a semantica da Fase 2 (catalogo informativo) terminou: o requisito
+  // registrado no R11 nasceu aqui, exatamente como previsto
+  await assert.rejects(
+    runtime.toolRuntime.execute(
+      { toolId: 'database.migrate', input: { target: 'development' } },
+      { agentId: 'oracle' },
+    ),
+    CapabilityNotFoundError,
+  );
+  assert.deepEqual(tool.calls, []);
+  // registrada, executa
+  installDatabaseCapability(runtime);
   const result = await runtime.toolRuntime.execute(
     { toolId: 'database.migrate', input: { target: 'development' } },
     { agentId: 'oracle' },
   );
-  // executa mesmo sem a capability catalogada: quem autoriza e a Policy.
-  // A validacao capability<->registry e requisito registrado da fase de
-  // Providers - quando um provider real se registrar, o gate nasce la.
   assert.equal(result.output, 'migrated development');
 });

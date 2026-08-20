@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Agent } from '../agent/agent.js';
 import { AgentError } from '../errors.js';
-import { recordedRuntime, makeAgent, okTool, allowTools } from './helpers.js';
+import { recordedRuntime, makeAgent, okTool, allowTools, installTool } from './helpers.js';
 
 test('criacao: definition valida congela, campos faltando lancam AgentError', () => {
   const agent = new Agent({ id: 'a1', name: 'A1', instructions: 'do things' });
@@ -24,7 +24,7 @@ test('Agent base sem run() implementado falha com AgentError', async () => {
 
 test('execucao com sucesso produz AgentResult completed', async () => {
   const runtime = recordedRuntime();
-  runtime.toolRuntime.register(okTool);
+  installTool(runtime, okTool);
   allowTools(runtime, ['ok']);
   const agent = makeAgent('worker', async (context) => {
     const r = await context.runtime.requestTool('ok', { value: context.mission });

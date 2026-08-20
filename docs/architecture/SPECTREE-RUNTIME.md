@@ -1,4 +1,4 @@
-# Spectree Runtime — Fases 1 a 3: Runtime Core + Policy Engine + Founder Gate
+# Spectree Runtime — Fases 1 a 4: Core + Policy + Founder Gate + Providers
 
 Microkernel de execução do Spectree. Cinco primitivas, nenhum conhecimento
 de persona: o Squad define quem o agente é; o runtime define como um agente
@@ -252,6 +252,66 @@ ApprovalManager (secao 49). Sem promise escondida (secao 84): a decisao e
 estado explicito no store — um processo reiniciado com o store restaurado
 consegue `resume(approvalId)` (secao 83).
 
+## Capabilities e Providers (Fase 4)
+
+```
+Tool         = operacao solicitavel        (filesystem.read)
+Capability   = contrato do que se sabe fazer (filesystem: read|write|delete)
+Provider     = como se faz de verdade      (local-filesystem)
+```
+
+A Tool nao conhece o Provider (INV-403); o Provider nao conhece a Policy
+(INV-414); o Agent nao conhece nenhum dos dois (INV-404). O
+`CapabilityResolver` liga as pontas: Tool -> Capability -> Provider, um
+erro tipado por degrau (matriz da secao 154).
+
+### O catalogo virou gate (secao 58)
+
+A semantica da Fase 2 — CapabilityRegistry informativo — terminou. Toda
+tool, inclusive a legada com fallback `capability = tool.id`, so executa
+com a capability registrada (INV-421). O gate roda DEPOIS do allow da
+Policy (preferencia da spec, secao 108), o que tambem garante que com
+`approval-required` nem capability nem Provider sao resolvidos (secao 84).
+
+### Dois modos de execucao
+
+Tool com `execute()` proprio e **self-provided** (legado, caminho de
+migracao). Tool sem `execute()` e **provider-backed**: o Provider default
+da capability executa, resolvido fresco a cada execucao e a cada resume
+(secao 86). Lifecycle congelado por teste:
+
+```
+allow:  tool.requested -> policy.evaluated -> tool.started
+        -> provider.started -> provider.completed -> tool.completed
+falha:  ... -> provider.started -> provider.failed -> tool.failed
+```
+
+### Superficie do Provider (secoes 22-23)
+
+`execute(request, context)`: request congelado `{operation, input,
+resource}`; context congelado com exatamente
+`[sessionId, agentId, capabilityId, operation, resource, metadata]` —
+travado por igualdade estrutural (padrao R8). Nunca PolicyEngine,
+ToolRuntime, EventBus ou ApprovalManager. O resource e o autorizado pela
+Policy (INV-415); `provider.completed` publica metadata tecnica
+(providerId, capabilityId, operation, resource, durationMs), nunca o
+output (INV-419).
+
+### LocalFilesystemProvider
+
+O primeiro Provider real. Recebe somente `workspaceRoot` injetado — nada
+de process.env ou cwd (INV-417). Stateless. Invariantes fisicas proprias
+(secao 47), validas mesmo com Policy allow: boundary FISICO do workspace
+— o realpath do ancestral existente mais profundo precisa continuar dentro
+do realpath do root (R12), fechando o escape por diretorio pai
+symlinkado —, recusa de symlink no alvo, recusa de deletar a raiz, e
+verificacao
+resource<->path (secao 139). Resource canonico:
+`filesystem://workspace/<posix-normalizado>` — path que escapa vira
+`outside-workspace`, que nenhuma policy de `workspace/*` casa: o
+traversal morre primeiro na Policy e de novo no Provider (defense in
+depth).
+
 ## Extension points
 
 | Futuro | Onde entra | O que muda |
@@ -261,7 +321,9 @@ consegue `resume(approvalId)` (secao 83).
 | Approval UI (CLI/TUI/Web/Slack) | consome `ApprovalManager` + `FounderGate` + eventos `approval.*` | nunca fala com ToolRuntime (secao 86) |
 | ApprovalStore persistente | Postgres/Redis/Supabase implementam create/get/transition | ApprovalManager intacto (secao 14) |
 | Identidade do decisor | seam `FounderGate.authorizeDecision(actor, approval)` (secao 87) | decidedBy hoje e metadata de audit (secao 51) |
-| Sandbox | camada após a Policy: "mesmo podendo, em qual ambiente executa?" | não fundida com Policy por decisão (spec §64) |
+| Sandbox | entre Capability e Provider ("em qual ambiente, com quais limites fisicos?") — recomendacao da spec Fase 4 secao 104 | boundary de execucao, nao de autorizacao |
+| Providers futuros (git, db, browser, MCP) | registram-se no CapabilityProviderRegistry sob o mesmo contrato + providerContract de teste | Tool, Capability e Policy intactos quando a semantica se mantem (secao 98) |
+| AbortSignal / timeout de Provider | o contexto de execucao do Provider e o seam (secao 65) | cancelamento cooperativo da Fase 3 permanece |
 | LLM provider | subclasse de `Agent` que fala com um Model provider em `run()` | nada nos demais |
 | Timeout | mesmo choke point de `execute` | nada nos demais |
 | SessionStore / EventStore | consumidores dependem só de `publish/subscribe`; um bus persistente implementa o mesmo contrato | nada no AgentLoop |
@@ -285,8 +347,8 @@ consegue `resume(approvalId)` (secao 83).
   para retry do operador, mas apos executar nao ha re-execucao.
 - Matching de policy é glob simples — sem CEL, OPA, RBAC/ABAC completos,
   por decisão de fase (spec §37).
-- CapabilityRegistry é catálogo, não gate (R11): a execução não consulta o
-  registry nesta fase. A validação capability↔registry é requisito
-  registrado da fase de Providers — quando um provider real se registrar,
-  o gate nasce lá.
+- Um Provider default por capability; multi-provider routing, failover e
+  selecao dinamica pertencem a fases futuras (secao 53).
+- Cancelamento de operacao de Provider em voo e cooperativo — o seam de
+  AbortSignal existe no contexto, o LocalFilesystemProvider nao o usa.
 - Session vive em memória; replay/persistência é fase posterior.

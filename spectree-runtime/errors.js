@@ -58,6 +58,45 @@ export class PolicyConfigurationError extends PolicyError {}
 
 export class CapabilityError extends RuntimeError {}
 
+export class CapabilityNotFoundError extends CapabilityError {
+  constructor(capabilityId) {
+    super('capability not registered: ' + capabilityId);
+    this.capabilityId = capabilityId;
+  }
+}
+
+export class UnsupportedCapabilityOperationError extends CapabilityError {
+  constructor(capabilityId, operation) {
+    super("capability '" + capabilityId + "' does not support operation '" + operation + "'");
+    this.capabilityId = capabilityId;
+    this.operation = operation;
+  }
+}
+
+export class CapabilityProviderError extends CapabilityError {}
+
+export class CapabilityProviderNotFoundError extends CapabilityProviderError {
+  constructor(capabilityId) {
+    super('no provider registered for capability: ' + capabilityId);
+    this.capabilityId = capabilityId;
+  }
+}
+
+export class ProviderOperationNotSupportedError extends CapabilityProviderError {
+  constructor(providerId, operation) {
+    super("provider '" + providerId + "' does not support operation '" + operation + "'");
+    this.providerId = providerId;
+    this.operation = operation;
+  }
+}
+
+export class ProviderExecutionError extends CapabilityProviderError {
+  constructor(code, message, options) {
+    super(message, options);
+    this.code = code;
+  }
+}
+
 export class ApprovalError extends RuntimeError {}
 
 export class ApprovalNotFoundError extends ApprovalError {

@@ -5,6 +5,8 @@ import { Session } from './session/session.js';
 import { PolicyRegistry } from './policy/policy-registry.js';
 import { PolicyEngine } from './policy/policy-engine.js';
 import { CapabilityRegistry } from './capabilities/capability-registry.js';
+import { CapabilityProviderRegistry } from './capabilities/capability-provider-registry.js';
+import { CapabilityResolver } from './capabilities/capability-resolver.js';
 import { InMemoryApprovalStore } from './approval/approval-store.js';
 import { ApprovalManager } from './approval/approval-manager.js';
 import { InMemoryFounderGate } from './approval/founder-gate.js';
@@ -18,6 +20,14 @@ export { EventBus, WILDCARD } from './events/event-bus.js';
 export { PolicyRegistry } from './policy/policy-registry.js';
 export { PolicyEngine } from './policy/policy-engine.js';
 export { CapabilityRegistry } from './capabilities/capability-registry.js';
+export { CapabilityProviderRegistry } from './capabilities/capability-provider-registry.js';
+export { CapabilityResolver } from './capabilities/capability-resolver.js';
+export {
+  LocalFilesystemProvider,
+  filesystemCapability,
+  filesystemTools,
+  canonicalFilesystemId,
+} from './providers/local/filesystem-provider.js';
 export { InMemoryApprovalStore, APPROVAL_STATES } from './approval/approval-store.js';
 export { ApprovalManager } from './approval/approval-manager.js';
 export { InMemoryFounderGate } from './approval/founder-gate.js';
@@ -35,6 +45,9 @@ export function createRuntime(options = {}) {
   const policyRegistry = options.policyRegistry ?? new PolicyRegistry();
   const policyEngine = options.policyEngine ?? new PolicyEngine({ registry: policyRegistry });
   const capabilityRegistry = options.capabilityRegistry ?? new CapabilityRegistry();
+  const providerRegistry =
+    options.providerRegistry ?? new CapabilityProviderRegistry({ capabilityRegistry });
+  const capabilityResolver = new CapabilityResolver({ capabilityRegistry, providerRegistry });
   const approvalStore = options.approvalStore ?? new InMemoryApprovalStore();
   const founderGate = options.founderGate ?? new InMemoryFounderGate();
   const approvalManager = new ApprovalManager({
@@ -47,6 +60,7 @@ export function createRuntime(options = {}) {
   const toolRuntime = new ToolRuntime({
     eventBus,
     policyEngine,
+    capabilityResolver,
     projectEventPayload: options.projectEventPayload,
     onApprovalRequired: (invocation, decisionContext) =>
       approvalManager.request(invocation, decisionContext),
@@ -66,6 +80,8 @@ export function createRuntime(options = {}) {
     policyRegistry,
     policyEngine,
     capabilityRegistry,
+    providerRegistry,
+    capabilityResolver,
     approvalStore,
     approvalManager,
     founderGate,

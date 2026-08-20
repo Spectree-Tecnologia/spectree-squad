@@ -139,6 +139,16 @@ específica; nunca vira bypass, permissão permanente ou segunda autoridade.
 `npm run example:approval` demonstra approve/resume, deny e a revalidação
 bloqueando quando a policy mudou.
 
+A Fase 4 dá braços ao runtime: **Capability Providers**. Tool é a operação
+solicitável, Capability é o contrato do que o runtime sabe fazer, Provider
+é como se faz de verdade — e o `CapabilityRegistry` virou gate: capability
+não registrada bloqueia execução. O primeiro provider real é o
+`LocalFilesystemProvider` (read/write/delete dentro de um workspace
+injetado), com boundary de path, recusa de symlink e a garantia de que o
+resource autorizado pela Policy é exatamente o executado.
+`npm run example:provider` demonstra o ciclo completo até o arquivo real —
+incluindo um path traversal morrendo na Policy antes de tocar o Provider.
+
 ## Premissas de projeto
 
 1. **AI FIRST / CLI FIRST** — o squad executa tudo que estiver ao alcance

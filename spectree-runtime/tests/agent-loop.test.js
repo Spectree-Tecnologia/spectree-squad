@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { SessionError, SessionStateError } from '../errors.js';
-import { recordedRuntime, makeAgent, okTool, boomTool, allowTools } from './helpers.js';
+import { recordedRuntime, makeAgent, okTool, boomTool, allowTools, installTool } from './helpers.js';
 
 test('execucao simples, sem ferramentas', async () => {
   const runtime = recordedRuntime();
@@ -20,7 +20,7 @@ test('execucao simples, sem ferramentas', async () => {
 
 test('multiplas iteracoes THINK/ACT/OBSERVE: cada resultado alimenta o proximo passo', async () => {
   const runtime = recordedRuntime();
-  runtime.toolRuntime.register(okTool);
+  installTool(runtime, okTool);
   allowTools(runtime, ['ok']);
   const agent = makeAgent('iterator', async (context) => {
     let value = 'seed';
@@ -38,7 +38,7 @@ test('multiplas iteracoes THINK/ACT/OBSERVE: cada resultado alimenta o proximo p
 
 test('falha de tool cascateia: tool.failed -> agent.failed -> session.failed', async () => {
   const runtime = recordedRuntime();
-  runtime.toolRuntime.register(boomTool);
+  installTool(runtime, boomTool);
   allowTools(runtime, ['boom']);
   const agent = makeAgent('doomed', async (context) => {
     await context.runtime.requestTool('boom');
@@ -56,7 +56,7 @@ test('falha de tool cascateia: tool.failed -> agent.failed -> session.failed', a
 
 test('cancelamento: nenhuma nova tool inicia, estado final cancelled, nada de completed', async () => {
   const runtime = recordedRuntime();
-  runtime.toolRuntime.register(okTool);
+  installTool(runtime, okTool);
   allowTools(runtime, ['ok']);
   const agent = makeAgent('interrupted', async (context) => {
     await context.runtime.requestTool('ok', { value: 'first' });
@@ -78,7 +78,7 @@ test('cancelamento: nenhuma nova tool inicia, estado final cancelled, nada de co
 
 test('requestTool apos cancel lanca SessionError para o agente que tratar', async () => {
   const runtime = recordedRuntime();
-  runtime.toolRuntime.register(okTool);
+  installTool(runtime, okTool);
   allowTools(runtime, ['ok']);
   let caught;
   const agent = makeAgent('graceful', async (context) => {
