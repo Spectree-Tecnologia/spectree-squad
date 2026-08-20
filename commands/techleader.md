@@ -149,7 +149,9 @@ orquestra; a disciplina é delas.
    story: devolva ao Lion.
 9. **Fronteiras de autoridade.** Banco é do Oracle; git e GitHub são do
    Disruptor. Agente que esbarra na autoridade alheia reporta, e você aciona
-   o dono.
+   o dono. A fonte única da matriz é `squad.policies.json` na raiz do
+   plugin — em conflito entre prosa e matriz, a matriz vence; mudança de
+   autoridade edita a matriz (e o teste que a trava), nunca só a prosa.
 10. **Aprovação é do Founder.** Handoff `in-review` vira resumo + pergunta sob
    o marcador. Com o "sim", edite a linha `status:` para `approved`, preencha
    `approved:` com a data e libere a etapa seguinte. A aprovação pertence ao
