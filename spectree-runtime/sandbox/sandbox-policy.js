@@ -100,6 +100,28 @@ export function createSandboxPolicy(input) {
     workspaceRoot = canonicalRoot(input.workspaceRoot, 'workspaceRoot');
   }
 
+  // F9 (E1): materializacao fisica de recursos JA AUTORIZADOS pelo
+  // EffectSet — nao e nova autoridade. A unica fonte legitima e o
+  // SandboxProfileResolver (efeitos autorizados x bindings declarados);
+  // physicalPath nunca vem de Agent/Tool, e nesta fase so 'read'.
+  // Deliberadamente FORA de assertRootWithin: o ponto e montar um
+  // recurso pontual fora do workspace (ex.: credencial calibrada),
+  // ro-bind a ro-bind, nunca uma root ampla.
+  const declaredResources = (input.declaredResources ?? []).map((entry, i) => {
+    const label = 'declaredResources[' + i + ']';
+    if (!entry || typeof entry.resourceId !== 'string' || entry.resourceId.length === 0) {
+      throw new SandboxConfigurationError(label + ' requires a canonical resourceId');
+    }
+    if (entry.mode !== 'read') {
+      throw new SandboxConfigurationError(label + " mode must be 'read' in this phase");
+    }
+    return Object.freeze({
+      resourceId: entry.resourceId,
+      physicalPath: canonicalRoot(entry.physicalPath, label + '.physicalPath'),
+      mode: 'read',
+    });
+  });
+
   const requiredEnforcement = input.requiredEnforcement
     ?? (unrestricted ? 'none' : 'full'); // secao 81: default full para modo restritivo
   if (!ENFORCEMENT_LEVELS.includes(requiredEnforcement)) {
@@ -118,6 +140,7 @@ export function createSandboxPolicy(input) {
     readableRoots: Object.freeze(readableRoots),
     writableRoots: Object.freeze(writableRoots),
     tempDirectory: input.tempDirectory ? canonicalRoot(input.tempDirectory, 'tempDirectory') : null,
+    declaredResources: Object.freeze(declaredResources),
     // rede declarada, nunca aplicada nesta fase (secoes 50-51)
     network: Object.freeze({ enabled: false, enforcement: 'unsupported' }),
     inheritEnvironment: false,
@@ -138,6 +161,7 @@ export function describeSandboxPolicy(policy) {
     allowPartialEnforcement: policy.allowPartialEnforcement,
     readableRootCount: policy.readableRoots.length,
     writableRootCount: policy.writableRoots.length,
+    declaredResourceCount: policy.declaredResources.length,
     network: policy.network.enforcement,
   });
 }

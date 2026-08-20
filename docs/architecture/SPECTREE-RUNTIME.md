@@ -877,6 +877,92 @@ de EffectDecision nos eventos. `executeWithoutEffects` e variantes nao
 existem e ha teste provando (secao 61). Agent e Provider seguem isolados
 como antes.
 
+## Fase 9 — Governed Model Harness
+
+O primeiro consumidor real do Runtime: um harness de modelo nasce como
+PROCESSO GOVERNADO — nunca como um tipo especial de Agent.
+
+```
+Founder/Invoker -> ModelHarnessLauncher -> ToolRuntime -> EffectResolver
+  -> Policy -> Founder Gate -> SandboxResolver -> Physical Sandbox
+  -> LocalSubprocessProvider -> ProcessRegistry -> Model Harness
+```
+
+### Launcher agnostic
+
+O contrato (`modelHarnessLauncherContract`) exige launch() -> spawn
+input estruturado: argv explicito, cwd e stdio explicitos, zero shell
+string, zero copia de ambiente do host. `ClaudeModelHarnessLauncher`
+(`harness/claude-launcher.js`) e o primeiro adapter — os literais do CLI
+vivem SO ali, travado por teste estrutural, e o adapter nem e
+re-exportado pelo index. Um segundo harness = outro launcher + calibracao
++ testes, sem tocar o Core.
+
+### declaredResources — o narrowing da F8 ganha corpo (E1)
+
+`SandboxPolicy.declaredResources` materializa recursos JA AUTORIZADOS
+pelo EffectSet como ro-binds PONTUAIS no namespace:
+
+```
+EffectSet autorizado x resourceBindings (host config)
+  -> SandboxPolicy.declaredResources [{resourceId, physicalPath, mode:'read'}]
+  -> bubblewrap --ro-bind pontual
+```
+
+Nao e nova autoridade. A unica fonte e o SandboxProfileResolver (efeitos
+autorizados x bindings declarados); physicalPath nunca vem de Agent ou
+Tool; read-only nesta fase; credencial autorizada sem binding fisico =
+fail closed com instrucao de calibrar.
+
+### Credencial e efeito
+
+`filesystem.read` sobre resource `{type: 'credential', id: '...'}` —
+sem effectKind novo. A matriz unica ganhou `credential-founder-gate`
+(approval-required, credential/*), runtime-only: alcancada pelo Effect
+Pipeline da F8, nunca por detector artificial no guard. A sequencia
+fisica provada por teste: sem declaracao o recurso NAO existe no
+namespace; declarado, ele so aparece DEPOIS de Policy + Founder approval
++ EffectSet + Sandbox — e montado read-only (write morre no kernel).
+
+### Calibracao deliberada, nunca gate
+
+`runCredentialCalibration` e operacao do Founder
+(`npm run calibrate:model-harness`): PROFILE-0 primeiro, candidatos
+minimos um por vez, HOME inteiro jamais (INV-906). Vereditos: auth-ok /
+auth-insufficient / runner-failure — sem sentinel confiavel e
+runner-failure, nunca auth-insufficient. O record de provenance carrega
+identidade canonica, veredito e razao — nunca segredo, token ou caminho
+absoluto. `apply()` consulta configuracao commitada; o probe jamais roda
+no caminho normal.
+
+### Conformance harness (E3)
+
+O CI prova o CONTRATO com um harness deterministico (zero rede, zero
+quota) sob bubblewrap real: same-world, outside negado pelo kernel, HOME
+no ambiente sem HOME no filesystem (INV-905), credencial pos-approval,
+guard dentro do namespace resolvendo a MESMA identidade de projeto do
+host (a policy escopada continua decidindo — sem bypass por namespace) e
+audit unavailable explicito quando o sink nao existe. A calibracao real
+do Claude prova outra coisa: que o adapter concreto opera dentro do
+contrato.
+
+### Lifetime e outcome
+
+`maxLifetimeMs`: teto por DI no Provider; pedido acima do teto e REJECT
+(E2). Deadline -> terminate (graceful -> graceMs -> arvore) e `timedOut`
+entra no outcome como FATO persistido — categoria propria, distinta de
+exit e de cancel. Output estruturado: `truncated = true` e
+structured-output failure, nunca resposta parcial; JSON invalido e
+parse-failure; stderr e diagnostico, nunca o documento.
+
+### Propriedade de seguranca (secao 92)
+
+Um harness confinado que receba material de credencial PODE ler e
+exfiltrar essa credencial: o confinamento da F9 e de filesystem/processo,
+nao de segredo (network segue vocabulario reservado, sem --unshare-net).
+O seam declarado para fechar essa exposicao e o CredentialBroker —
+registrado, nao implementado.
+
 ## Limitações conhecidas (deliberadas, Fase 1)
 
 - Erro de tool falha a execução por padrão; um agente pode dar catch em

@@ -141,8 +141,8 @@ test('SandboxPolicy: descricao segura nao vaza roots (secoes 71-72)', () => {
     const policy = createSandboxPolicy({ mode: 'workspace-write', workspaceRoot: root });
     const description = describeSandboxPolicy(policy);
     assert.deepEqual(Object.keys(description).sort(), [
-      'allowPartialEnforcement', 'mode', 'network', 'readableRootCount',
-      'requiredEnforcement', 'writableRootCount',
+      'allowPartialEnforcement', 'declaredResourceCount', 'mode', 'network',
+      'readableRootCount', 'requiredEnforcement', 'writableRootCount',
     ]);
     assert.ok(!JSON.stringify(description).includes(root), 'o path nao aparece na descricao');
   } finally {
