@@ -1,4 +1,4 @@
-import { realpathSync, existsSync } from 'node:fs';
+import { realpathSync, existsSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { SandboxConfigurationError } from '../errors.js';
 import { assertBindablePhysicalPath } from '../sandbox/sandbox-policy.js';
@@ -19,6 +19,9 @@ export const CALIBRATION_VERDICTS = Object.freeze(['auth-ok', 'auth-insufficient
 /** PROFILE-0 (secao 11): nenhum credential resource. */
 export const PROFILE_0 = null;
 
+/** Degraus da escada, do mais estreito ao mais largo (Item 2a, #29). */
+export const CANDIDATE_GRANULARITIES = Object.freeze(['file', 'file-set', 'directory']);
+
 function validateCandidate(candidate, index, homePath) {
   const label = 'candidate[' + index + ']';
   if (typeof candidate?.resourceId !== 'string' || candidate.resourceId.length === 0) {
@@ -32,6 +35,14 @@ function validateCandidate(candidate, index, homePath) {
   if (typeof candidate.physicalPath !== 'string' || candidate.physicalPath.length === 0) {
     throw new SandboxConfigurationError(label + ' requires a physicalPath');
   }
+  // Item 2a (#29): cada candidato declara o DEGRAU. Um binding de
+  // diretorio alcanca tudo sob ele — e outra coisa que um arquivo, e o
+  // record precisa dizer qual dos dois foi aprovado.
+  if (!CANDIDATE_GRANULARITIES.includes(candidate.granularity)) {
+    throw new SandboxConfigurationError(
+      label + " requires granularity ('" + CANDIDATE_GRANULARITIES.join("' | '") + "')",
+    );
+  }
   // Follow-up F9: o MESMO piso do binding (sandbox-policy), aplicado na
   // proposta — igual-ou-ancestral do HOME, raiz do filesystem e raiz de
   // sistema morrem aqui tambem. Se so o HOME inteiro autentica, o
@@ -39,7 +50,38 @@ function validateCandidate(candidate, index, homePath) {
   const physical = existsSync(candidate.physicalPath)
     ? realpathSync(candidate.physicalPath)
     : path.resolve(candidate.physicalPath);
+  // declaracao verificada contra o disco quando o caminho existe:
+  // granularity nao e opiniao
+  if (existsSync(physical)) {
+    const isDirectory = statSync(physical).isDirectory();
+    if (isDirectory && candidate.granularity === 'file') {
+      throw new SandboxConfigurationError(label + " declares granularity 'file' but the path is a directory");
+    }
+    if (!isDirectory && candidate.granularity === 'directory') {
+      throw new SandboxConfigurationError(label + " declares granularity 'directory' but the path is a file");
+    }
+  }
   assertBindablePhysicalPath(physical, { homePath, label });
+}
+
+/**
+ * A escada e NORMA, nao convencao (Item 2a, #29): degrau mais estreito
+ * primeiro — diretorio inteiro so depois de os degraus estreitos
+ * falharem. Ordem violada e erro de configuracao, nunca reordenacao
+ * silenciosa.
+ */
+function assertLadderOrder(candidates) {
+  let broadest = -1;
+  for (let i = 0; i < candidates.length; i++) {
+    const rank = CANDIDATE_GRANULARITIES.indexOf(candidates[i].granularity);
+    if (rank < broadest) {
+      throw new SandboxConfigurationError(
+        'candidate[' + i + "] ('" + candidates[i].granularity + "') cannot come after a broader " +
+        'candidate — the ladder goes narrowest first (file -> file-set -> directory)',
+      );
+    }
+    broadest = Math.max(broadest, rank);
+  }
 }
 
 /**
@@ -73,7 +115,17 @@ export async function runCredentialCalibration({
   if (typeof runCandidate !== 'function') {
     throw new SandboxConfigurationError('calibration requires a runCandidate executor');
   }
+  // Item 1 (#29), simetria com o binding: com candidatos presentes, HOME
+  // irresoluvel significa que o veto INV-906 nao pode ser aplicado — e
+  // isso e recusa, nunca um piso que silenciosamente nao vale
+  if (candidates.length > 0 && !homePath) {
+    throw new SandboxConfigurationError(
+      'calibration with candidates requires a resolvable homePath: the INV-906 floor ' +
+      'cannot be applied, so the run is refused (fail closed)',
+    );
+  }
   candidates.forEach((candidate, index) => validateCandidate(candidate, index, homePath));
+  assertLadderOrder(candidates);
 
   const results = [];
   let approved = null;
@@ -94,13 +146,15 @@ export async function runCredentialCalibration({
     } catch (error) {
       reason = 'probe execution failed: ' + (error?.message ?? error);
     }
-    // R8 do record (secao 83): identidade canonica, veredito e razao —
-    // NUNCA physicalPath, secret, token ou environment
-    results.push(Object.freeze({ candidate: identity, verdict, reason }));
+    // R8 do record (secao 83): identidade canonica, DEGRAU, veredito e
+    // razao — NUNCA physicalPath, secret, token ou environment
+    const granularity = candidate === PROFILE_0 ? 'none' : candidate.granularity;
+    results.push(Object.freeze({ candidate: identity, granularity, verdict, reason }));
     if (verdict === 'auth-ok') {
+      // Item 2a (#29): o record registra QUAL degrau foi aprovado
       approved = candidate === PROFILE_0
-        ? Object.freeze({ resourceId: null, profile: 'PROFILE-0' })
-        : Object.freeze({ resourceId: candidate.resourceId, profile: 'declared-resource' });
+        ? Object.freeze({ resourceId: null, granularity: 'none', profile: 'PROFILE-0' })
+        : Object.freeze({ resourceId: candidate.resourceId, granularity, profile: 'declared-resource' });
       break;
     }
   }

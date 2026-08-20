@@ -94,6 +94,17 @@ ultimo bind vence — sombreamento seria mudanca de comportamento
 silenciosa). Um teste por recusa em
 `tests/declared-resources-floor.test.js`.
 
+Segundo giro do review (#29), dois fechos: (1) o piso NAO tem
+interruptor — com declaredResources nao-vazio (ou calibracao com
+candidatos), HOME irresoluvel e recusa tipada, nunca um veto que
+silenciosamente nao se aplica; homePath e injetavel no wiring. (2) A E6
+declara DUAS mudancas: a correcao de escopo E a saida do ~/.claude da
+proibicao nominal — compensada pela escada normativa por granularity
+(arquivo -> conjunto -> diretorio, degrau registrado no record e ordem
+violada = erro) e pelo risk statement nomeando o alcance real: binding
+de diretorio expoe tudo sob ele — em ~/.claude, credencial MAIS
+projects/ (transcripts de todas as sessoes), plugins, config e memoria.
+
 ## Consequencia
 
 Um segundo harness entra criando apenas outro launcher + calibracao +

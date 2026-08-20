@@ -113,8 +113,19 @@ export function createSandboxPolicy(input) {
   // mesma proibicao (INV-906 corrigido: a invariante e do BINDING).
   // Defense in depth no padrao da F4: a proposta ja veta, e o binding
   // veta de novo.
-  const declaredHome = input.homePath ?? safeHomedir();
-  const declaredResources = (input.declaredResources ?? []).map((entry, i) => {
+  // Item 1 do review (#29): o piso NAO tem interruptor. homePath
+  // explicito vence; sem ele, safeHomedir(); e com declaredResources
+  // NAO-VAZIO, HOME irresoluvel e RECUSA — nunca um veto que
+  // silenciosamente nao se aplica no caminho mais caro do runtime.
+  const declaredHome = 'homePath' in input ? input.homePath : safeHomedir();
+  const declaredEntries = input.declaredResources ?? [];
+  if (declaredEntries.length > 0 && !declaredHome) {
+    throw new SandboxConfigurationError(
+      'declaredResources require a resolvable HOME reference: the INV-906 floor ' +
+      'cannot be applied, so the binding is refused (fail closed)',
+    );
+  }
+  const declaredResources = declaredEntries.map((entry, i) => {
     const label = 'declaredResources[' + i + ']';
     if (!entry || typeof entry.resourceId !== 'string' || entry.resourceId.length === 0) {
       throw new SandboxConfigurationError(label + ' requires a canonical resourceId');

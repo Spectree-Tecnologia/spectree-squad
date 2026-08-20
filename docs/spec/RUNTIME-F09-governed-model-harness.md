@@ -157,14 +157,19 @@ O primeiro perfil não tem credential filesystem adicional e não monta
 HOME nem `~/.claude`. A execução é idêntica ao adapter final exceto pela
 ausência da declaração de credential resource.
 
-## 12. Progressive candidates
+## 12. Progressive candidates (escada normativa — corrigida no #29)
 
-Candidatos testados um por vez. Ordem normativa: (1) nenhum credential
-resource; (2) menor diretório candidato; (3) menor arquivo candidato;
-(4) menor conjunto adicional estritamente necessário. A ordem concreta
-dos paths é propriedade do adapter/calibration data, não do Core.
-Nenhuma etapa pode ampliar automaticamente `candidate N -> candidate N +
-HOME` como fallback.
+Candidatos testados um por vez, e a escada é NORMA, não convenção: o
+degrau MAIS ESTREITO vem primeiro. Ordem normativa: (1) PROFILE-0 —
+nenhum credential resource; (2) menor ARQUIVO candidato; (3) menor
+conjunto de arquivos; (4) diretório — somente depois de os degraus
+estreitos falharem. Cada candidato declara `granularity`
+(`file | file-set | directory`), verificada contra o disco quando o
+caminho existe; ordem violada é erro de configuração, nunca reordenação
+silenciosa; e o record da calibração registra QUAL degrau foi aprovado.
+A ordem concreta dos paths é propriedade do adapter/calibration data,
+não do Core. Nenhuma etapa pode ampliar automaticamente `candidate N ->
+candidate N + HOME` como fallback.
 
 ## 13. Credential candidate identity
 
@@ -552,12 +557,17 @@ credential path absoluto, credential contents, model output inteiro ou
 secret sem projeção segura. Mesmo com audit unavailable, o pai observa
 `process.*`, `effect.*`, `policy.*`, `sandbox.*`.
 
-## 92-93. Credential risk statement
+## 92-93. Credential risk statement (alcance corrigido no #29)
 
-**Nesta fase, um harness confinado pode ler e exfiltrar a credencial do
-Founder. O confinamento da F9 é de filesystem/processo, não de
-segredo.** Propriedade de segurança do sistema, não nota operacional.
-`CredentialBroker` fica registrado como mecanismo futuro.
+**Nesta fase, um harness confinado pode ler e exfiltrar TUDO o que o
+binding aprovado alcança. O confinamento da F9 é de filesystem/processo,
+não de segredo.** O alcance é o do DEGRAU aprovado na calibração: um
+binding de arquivo expõe aquele arquivo; um binding de DIRETÓRIO expõe
+tudo sob ele — no caso de `~/.claude`, isso significaria credencial MAIS
+`projects/` (o transcript de toda sessão de todo projeto da máquina),
+plugins, config e memória. Por isso a escada é norma (§12) e o record
+registra o degrau. Propriedade de segurança do sistema, não nota
+operacional. `CredentialBroker` fica registrado como mecanismo futuro.
 
 ## 94-95. Sem network/environment effects
 
@@ -715,8 +725,24 @@ F8; nenhum detector artificial no guard.
 Founder APPROVE -> implementação. Nunca implementar contra versão
 "quase igual" da conversa.
 
-**E6 — Piso do binding (review do Founder, PR #28).** O INV-906 estava
-com o escopo na calibração — o lado sem autoridade. Corrigido: a
-invariante é do BINDING (ver INV-906 acima), com defense in depth no
-padrão da F4 (proposta E binding vetam), semântica igual-ou-ancestral
-nos dois lados, e um teste por recusa.
+**E6 — Piso do binding (reviews do Founder, PRs #28 e #29).** DUAS
+mudanças, declaradas como duas:
+
+1. *Correção de escopo*: o INV-906 estava enforçado na calibração — o
+   lado sem autoridade. Corrigido: a invariante é do BINDING (ver
+   INV-906 acima), com defense in depth no padrão da F4 (proposta E
+   binding vetam), semântica igual-ou-ancestral nos dois lados, e um
+   teste por recusa.
+2. *Saída do `~/.claude` da proibição nominal*: a regra mecânica
+   (HOME-ou-ancestral) substituiu a proibição por nome — o que tornou o
+   diretório `~/.claude` INTEIRO um binding tecnicamente possível. A
+   compensação é dupla e normativa: a escada por granularity (§12 —
+   diretório só depois de os degraus estreitos falharem, degrau
+   registrado no record) e o risk statement nomeando o alcance real do
+   binding aprovado (§92).
+
+E o piso não tem interruptor (Item 1 do #29): com `declaredResources`
+não-vazio — ou calibração com candidatos — HOME irresolúvel é
+`SandboxConfigurationError`, nunca um veto que silenciosamente não se
+aplica. `homePath` é injetável no wiring (como o `workspaceRoot`), com
+`os.homedir()` apenas como fallback.

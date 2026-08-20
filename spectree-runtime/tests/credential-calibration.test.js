@@ -11,41 +11,51 @@ import { SandboxConfigurationError } from '../errors.js';
 
 /** Credential Calibration (spec F9, secoes 9-13, 18-25, 80, 83, E3). */
 
+import { tmpdir } from 'node:os';
+
+// escada normativa (#29 item 2a): degrau mais estreito PRIMEIRO
 const CANDIDATES = [
-  { resourceId: 'claude/auth-dir', physicalPath: '/tmp/fake/.claude/auth' },
-  { resourceId: 'claude/auth-file', physicalPath: '/tmp/fake/.claude/auth.json' },
+  { resourceId: 'claude/auth-file', physicalPath: '/tmp/fake/.claude/auth.json', granularity: 'file' },
+  { resourceId: 'claude/auth-dir', physicalPath: '/tmp/fake/.claude/auth', granularity: 'directory' },
 ];
+// HOME de referencia para o veto — o piso NAO tem interruptor (#29 item 1)
+const HOME = path.join(tmpdir(), 'cal-home-' + process.pid);
 
 test('ordem progressiva: PROFILE-0 primeiro, um candidato por vez, para no auth-ok (secoes 10-12)', async () => {
   const probed = [];
   const report = await runCredentialCalibration({
     adapterId: 'claude-model-harness@1',
+    homePath: HOME,
     candidates: CANDIDATES,
     runCandidate: async (candidate) => {
       probed.push(candidate === null ? 'PROFILE-0' : candidate.resourceId);
       if (candidate === null) return { verdict: 'auth-insufficient', reason: 'no credential' };
-      if (candidate.resourceId === 'claude/auth-dir') return { verdict: 'auth-ok' };
       return { verdict: 'auth-ok' };
     },
   });
-  assert.deepEqual(probed, ['PROFILE-0', 'claude/auth-dir'], 'parou no primeiro auth-ok');
-  assert.deepEqual(report.approved, { resourceId: 'claude/auth-dir', profile: 'declared-resource' });
+  assert.deepEqual(probed, ['PROFILE-0', 'claude/auth-file'],
+    'parou no primeiro auth-ok — o degrau mais estreito, sem tocar o diretorio');
+  assert.deepEqual(report.approved,
+    { resourceId: 'claude/auth-file', granularity: 'file', profile: 'declared-resource' },
+    'o record registra QUAL degrau foi aprovado (#29 item 2a)');
   assert.equal(report.results.length, 2);
 });
 
 test('PROFILE-0 suficiente = resultado A: aprovado sem recurso (secoes 11, 24)', async () => {
   const report = await runCredentialCalibration({
     adapterId: 'claude-model-harness@1',
+    homePath: HOME,
     candidates: CANDIDATES,
     runCandidate: async () => ({ verdict: 'auth-ok' }),
   });
-  assert.deepEqual(report.approved, { resourceId: null, profile: 'PROFILE-0' });
+  assert.deepEqual(report.approved, { resourceId: null, granularity: 'none', profile: 'PROFILE-0' });
   assert.equal(report.results.length, 1, 'nenhum candidato adicional foi tocado');
 });
 
 test('nenhum candidato suficiente = resultado C: approved null, diagnostico completo (secoes 24-25)', async () => {
   const report = await runCredentialCalibration({
     adapterId: 'claude-model-harness@1',
+    homePath: HOME,
     candidates: CANDIDATES,
     runCandidate: async () => ({ verdict: 'auth-insufficient', reason: 'still unauthenticated' }),
   });
@@ -76,29 +86,68 @@ test('o HOME inteiro NUNCA e candidato (INV-906, criterio 13)', async () => {
     runCredentialCalibration({
       adapterId: 'a@1',
       homePath: '/home/founder',
-      candidates: [{ resourceId: 'claude/home', physicalPath: '/home/founder' }],
+      candidates: [{ resourceId: 'claude/home', physicalPath: '/home/founder', granularity: 'directory' }],
       runCandidate: async () => ({ verdict: 'auth-ok' }),
     }),
     (e) => e instanceof SandboxConfigurationError && /never a bindable resource \(INV-906\)/.test(e.message),
   );
 });
 
+test('#29 item 1 (simetria): candidatos sem homePath resoluvel = recusa, nunca skip', async () => {
+  await assert.rejects(
+    runCredentialCalibration({
+      adapterId: 'a@1',
+      candidates: CANDIDATES, // homePath ausente
+      runCandidate: async () => ({ verdict: 'auth-ok' }),
+    }),
+    (e) => e instanceof SandboxConfigurationError && /requires a resolvable homePath/.test(e.message),
+  );
+});
+
+test('#29 item 2a: a escada e norma — diretorio antes de arquivo e erro, nunca reordenacao', async () => {
+  await assert.rejects(
+    runCredentialCalibration({
+      adapterId: 'a@1',
+      homePath: HOME,
+      candidates: [
+        { resourceId: 'claude/dir', physicalPath: '/tmp/fake/.claude', granularity: 'directory' },
+        { resourceId: 'claude/file', physicalPath: '/tmp/fake/.claude/a.json', granularity: 'file' },
+      ],
+      runCandidate: async () => ({ verdict: 'auth-ok' }),
+    }),
+    (e) => e instanceof SandboxConfigurationError && /narrowest first/.test(e.message),
+  );
+  // granularity ausente tambem e erro: o degrau nao e opcional
+  await assert.rejects(
+    runCredentialCalibration({
+      adapterId: 'a@1',
+      homePath: HOME,
+      candidates: [{ resourceId: 'claude/x', physicalPath: '/tmp/fake/x' }],
+      runCandidate: async () => ({ verdict: 'auth-ok' }),
+    }),
+    (e) => e instanceof SandboxConfigurationError && /granularity/.test(e.message),
+  );
+});
+
 test('R8 do record: identidade canonica e veredito — nunca physicalPath ou segredo (secoes 13, 21, 83)', async () => {
   const report = await runCredentialCalibration({
     adapterId: 'claude-model-harness@1',
+    homePath: HOME,
     candidates: CANDIDATES,
     runCandidate: async () => ({ verdict: 'auth-insufficient' }),
   });
   assert.deepEqual(Object.keys(report).sort(), ['adapterId', 'approved', 'outputMode', 'probedAt', 'results']);
   for (const entry of report.results) {
-    assert.deepEqual(Object.keys(entry).sort(), ['candidate', 'reason', 'verdict']);
+    // #29 item 2a: o DEGRAU entra no record — physicalPath continua fora
+    assert.deepEqual(Object.keys(entry).sort(), ['candidate', 'granularity', 'reason', 'verdict']);
   }
   assert.ok(!JSON.stringify(report).includes('/tmp/fake'), 'caminho fisico nao entra no record');
   assert.ok(Object.isFrozen(report) && Object.isFrozen(report.results));
   // resourceId com cara de path e recusado na entrada
   await assert.rejects(
     runCredentialCalibration({
-      adapterId: 'a@1', candidates: [{ resourceId: '/abs/path', physicalPath: '/x' }],
+      adapterId: 'a@1', homePath: HOME,
+      candidates: [{ resourceId: '/abs/path', physicalPath: '/x', granularity: 'file' }],
       runCandidate: async () => ({ verdict: 'auth-ok' }),
     }),
     SandboxConfigurationError,

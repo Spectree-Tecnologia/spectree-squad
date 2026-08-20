@@ -117,13 +117,37 @@ test('os DOIS lados usam a mesma regra: calibracao recusa HOME, ancestral e raiz
       runCredentialCalibration({
         adapterId: 'a@1',
         homePath: FAKE_HOME,
-        candidates: [{ resourceId: 'claude/x', physicalPath }],
+        candidates: [{ resourceId: 'claude/x', physicalPath, granularity: 'directory' }],
         runCandidate: async () => ({ verdict: 'auth-ok' }),
       }),
-      SandboxConfigurationError,
+      (e) => e instanceof SandboxConfigurationError && /bindable resource|filesystem root/.test(e.message),
       physicalPath,
     );
   }
+});
+
+test('#29 item 1: o piso NAO tem interruptor — HOME irresoluvel com binding = recusa', () => {
+  const w = world();
+  try {
+    // homePath explicitamente irresoluvel: o veto INV-906 nao pode ser
+    // aplicado, entao o BINDING e recusado — nunca um piso que
+    // silenciosamente nao vale no caminho mais caro do runtime
+    assert.throws(
+      () => createSandboxPolicy({
+        mode: 'workspace-write',
+        workspaceRoot: w.workspaceRoot,
+        homePath: null,
+        declaredResources: [{ resourceId: 'credential/x', physicalPath: w.vault, mode: 'read' }],
+      }),
+      (e) => e instanceof SandboxConfigurationError && /resolvable HOME reference/.test(e.message),
+    );
+    // sem declaredResources, HOME irresoluvel nao bloqueia nada: o piso
+    // e do binding, nao um pre-requisito universal de sandbox
+    const policy = createSandboxPolicy({
+      mode: 'workspace-write', workspaceRoot: w.workspaceRoot, homePath: null,
+    });
+    assert.equal(policy.declaredResources.length, 0);
+  } finally { w.cleanup(); }
 });
 
 test('helper: semantica igual-ou-ancestral e exata, sem falso positivo por prefixo', () => {

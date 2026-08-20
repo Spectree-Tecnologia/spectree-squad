@@ -10,9 +10,13 @@
  * (sem segredo, sem caminho absoluto) e o que o Founder aprova e commita
  * como configuracao; os bindings fisicos ficam em configuracao de host.
  *
- * candidates.json (opcional; ordem = menor primeiro, secao 12):
- *   [{ "resourceId": "claude/auth", "physicalPath": "/home/user/.claude/.credentials.json" }]
- * Sem arquivo: somente PROFILE-0 e sondado.
+ * candidates.json (opcional; escada NORMATIVA da secao 12 — degrau mais
+ * estreito primeiro, diretorio so depois dos estreitos falharem):
+ *   [{ "resourceId": "claude/auth",
+ *      "physicalPath": "/home/user/.claude/.credentials.json",
+ *      "granularity": "file" }]
+ * granularity: 'file' | 'file-set' | 'directory' (verificada contra o
+ * disco; ordem violada = erro). Sem arquivo: somente PROFILE-0 e sondado.
  */
 import { readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir, homedir } from 'node:os';
