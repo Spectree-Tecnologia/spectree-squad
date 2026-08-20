@@ -20,6 +20,10 @@ function build() {
       console.log('  ' + event.type);
     }
   });
+  runtime.capabilityRegistry.register({
+    id: 'database', name: 'Database', description: 'capability do exemplo',
+    operations: ['query', 'migration'],
+  });
   runtime.policyRegistry.register({
     id: 'production-migration-approval',
     effect: 'approval-required',

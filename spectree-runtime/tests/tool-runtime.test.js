@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import { EventBus } from '../events/event-bus.js';
 import { PolicyRegistry } from '../policy/policy-registry.js';
 import { PolicyEngine } from '../policy/policy-engine.js';
+import { CapabilityRegistry } from '../capabilities/capability-registry.js';
+import { CapabilityProviderRegistry } from '../capabilities/capability-provider-registry.js';
+import { CapabilityResolver } from '../capabilities/capability-resolver.js';
 import { ToolRuntime } from '../tools/tool-runtime.js';
 import { ToolError, ToolNotFoundError, ToolValidationError } from '../errors.js';
 import { okTool, boomTool } from './helpers.js';
@@ -14,7 +17,15 @@ function makeRuntime() {
   const registry = new PolicyRegistry();
   registry.register({ id: 'allow-under-test', effect: 'allow', tools: ['ok', 'boom', 'spy'] });
   const policyEngine = new PolicyEngine({ registry });
-  return { tools: new ToolRuntime({ eventBus: bus, policyEngine }), types };
+  const capabilityRegistry = new CapabilityRegistry();
+  for (const id of ['ok', 'boom', 'spy']) {
+    capabilityRegistry.register({ id, name: id, description: 'test', operations: ['execute'] });
+  }
+  const capabilityResolver = new CapabilityResolver({
+    capabilityRegistry,
+    providerRegistry: new CapabilityProviderRegistry({ capabilityRegistry }),
+  });
+  return { tools: new ToolRuntime({ eventBus: bus, policyEngine, capabilityResolver }), types };
 }
 
 test('registro: campos obrigatorios, lookup e id duplicado', () => {

@@ -3,6 +3,17 @@ import assert from 'node:assert/strict';
 import { PolicyDeniedError, PolicyApprovalRequiredError, ToolNotFoundError, CapabilityError } from '../errors.js';
 import { CapabilityRegistry } from '../capabilities/capability-registry.js';
 import { recordedRuntime, makeAgent } from './helpers.js';
+import { CapabilityNotFoundError } from '../errors.js';
+
+/** Registra a capability database com todas as operacoes usadas nos testes. */
+function installDatabaseCapability(runtime) {
+  runtime.capabilityRegistry.register({
+    id: 'database',
+    name: 'Database',
+    description: 'test capability',
+    operations: ['query', 'migration', 'execute'],
+  });
+}
 
 /** Tool espia com contador: prova se execute() foi chamado ou nao. */
 function countingTool(id, extra = {}) {
@@ -23,6 +34,7 @@ function countingTool(id, extra = {}) {
 test('DENY: Tool.execute() nunca e chamado; lifecycle exato da secao 31', async () => {
   const runtime = recordedRuntime();
   const tool = countingTool('database.migrate', { capability: 'database', operation: 'migration' });
+  installDatabaseCapability(runtime);
   runtime.toolRuntime.register(tool);
   // nenhuma policy para jakiro: default deny
   await assert.rejects(
@@ -40,6 +52,7 @@ test('APPROVAL: Tool.execute() nunca e chamado; erro tipado para o Founder Gate 
     operation: 'migration',
     resource: { type: 'database', id: 'production' },
   });
+  installDatabaseCapability(runtime);
   runtime.toolRuntime.register(tool);
   runtime.policyRegistry.register({
     id: 'production-migration',
@@ -70,6 +83,7 @@ test('ALLOW: Tool.execute() e chamado exatamente uma vez; lifecycle exato', asyn
     operation: 'migration',
     resource: { type: 'database', id: 'development' },
   });
+  installDatabaseCapability(runtime);
   runtime.toolRuntime.register(tool);
   runtime.policyRegistry.register({
     id: 'oracle-database-development',
@@ -99,6 +113,7 @@ test('deny explicito vence allow explicito no enforcement', async () => {
     capability: 'database',
     resource: { type: 'database', id: 'production' },
   });
+  installDatabaseCapability(runtime);
   runtime.toolRuntime.register(tool);
   runtime.policyRegistry.registerMany([
     { id: 'allow-oracle-database', effect: 'allow', principal: 'oracle', capability: 'database' },
@@ -116,6 +131,7 @@ test('composicao (secao 51): mesma capability, operation coberta executa, nao co
   const runtime = recordedRuntime();
   const query = countingTool('database.query', { capability: 'database', operation: 'query' });
   const migrate = countingTool('database.migrate', { capability: 'database', operation: 'migration' });
+  installDatabaseCapability(runtime);
   runtime.toolRuntime.register(query);
   runtime.toolRuntime.register(migrate);
   runtime.policyRegistry.register({
@@ -134,18 +150,28 @@ test('composicao (secao 51): mesma capability, operation coberta executa, nao co
   assert.equal(migrate.calls, 0);
 });
 
-test('tool legada sem capability: fallback capability = tool.id, e so executa com policy explicita', async () => {
+test('tool legada: policy explicita E capability registrada (gate da Fase 4, secao 59)', async () => {
   const runtime = recordedRuntime();
   const legacy = countingTool('legacy-tool');
   runtime.toolRuntime.register(legacy);
-  // sem policy: default deny (secao 53 - capability ausente nunca vira allow)
+  // sem policy: default deny (a Policy roda antes do gate de capability)
   await assert.rejects(
     runtime.toolRuntime.execute({ toolId: 'legacy-tool' }, { agentId: 'anyone' }),
     PolicyDeniedError,
   );
   assert.equal(legacy.calls, 0);
-  // policy casando pelo fallback capability = tool.id
+  // policy permite, mas o fallback capability = tool.id NAO esta registrado:
+  // a semantica da Fase 2 (catalogo informativo) termina aqui (secao 58)
   runtime.policyRegistry.register({ id: 'allow-legacy', effect: 'allow', capability: 'legacy-tool' });
+  await assert.rejects(
+    runtime.toolRuntime.execute({ toolId: 'legacy-tool' }, { agentId: 'anyone' }),
+    CapabilityNotFoundError,
+  );
+  assert.equal(legacy.calls, 0);
+  // registrada a capability do fallback, executa
+  runtime.capabilityRegistry.register({
+    id: 'legacy-tool', name: 'legacy', description: 'fallback', operations: ['execute'],
+  });
   await runtime.toolRuntime.execute({ toolId: 'legacy-tool' }, { agentId: 'anyone' });
   assert.equal(legacy.calls, 1);
 });
@@ -157,6 +183,7 @@ test('resource resolver como funcao de input: mesma tool, resources diferentes, 
     operation: 'migration',
     resource: (input) => ({ type: 'database', id: input.target }),
   });
+  installDatabaseCapability(runtime);
   runtime.toolRuntime.register(tool);
   runtime.policyRegistry.register({
     id: 'oracle-development-only',
@@ -182,6 +209,7 @@ test('resource resolver como funcao de input: mesma tool, resources diferentes, 
 test('isolamento (secao 50): sessions paralelas com policies diferentes nao vazam', async () => {
   const runtime = recordedRuntime();
   const tool = countingTool('database.query', { capability: 'database', operation: 'query' });
+  installDatabaseCapability(runtime);
   runtime.toolRuntime.register(tool);
   runtime.policyRegistry.register({
     id: 'oracle-database',
@@ -216,6 +244,7 @@ test('isolamento (secao 50): sessions paralelas com policies diferentes nao vaza
 test('payload de policy (secao 26): campos exatos, nunca input nem output', async () => {
   const runtime = recordedRuntime();
   const tool = countingTool('database.query', { capability: 'database', operation: 'query' });
+  installDatabaseCapability(runtime);
   runtime.toolRuntime.register(tool);
   runtime.policyRegistry.register({ id: 'allow-q', effect: 'allow', capability: 'database' });
   await runtime.toolRuntime.execute(
@@ -244,6 +273,7 @@ test('matriz (secao 71): tool inexistente e input invalido precedem a Policy', a
 test('superficie de autoridade (secoes 48/49): contexto do Agent inalterado, sem rota para policy', async () => {
   const runtime = recordedRuntime();
   const tool = countingTool('ok2');
+  runtime.capabilityRegistry.register({ id: 'ok2', name: 'ok2', description: 'test', operations: ['execute'] });
   runtime.toolRuntime.register(tool);
   runtime.policyRegistry.register({ id: 'allow-ok2', effect: 'allow', tools: ['ok2'] });
   let seen;

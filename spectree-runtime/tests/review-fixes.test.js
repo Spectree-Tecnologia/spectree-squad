@@ -4,8 +4,11 @@ import { EventBus } from '../events/event-bus.js';
 import { ToolRuntime } from '../tools/tool-runtime.js';
 import { PolicyRegistry } from '../policy/policy-registry.js';
 import { PolicyEngine } from '../policy/policy-engine.js';
+import { CapabilityRegistry } from '../capabilities/capability-registry.js';
+import { CapabilityProviderRegistry } from '../capabilities/capability-provider-registry.js';
+import { CapabilityResolver } from '../capabilities/capability-resolver.js';
 import { SessionError } from '../errors.js';
-import { recordedRuntime, makeAgent, okTool, sleep, allowTools } from './helpers.js';
+import { recordedRuntime, makeAgent, okTool, sleep, allowTools, installTool } from './helpers.js';
 
 test('R3/R4: session de um agente nao executa outro agente', async () => {
   const runtime = recordedRuntime();
@@ -22,6 +25,7 @@ test('R3/R4: session de um agente nao executa outro agente', async () => {
 
 test('R5/R6: tool em voo durante o cancel termina e emite; nada novo inicia; nenhum completed de agent/session', async () => {
   const runtime = recordedRuntime();
+  runtime.capabilityRegistry.register({ id: 'slow', name: 'slow', description: 'test', operations: ['execute'] });
   runtime.toolRuntime.register({
     id: 'slow',
     name: 'Slow',
@@ -31,7 +35,7 @@ test('R5/R6: tool em voo durante o cancel termina e emite; nada novo inicia; nen
       return 'finished anyway';
     },
   });
-  runtime.toolRuntime.register(okTool);
+  installTool(runtime, okTool);
   allowTools(runtime, ['slow', 'ok']);
   const agent = makeAgent('in-flight', async (context) => {
     const result = await context.runtime.requestTool('slow'); // cancel chega no meio desta
@@ -61,9 +65,17 @@ test('R7: projectEventPayload separa o que a tool ve do que o bus publica', asyn
   bus.subscribe('*', (e) => published.push(e));
   const registry = new PolicyRegistry();
   registry.register({ id: 'allow-secretive', effect: 'allow', tools: ['secretive'] });
+  const capabilityRegistry = new CapabilityRegistry();
+  capabilityRegistry.register({
+    id: 'secretive', name: 'secretive', description: 'test', operations: ['execute'],
+  });
   const tools = new ToolRuntime({
     eventBus: bus,
     policyEngine: new PolicyEngine({ registry }),
+    capabilityResolver: new CapabilityResolver({
+      capabilityRegistry,
+      providerRegistry: new CapabilityProviderRegistry({ capabilityRegistry }),
+    }),
     projectEventPayload: ({ phase, toolId }) => ({ toolId, phase, redacted: true }),
   });
   let toolSawInput;
@@ -94,7 +106,7 @@ test('R7: projectEventPayload separa o que a tool ve do que o bus publica', asyn
 
 test('R8: o EventBus nao e alcancavel pelo Agent - o contexto expoe apenas requestTool', async () => {
   const runtime = recordedRuntime();
-  runtime.toolRuntime.register(okTool);
+  installTool(runtime, okTool);
   allowTools(runtime, ['ok']);
   let seen;
   const agent = makeAgent('probe', async (context) => {

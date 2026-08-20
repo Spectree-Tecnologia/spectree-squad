@@ -5,6 +5,7 @@ import {
   ToolError,
   ToolNotFoundError,
   ToolValidationError,
+  ProviderExecutionError,
 } from '../errors.js';
 
 /**
@@ -98,6 +99,7 @@ export class ToolRuntime {
   #tools = new Map();
   #bus;
   #policyEngine;
+  #capabilityResolver;
   #projectEventPayload;
   #onApprovalRequired;
 
@@ -112,14 +114,19 @@ export class ToolRuntime {
    *   Recebe {phase: 'requested'|'started'|'completed'|'failed', toolId,
    *   input?, output?, error?} e devolve o payload publicado.
    */
-  constructor({ eventBus, policyEngine, projectEventPayload = defaultProjection, onApprovalRequired = null }) {
+  constructor({ eventBus, policyEngine, capabilityResolver, projectEventPayload = defaultProjection, onApprovalRequired = null }) {
     if (!policyEngine || typeof policyEngine.decide !== 'function') {
       // Sem policy nao ha execucao (secao 63): um ToolRuntime sem engine
       // seria uma rota permanente de bypass, entao ele nao pode existir.
       throw new PolicyConfigurationError('ToolRuntime requires a policyEngine');
     }
+    if (!capabilityResolver) {
+      // Gate da Fase 4 (INV-421): sem resolver nao ha execucao.
+      throw new PolicyConfigurationError('ToolRuntime requires a capabilityResolver');
+    }
     this.#bus = eventBus;
     this.#policyEngine = policyEngine;
+    this.#capabilityResolver = capabilityResolver;
     this.#projectEventPayload = projectEventPayload;
     this.#onApprovalRequired = onApprovalRequired;
     AUTHORIZED_EXECUTORS.set(this, (invocation) => this.#runAuthorized(invocation));
@@ -127,11 +134,13 @@ export class ToolRuntime {
 
   /** Registra uma Tool; id duplicado é erro. */
   register(tool) {
-    for (const field of ['id', 'name', 'description', 'execute']) {
+    for (const field of ['id', 'name', 'description']) {
       if (!tool?.[field]) throw new ToolError('tool is missing required field: ' + field);
     }
-    if (typeof tool.execute !== 'function') {
-      throw new ToolError('tool ' + tool.id + ': execute must be a function');
+    // Fase 4: execute e opcional — tool sem execute e provider-backed e o
+    // Provider da capability dela realiza a operacao (secao 3).
+    if (tool.execute !== undefined && typeof tool.execute !== 'function') {
+      throw new ToolError('tool ' + tool.id + ': execute must be a function when present');
     }
     if (this.#tools.has(tool.id)) {
       throw new ToolError('tool already registered: ' + tool.id);
@@ -222,7 +231,104 @@ export class ToolRuntime {
   async #runAuthorized({ toolId, input, sessionId, agentId }) {
     const tool = this.#tools.get(toolId);
     if (!tool) throw new ToolNotFoundError(toolId);
-    return this.#runTool(tool, input ?? {}, { sessionId, agentId });
+    const authorization = this.#buildAuthorization(tool, input ?? {}, {}, {
+      agentId,
+      session: { id: sessionId },
+    });
+    return this.#dispatch(tool, input ?? {}, { sessionId, agentId }, authorization);
+  }
+
+  /**
+   * Gate + despacho da Fase 4. O gate de capability roda DEPOIS do allow
+   * da Policy (preferencia da spec, secao 108) e vale para toda tool —
+   * inclusive a legada com fallback capability = tool.id (secao 59).
+   * Tool com execute() proprio e self-provided (caminho de migracao);
+   * tool sem execute() e provider-backed: o Provider e resolvido fresco a
+   * cada execucao e a cada resume (secao 86).
+   */
+  async #dispatch(tool, input, meta, authorization) {
+    let provider = null;
+    try {
+      const capability = this.#capabilityResolver.resolveCapability(tool, authorization.operation);
+      if (typeof tool.execute !== 'function') {
+        provider = this.#capabilityResolver.resolveProvider(capability.id, authorization.operation);
+      }
+    } catch (error) {
+      this.#bus.publish('tool.failed', {
+        ...meta,
+        payload: this.#projectEventPayload({
+          phase: 'failed',
+          toolId: tool.id,
+          error: String(error?.message ?? error),
+        }),
+      });
+      throw error;
+    }
+    if (!provider) return this.#runTool(tool, input, meta);
+    return this.#runProvider(provider, tool, input, meta, authorization);
+  }
+
+  /**
+   * Execucao provider-backed. O Provider recebe a superficie minima
+   * (secoes 22-23): request {operation, input, resource} + context com
+   * exatamente sessionId/agentId/capabilityId/operation/resource/metadata
+   * — nunca PolicyEngine, ToolRuntime, EventBus ou ApprovalManager
+   * (INV-413/414). O resource e o autorizado pela Policy (INV-415).
+   */
+  async #runProvider(provider, tool, input, meta, authorization) {
+    const resource = authorization.resource;
+    const resourceStr = resource ? (resource.type ?? '?') + '/' + (resource.id ?? '?') : null;
+    const providerPayload = {
+      providerId: provider.providerId,
+      capabilityId: provider.capabilityId,
+      operation: authorization.operation,
+      resource: resourceStr,
+    };
+    this.#bus.publish('tool.started', {
+      ...meta,
+      payload: this.#projectEventPayload({ phase: 'started', toolId: tool.id }),
+    });
+    this.#bus.publish('provider.started', { ...meta, payload: providerPayload });
+    const startedAt = Date.now();
+    try {
+      const request = Object.freeze({ operation: authorization.operation, input, resource });
+      const context = Object.freeze({
+        sessionId: meta.sessionId ?? null,
+        agentId: meta.agentId ?? null,
+        capabilityId: provider.capabilityId,
+        operation: authorization.operation,
+        resource,
+        metadata: Object.freeze({}),
+      });
+      const result = await provider.execute(request, context);
+      // projecao segura (secao 36): metadata tecnica, nunca o output
+      this.#bus.publish('provider.completed', {
+        ...meta,
+        payload: { ...providerPayload, durationMs: Date.now() - startedAt },
+      });
+      this.#bus.publish('tool.completed', {
+        ...meta,
+        payload: this.#projectEventPayload({ phase: 'completed', toolId: tool.id, output: result?.output }),
+      });
+      return { ok: true, toolId: tool.id, output: result?.output };
+    } catch (error) {
+      const wrapped = error instanceof ProviderExecutionError
+        ? error
+        : new ProviderExecutionError(
+            'io-error',
+            'provider ' + provider.providerId + ' failed: ' + (error?.message ?? error),
+            { cause: error },
+          );
+      this.#bus.publish('provider.failed', {
+        ...meta,
+        payload: { ...providerPayload, error: String(wrapped.message) },
+      });
+      this.#bus.publish('tool.failed', {
+        ...meta,
+        payload: this.#projectEventPayload({ phase: 'failed', toolId: tool.id, error: String(wrapped.message) }),
+      });
+      throw wrapped;
+    }
   }
 
   has(toolId) {
@@ -309,6 +415,6 @@ export class ToolRuntime {
       throw error;
     }
 
-    return this.#runTool(tool, input, meta);
+    return this.#dispatch(tool, input, meta, authorization);
   }
 }

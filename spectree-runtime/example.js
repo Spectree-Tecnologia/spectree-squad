@@ -14,6 +14,10 @@ class EchoAgent extends Agent {
 }
 
 const runtime = createRuntime();
+// Fase 4: toda tool exige capability registrada (gate), alem da policy.
+runtime.capabilityRegistry.register({
+  id: 'echo', name: 'Echo', description: 'capability do exemplo', operations: ['execute'],
+});
 // Default deny: sem esta policy o proprio exemplo seria bloqueado.
 runtime.policyRegistry.register({ id: 'allow-echo', effect: 'allow', tools: ['echo'] });
 runtime.eventBus.subscribe('*', (event) =>

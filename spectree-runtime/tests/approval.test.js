@@ -28,6 +28,12 @@ function approvalRuntime(options = {}) {
       return 'migrated ' + input.target;
     },
   };
+  runtime.capabilityRegistry.register({
+    id: 'database',
+    name: 'Database',
+    description: 'test capability',
+    operations: ['query', 'migration'],
+  });
   runtime.toolRuntime.register(tool);
   runtime.policyRegistry.registerMany([
     {
@@ -324,6 +330,7 @@ test('secao 93: matriz - pending nao resume; approved nao vira denied', async ()
 
 test('secoes 64/65: superficie do Agent inalterada - nenhuma rota de approval no contexto', async () => {
   const runtime = recordedRuntime();
+  runtime.capabilityRegistry.register({ id: 'plain', name: 'p', description: 'test', operations: ['execute'] });
   runtime.toolRuntime.register({ id: 'plain', name: 'P', description: 'p', execute: async () => 'x' });
   runtime.policyRegistry.register({ id: 'allow-plain', effect: 'allow', tools: ['plain'] });
   let seen;

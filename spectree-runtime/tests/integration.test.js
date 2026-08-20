@@ -1,12 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
-import { ScriptedAgent, recordedRuntime, makeAgent, okTool, boomTool, sleep, allowTools } from './helpers.js';
+import { ScriptedAgent, recordedRuntime, makeAgent, okTool, boomTool, sleep, allowTools, installTool } from './helpers.js';
 import { loadSquadAgentDefinition } from '../adapters/squad-agent.js';
 
 test('lifecycle completo: a sequencia exata da spec secao 29', async () => {
   const runtime = recordedRuntime();
-  runtime.toolRuntime.register(okTool);
+  installTool(runtime, okTool);
   allowTools(runtime, ['ok']);
   const agent = makeAgent('lifecycle', async (context) => {
     const result = await context.runtime.requestTool('ok', { value: 'proof' });
@@ -32,7 +32,7 @@ test('lifecycle completo: a sequencia exata da spec secao 29', async () => {
 
 test('falha: cascata da spec secao 30, e nenhum completed depois dela', async () => {
   const runtime = recordedRuntime();
-  runtime.toolRuntime.register(boomTool);
+  installTool(runtime, boomTool);
   allowTools(runtime, ['boom']);
   const agent = makeAgent('failing', async (context) => {
     await context.runtime.requestTool('boom');
@@ -56,6 +56,7 @@ test('falha: cascata da spec secao 30, e nenhum completed depois dela', async ()
 
 test('isolamento: duas sessions simultaneas nao trocam estado nem eventos', async () => {
   const runtime = recordedRuntime();
+  runtime.capabilityRegistry.register({ id: 'slow', name: 'slow', description: 'test', operations: ['execute'] });
   runtime.toolRuntime.register({
     id: 'slow',
     name: 'Slow',
@@ -102,8 +103,8 @@ test('isolamento: duas sessions simultaneas nao trocam estado nem eventos', asyn
 
 test('criterio de arquitetura (spec secao 40): dois agents, tools diferentes, zero mudanca no nucleo', async () => {
   const runtime = recordedRuntime();
-  runtime.toolRuntime.register({ id: 'tool.a', name: 'A', description: 'a', execute: async () => 'from A' });
-  runtime.toolRuntime.register({ id: 'tool.b', name: 'B', description: 'b', execute: async () => 'from B' });
+  installTool(runtime, { id: 'tool.a', name: 'A', description: 'a', execute: async () => 'from A' });
+  installTool(runtime, { id: 'tool.b', name: 'B', description: 'b', execute: async () => 'from B' });
   allowTools(runtime, ['tool.a', 'tool.b']);
   const agentA = makeAgent('uses-a', async (c) => (await c.runtime.requestTool('tool.a')).output);
   const agentB = makeAgent('uses-b', async (c) => (await c.runtime.requestTool('tool.b')).output);
@@ -121,7 +122,7 @@ test('prova de integracao (spec secao 39): um agente real do Squad vira AgentDef
   assert.ok(definition.metadata.description);
 
   const runtime = recordedRuntime();
-  runtime.toolRuntime.register(okTool);
+  installTool(runtime, okTool);
   allowTools(runtime, ['ok']);
   const agent = new ScriptedAgent(definition, async (context) => {
     const r = await context.runtime.requestTool('ok', { value: 'PRD.md' });

@@ -6,6 +6,7 @@
     "test": "node --test \"spectree-runtime/tests/*.test.js\"",
     "example": "node spectree-runtime/example.js",
     "example:policy": "node spectree-runtime/example-policy.js",
-    "example:approval": "node spectree-runtime/example-approval.js"
+    "example:approval": "node spectree-runtime/example-approval.js",
+    "example:provider": "node spectree-runtime/example-provider.js"
   }
 }
