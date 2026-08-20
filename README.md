@@ -136,7 +136,16 @@ closed: o default deny nega as operações governadas. Cada `deny`/`ask`
 vira uma linha em `~/.claude/spectree/policy-decisions.jsonl` sob a mesma
 projeção do event bus — a decisão, nunca o comando bruto — e um teste de
 alcançabilidade exige que toda policy da matriz declare qual consumidor a
-alcança, provando a declaração ao executar o guard. O guard também
+alcança, provando a declaração ao executar o guard. A trilha distingue
+pergunta de desfecho: `deny` é `final`, `ask` é `pending`, e o desfecho
+de um `pending` chega como linha `executed` (hook `PostToolUse`, que só
+dispara quando a operação executou) correlacionada pelo mesmo
+`toolUseId` — dá para responder se um force-push aprovado no gate
+aconteceu ou não.
+
+O guard lê o comando como texto: comando **citado** dentro de conteúdo de
+arquivo (heredoc, string de teste) é detectado como se fosse executado.
+Escreva esses arquivos por ferramenta de escrita, não por heredoc. O guard também
 governa `Edit`/`Write`: subagente que tenta escrever `status:
 approved|done` num artefato cai no default deny (aprovar é da thread
 principal, onde vive o Invoker), e principal com superfície de edição

@@ -382,6 +382,44 @@ Policy runtime-only e legitima, mas tem de justificar por escrito por
 que o guard nao a alcanca. Policy nova sem declaracao quebra a suite —
 R8 aplicado a matriz: autoridade decorativa deixa de ser invisivel.
 
+## Fase 4.7 — Push Target & Audit Outcome
+
+Segunda devolutiva de campo, sobre a trilha da 4.6. O Invoker observou
+que `resource` vinha nulo justamente em `force-push` — a operacao que
+mais precisa de alvo — e que uma linha `ask` registra a pergunta sem
+nunca registrar a resposta.
+
+O primeiro achado escondia dois buracos de policy. O guard identificava
+push na main varrendo os argumentos atras do token "main"; entao
+`git push` puro estando na main passava em SILENCIO (nenhum token
+"main" no comando), e `git push --force origin main` caia so no
+`destructive-git-founder-gate` (ask) em vez do deny — a forma mais
+destrutiva tinha o tratamento mais fraco. Correcao: o guard RESOLVE o
+alvo (destino do refspec `src:dst`, ou a branch corrente quando nao ha
+refspec) e anexa como resource; quem decide e a policy. `force-push` e
+`delete-remote-branch` entraram nas operacoes de `no-direct-push-main`,
+e deny vence approval-required por precedencia — force-push fora da main
+segue sendo gate. Limite declarado: com `push.default = matching` ou
+`remote.<nome>.push` configurado o alvo pode nao ser a branch corrente;
+o guard nao le configuracao de git — falso negativo, nunca falso
+positivo.
+
+Trilha: cada linha ganha `toolUseId` e `outcome`. `deny` e `final` (o
+desfecho e a propria decisao); `ask` e `pending` e diz isso de si mesmo.
+O desfecho chega como linha `executed` do modo PostToolUse — evento que
+so dispara quando a tool EXECUTOU — correlacionada pelo mesmo
+`toolUseId`. Ausencia de `executed` significa que nao executou; a trilha
+nao adivinha se foi negativa do Founder, cancelamento ou sessao
+encerrada, e nao finge saber.
+
+Falso positivo conhecido, encontrado durante esta propria fase: o guard
+le o comando como texto, entao comando FALADO dentro de conteudo de
+arquivo (heredoc, string de teste, documentacao) e detectado como se
+fosse executado. Escrever um teste sobre push na main foi bloqueado pelo
+proprio guard. Contorno: escrever o arquivo por ferramenta de escrita,
+nao por heredoc. Correcao adiada de proposito — ignorar corpo de heredoc
+abriria a porta para `bash <<EOF ... EOF`, que executa de verdade.
+
 ## Limitações conhecidas (deliberadas, Fase 1)
 
 - Erro de tool falha a execução por padrão; um agente pode dar catch em
