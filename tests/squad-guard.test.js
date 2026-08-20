@@ -214,18 +214,13 @@ test('4C: superficie de edicao fechada — Keeper so edita o que a matriz conced
 
 test('4C: hooks.json integro por igualdade estrita — typo nao desliga o guard em silencio', () => {
   const hooks = JSON.parse(readFileSync(path.join(REPO, 'hooks', 'hooks.json'), 'utf8'));
-  assert.deepEqual(hooks, {
-    hooks: {
-      PreToolUse: [
-        {
-          matcher: 'Bash|Edit|Write',
-          hooks: [
-            { type: 'command', command: 'node "${CLAUDE_PLUGIN_ROOT}/hooks/guard.mjs"' },
-          ],
-        },
-      ],
-    },
-  });
+  const entry = {
+    matcher: 'Bash|Edit|Write',
+    hooks: [{ type: 'command', command: 'node "${CLAUDE_PLUGIN_ROOT}/hooks/guard.mjs"' }],
+  };
+  // PostToolUse (4.7) fecha o par de auditoria do `ask`: sem ele, a
+  // trilha volta a registrar pergunta sem resposta
+  assert.deepEqual(hooks, { hooks: { PreToolUse: [entry], PostToolUse: [entry] } });
   assert.ok(existsSync(GUARD), 'o comando do hook referencia hooks/guard.mjs, que deve existir');
 });
 

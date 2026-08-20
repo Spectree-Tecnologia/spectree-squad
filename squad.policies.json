@@ -38,7 +38,9 @@
     "operations": [
       "push",
       "commit",
-      "merge"
+      "merge",
+      "force-push",
+      "delete-remote-branch"
     ],
     "resources": [
       "refs/heads/main",

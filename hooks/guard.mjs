@@ -29,6 +29,15 @@ import { policyEngineFromDocument } from '../spectree-runtime/adapters/policy-do
  * capability, operation e resource — NUNCA o comando bruto, que carrega
  * segredo.
  *
+ * 4.7: o alvo do push e RESOLVIDO (destino do refspec, ou a branch
+ * corrente quando nao ha refspec) e vira resource — antes o guard
+ * varria os argumentos atras do token "main", o que deixava passar
+ * `git push` puro na main e rebaixava force-push na main de deny para
+ * ask. Agora o guard detecta o alvo e a POLICY decide. A trilha ganha
+ * `toolUseId` e `outcome`: deny e final, ask e pendente, e o modo
+ * PostToolUse registra `executed` correlacionado pelo mesmo
+ * `toolUseId` — a pergunta e a resposta viram um par auditavel.
+ *
  * Regra de honestidade: o guard NUNCA responde "allow" — so "deny",
  * "ask" (gate do Founder na UI) ou silencio. Allow do engine vira
  * passagem sem decisao: o fluxo normal de permissao e a ultima palavra.
@@ -84,9 +93,52 @@ function tokenize(segment) {
   return segment.split(/\s+/).map((t) => t.replace(/^["']+|["']+$/g, '')).filter(Boolean);
 }
 
-const isProtectedRef = (token) =>
-  ['main', 'master'].includes(token) ||
-  /(^|:)(refs\/heads\/)?(main|master)$/.test(token);
+// flags de `git push` que carregam valor separado — pular o par ao
+// procurar os posicionais (remote e refspec)
+const PUSH_VALUE_FLAGS = new Set(['-o', '--push-option', '--repo', '--receive-pack', '--exec']);
+
+/**
+ * Ref de DESTINO de um `git push`, derivada do refspec (4.7). Em
+ * `src:dst` o alvo e `dst` — derivar de .git/HEAD aqui estaria errado, e
+ * e justamente o caminho que alguem usaria para escapar
+ * (`git push origin main:refs/heads/outra` nao toca a main; ja
+ * `git push origin HEAD:main` toca). Sem refspec, o alvo e a branch
+ * corrente e quem resolve e o chamador (needsCurrentRef).
+ *
+ * Limite conhecido: com `push.default = matching` ou um
+ * `remote.<nome>.push` configurado, o alvo pode nao ser a branch
+ * corrente. O guard nao le configuracao de git — falso negativo, nunca
+ * falso positivo.
+ */
+function pushTargetRef(args) {
+  const positional = [];
+  for (let i = 0; i < args.length; i++) {
+    const token = args[i];
+    if (PUSH_VALUE_FLAGS.has(token)) { i++; continue; }
+    if (token.startsWith('-')) continue;
+    positional.push(token);
+  }
+  const refspec = positional[1]; // positional[0] e o remote
+  if (!refspec) return null;
+  const parts = refspec.replace(/^\+/, '').split(':');
+  const dst = parts.length > 1 ? parts[parts.length - 1] : parts[0];
+  // HEAD como destino nao e nome de branch: cai na branch corrente
+  if (!dst || dst === 'HEAD') return null;
+  return dst.startsWith('refs/') ? dst : 'refs/heads/' + dst;
+}
+
+/** Detecta a operacao de push e ANEXA o alvo; a policy e quem decide. */
+function detectPush(args) {
+  let operation = 'push';
+  if (args.some((t) => ['--force', '-f', '--force-with-lease'].includes(t))) {
+    operation = 'force-push';
+  } else if (args.includes('--delete') || args.some((t) => /^:[^\s:]/.test(t))) {
+    operation = 'delete-remote-branch';
+  }
+  const target = pushTargetRef(args);
+  if (target) return { capability: 'git', operation, resource: { type: 'git', id: target } };
+  return { capability: 'git', operation, needsCurrentRef: true };
+}
 
 // flags globais do git que carregam argumento — pular o par inteiro ao
 // procurar o subcomando (git -C path push ...)
@@ -117,17 +169,7 @@ function detectGitHub(tokens) {
 function detectGit(tokens) {
   const sub = gitSubcommand(tokens);
   if (sub === 'push') {
-    const args = tokens.slice(tokens.indexOf('push') + 1);
-    if (args.some((t) => ['--force', '-f', '--force-with-lease'].includes(t))) {
-      return { capability: 'git', operation: 'force-push' };
-    }
-    if (args.includes('--delete') || args.some((t) => /^:[^\s:]/.test(t))) {
-      return { capability: 'git', operation: 'delete-remote-branch' };
-    }
-    if (args.some(isProtectedRef)) {
-      return { capability: 'git', operation: 'push', resource: { type: 'git', id: 'refs/heads/main' } };
-    }
-    return { capability: 'git', operation: 'push' };
+    return detectPush(tokens.slice(tokens.indexOf('push') + 1));
   }
   if (sub === 'commit' || sub === 'merge') {
     // resource preenchido pelo chamador com a branch corrente (4.6):
@@ -240,10 +282,18 @@ function detectFileTool(payload, principal) {
 }
 
 /**
- * Trilha de decisao (4.6). Uma linha JSON por decisao efetiva (deny ou
- * ask) — silencio nao e decisao e nao entra. Projecao R10: o comando
+ * Trilha de decisao (4.6, ampliada na 4.7). Uma linha JSON por decisao
+ * efetiva — silencio nao e decisao e nao entra. Projecao R10: o comando
  * bruto NUNCA e registrado; so o que a Policy julgou. Falha de escrita
  * jamais afeta a decisao: auditoria quebrada nao pode virar bloqueio.
+ *
+ * `outcome` diz o que a linha vale: `final` (deny — o desfecho e a
+ * propria decisao) ou `pending` (ask — a linha registra a PERGUNTA; o
+ * guard e processo separado e nao ve a resposta da UI). O desfecho de um
+ * `pending` chega como linha `executed` do modo PostToolUse, com o mesmo
+ * `toolUseId`. Ausencia de `executed` significa que nao executou
+ * (negado na UI, cancelado ou sessao encerrada) — a trilha nao adivinha
+ * qual dos tres.
  */
 function audit(entry) {
   try {
@@ -262,6 +312,9 @@ function main() {
   } catch {
     return; // input ilegivel: sem decisao, fluxo normal segue
   }
+  // PostToolUse so dispara quando a tool EXECUTOU (4.7): e o desfecho de
+  // um `ask` anterior. Nunca imprime decisao — apenas fecha o par.
+  const isOutcome = payload.hook_event_name === 'PostToolUse';
   const toolName = payload.tool_name;
   let detections = [];
   if (toolName === 'Bash') {
@@ -293,9 +346,31 @@ function main() {
     // Principal DESCONHECIDO nao entra aqui: fail closed (Fase 4.5).
     if (principal === null && decision.policyId === 'default-deny') continue;
     const permissionDecision = decision.effect === 'deny' ? 'deny' : 'ask';
+    if (isOutcome) {
+      // desfecho: so um `ask` gera par pendente; deny nunca executa
+      if (decision.effect === 'approval-required') {
+        audit({
+          at: new Date().toISOString(),
+          decision: 'executed',
+          outcome: 'final',
+          policyId: decision.policyId,
+          principal: principal ? principal.id : null,
+          principalKnown: principal ? principal.known : null,
+          capability: detected.capability,
+          operation: detected.operation,
+          resource: resource ? resource.type + '/' + resource.id : null,
+          tool: toolName,
+          cwd: typeof payload.cwd === 'string' ? payload.cwd : null,
+          sessionId: typeof payload.session_id === 'string' ? payload.session_id : null,
+          toolUseId: typeof payload.tool_use_id === 'string' ? payload.tool_use_id : null,
+        });
+      }
+      return;
+    }
     audit({
       at: new Date().toISOString(),
       decision: permissionDecision,
+      outcome: permissionDecision === 'deny' ? 'final' : 'pending',
       policyId: decision.policyId,
       principal: principal ? principal.id : null,
       principalKnown: principal ? principal.known : null,
@@ -305,6 +380,7 @@ function main() {
       tool: toolName,
       cwd: typeof payload.cwd === 'string' ? payload.cwd : null,
       sessionId: typeof payload.session_id === 'string' ? payload.session_id : null,
+      toolUseId: typeof payload.tool_use_id === 'string' ? payload.tool_use_id : null,
     });
     process.stdout.write(JSON.stringify({
       hookSpecificOutput: {
