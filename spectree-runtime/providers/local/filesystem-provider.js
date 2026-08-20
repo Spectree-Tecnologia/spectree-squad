@@ -1,6 +1,6 @@
 import { promises as defaultFs, lstatSync, realpathSync, existsSync } from 'node:fs';
 import path from 'node:path';
-import { ProviderExecutionError } from '../../errors.js';
+import { ProviderExecutionError, SandboxError } from '../../errors.js';
 
 const BACKSLASH = String.fromCharCode(92);
 
@@ -164,8 +164,16 @@ export class LocalFilesystemProvider {
     if (!this.operations.includes(operation)) {
       throw new ProviderExecutionError('unsupported-operation', 'operation not supported: ' + operation);
     }
-    void context; // superficie minima; nada aqui e usado como autoridade
+    // As invariantes do Provider valem SEMPRE, com ou sem Sandbox
+    // (secoes 39-40, INV-516): o Sandbox nao substitui o R12.
     const resolved = this.#resolvePath(input, resource);
+    // Fronteira do Sandbox por cima da propria (secoes 37-38, 92). O
+    // Provider consulta o HANDLE — nunca o SandboxProvider (secao 63) —
+    // e o handle lanca SandboxDeniedError, que NAO e erro de Provider:
+    // a operacao estava autorizada, o ambiente e que a recusa (secao 31).
+    if (context?.sandbox && typeof context.sandbox.assertPathAllowed === 'function') {
+      context.sandbox.assertPathAllowed(resolved, operation);
+    }
     try {
       if (operation === 'read') {
         const content = await this.#fs.readFile(resolved, 'utf8');
@@ -185,6 +193,9 @@ export class LocalFilesystemProvider {
       return { output: { deleted: true } };
     } catch (error) {
       if (error instanceof ProviderExecutionError) throw error;
+      // negacao de Sandbox nao vira erro de Provider (secao 31): a
+      // taxonomia distingue "nao autorizado" de "ambiente nao permite"
+      if (error instanceof SandboxError) throw error;
       throw new ProviderExecutionError(
         'io-error',
         'filesystem ' + operation + ' failed: ' + (error?.message ?? error),

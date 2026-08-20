@@ -203,15 +203,24 @@ test('ProviderExecutionContext: superficie exata e congelada (secoes 22-23, R8)'
     { agentId: 'oracle', session: { id: 'sess_p4' } },
   );
   const { request, context } = provider.calls[0];
+  // Fase 5 (spec secao 88): o contexto ganhou `sandbox` — o HANDLE, nunca
+  // o SandboxProvider (secao 63) nem o registry. Mudanca deliberada de
+  // superficie de autoridade: a trava R8 quebrou primeiro, e so entao a
+  // lista foi atualizada. Sem sandbox configurado o campo e null.
   assert.deepEqual(Object.keys(context), [
-    'sessionId', 'agentId', 'capabilityId', 'operation', 'resource', 'metadata',
+    'sessionId', 'agentId', 'capabilityId', 'operation', 'resource', 'metadata', 'sandbox',
   ]);
+  assert.equal(context.sandbox, null, 'runtime sem sandbox configurado: handle nulo');
   assert.ok(Object.isFrozen(context));
   assert.ok(Object.isFrozen(request));
   assert.equal(context.sessionId, 'sess_p4');
   assert.equal(context.agentId, 'oracle');
   // nada de autoridade no contexto (INV-413/414)
-  for (const forbidden of ['policyEngine', 'toolRuntime', 'eventBus', 'approvalManager', 'policy']) {
+  for (const forbidden of [
+    'policyEngine', 'toolRuntime', 'eventBus', 'approvalManager', 'policy',
+    // INV-522: o mecanismo de sandbox nunca desce ate aqui
+    'sandboxProvider', 'sandboxProviderRegistry', 'sandboxResolver', 'sandboxPolicy',
+  ]) {
     assert.equal(context[forbidden], undefined);
   }
 });

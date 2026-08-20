@@ -97,6 +97,50 @@ export class ProviderExecutionError extends CapabilityProviderError {
   }
 }
 
+/**
+ * Taxonomia de Sandbox (spec Fase 5, secao 151). A distincao entre
+ * SandboxDeniedError e PolicyDeniedError e diagnostica e normativa
+ * (secao 31): a Policy diz que NAO ESTA AUTORIZADO; o Sandbox diz que
+ * ESTA autorizado em principio, mas o ambiente fisico nao permite.
+ */
+export class SandboxError extends RuntimeError {}
+
+export class SandboxConfigurationError extends SandboxError {}
+
+/** Nenhum backend consegue garantir o boundary pedido (secoes 19, 32). */
+export class SandboxUnavailableError extends SandboxError {}
+
+/** O boundary existe e recusa a operacao (secoes 58, 73). */
+export class SandboxDeniedError extends SandboxError {
+  constructor(message, details = {}) {
+    super(message);
+    // explicacao sem vazar segredo ou path sensivel (secao 73)
+    this.boundary = details.boundary ?? null;
+    this.requiredMode = details.requiredMode ?? null;
+    this.capabilityId = details.capabilityId ?? null;
+    this.operation = details.operation ?? null;
+  }
+}
+
+/** Capability sem fronteira correspondente no backend (secao 152). */
+export class SandboxCapabilityError extends SandboxError {}
+
+/** Falha ao desmontar; observavel, nunca escondida (secao 66). */
+export class SandboxCleanupError extends SandboxError {
+  constructor(message, options = {}) {
+    super(message);
+    this.cause = options.cause;
+  }
+}
+
+/** Seam de escalonamento (secoes 30, 74): existe, nao executa sozinho. */
+export class SandboxEscalationRequiredError extends SandboxError {
+  constructor(message, request) {
+    super(message);
+    this.request = request;
+  }
+}
+
 export class ApprovalError extends RuntimeError {}
 
 export class ApprovalNotFoundError extends ApprovalError {
