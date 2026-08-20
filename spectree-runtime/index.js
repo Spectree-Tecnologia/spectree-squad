@@ -10,6 +10,7 @@ import { CapabilityResolver } from './capabilities/capability-resolver.js';
 import { InMemoryApprovalStore } from './approval/approval-store.js';
 import { SandboxProviderRegistry } from './sandbox/sandbox-provider-registry.js';
 import { SandboxResolver } from './sandbox/sandbox-resolver.js';
+import { ProcessRegistry } from './process/process-registry.js';
 import { ApprovalManager } from './approval/approval-manager.js';
 import { InMemoryFounderGate } from './approval/founder-gate.js';
 import { acquireAuthorizedExecutor } from './tools/tool-runtime.js';
@@ -60,6 +61,17 @@ export {
 export { LocalFilesystemSandboxProvider } from './sandbox/providers/local-filesystem-sandbox.js';
 export { TestSandboxProvider } from './sandbox/providers/test-sandbox-provider.js';
 export { createSandboxEscalationRequest } from './sandbox/sandbox-escalation.js';
+export { createProcessSpawnSpec } from './process/spawn-spec.js';
+export { buildProcessEnvironment, MINIMAL_SAFE_KEYS } from './process/environment.js';
+export { resolveExecutable } from './process/executable.js';
+export { OutputCollector } from './process/output.js';
+export { ProcessRegistry } from './process/process-registry.js';
+export {
+  LocalSubprocessProvider,
+  processCapability,
+  processTools,
+  canonicalProcessWorld,
+} from './providers/local/subprocess-provider.js';
 export * from './errors.js';
 
 /**
@@ -110,6 +122,14 @@ export function createRuntime(options = {}) {
     executeAuthorized: acquireAuthorizedExecutor(toolRuntime),
   });
   founderGate.bind?.(approvalManager);
+  // Fase 6: o registry de processos pertence ao Runtime (secao 88), e a
+  // Session tem autoridade sobre o lifecycle (secoes 68-69, INV-618):
+  // cancelamento termina os processos vivos daquela Session.
+  const processRegistry = options.processRegistry ?? new ProcessRegistry();
+  eventBus.subscribe('session.cancelled', (event) => {
+    const sessionId = event.sessionId ?? null;
+    if (sessionId) void processRegistry.terminateSession(sessionId);
+  });
   const loop = new AgentLoop({ toolRuntime, eventBus });
   return {
     eventBus,
@@ -123,6 +143,10 @@ export function createRuntime(options = {}) {
     sandboxProviderRegistry,
     sandboxResolver,
     sandboxProfileResolver,
+    processRegistry,
+    // seam de shutdown (secao 91): encerra o que ainda vive; nao e
+    // superficie do Agent
+    shutdown: () => processRegistry.shutdown(),
     approvalStore,
     approvalManager,
     founderGate,

@@ -480,7 +480,9 @@ legiveis e graváveis (canonicalizadas por realpath, mesmo principio do
 R12), temp, rede e ambiente. Congelada por execucao. `ExecutionBoundary`
 traduz o modo em limites por dimensao — filesystem implementado nesta
 fase; rede, processo e ambiente declarados como `unsupported`, porque
-declarar e honesto e fingir nao e.
+declarar e honesto e fingir nao e. A Fase 6 deu consequencia a essa
+declaracao no eixo de processo: `unsupported` nao e so um rotulo, e um
+veto — ver "Honestidade operacional (R14)".
 
 Tres modos: `read-only` (le no workspace, nao escreve), `workspace-write`
 (le e escreve dentro das roots declaradas) e `danger-full-access` (o
@@ -570,6 +572,125 @@ com o ApprovalManager existente, nunca duplicar Approval.
 
 Reservado significa reservado: o Registry responde indisponivel em vez
 de oferecer isolamento falso.
+
+## Fase 6 — Process/Subprocess Capability
+
+O primeiro consumidor critico do Sandbox: execucao governada de
+processos externos.
+
+```
+Agent -> ToolRuntime -> Policy -> Approval -> Capability process
+      -> Sandbox -> LocalSubprocessProvider -> OS Process
+```
+
+### Regra de ouro
+
+O Spectree nunca executa uma STRING de comando. Executa um processo com
+`argv` explicito (`argv[0]` = executavel, o resto = argumentos
+literais), num execution world conhecido, dentro de um Sandbox
+conhecido, sob uma Policy conhecida. Nao existe `shell: true`; nao
+existem operadores de shell no Provider (INV-606/622). Um futuro
+ShellProvider consumira a capability `process` pedindo
+`argv: ['/bin/bash', ...]` — e sera governado como qualquer processo.
+
+### Honestidade operacional (R14)
+
+**Sem enforcement fisico + modo que promete confinement = nao executar.**
+
+Um modo restritivo (`read-only`, `workspace-write`) e uma PROMESSA de
+limite fisico. O `LocalFilesystemSandboxProvider` entrega `partial`:
+verificacao em JavaScript dentro do Runtime — o que impede o Provider de
+sair do workspace, mas nao alcanca um processo filho, que nao roda o
+nosso codigo. Enquanto nenhum backend confinar processo de verdade,
+cumprir a promessa e impossivel; entao o Runtime nao executa, em vez de
+executar mentindo.
+
+Consequencia pratica: para rodar um processo hoje, o operador classifica
+`process.spawn` como `danger-full-access` — o modo que nao promete
+confinement nenhum. A execucao nao confinada vira escolha explicita e
+auditavel (o proprio filho recebe `SPECTREE_SANDBOX=danger-full-access`),
+nunca efeito colateral silencioso de um modo que diz "workspace". Um
+runtime com teto `workspace-write` simplesmente nao pare processo — e o
+perfil que acompanha o runtime nem classifica `process`, entao a postura
+de fabrica e fechada.
+
+A regra vive em UM lugar (`executionBoundaryFor`, eixo `process`), que
+devolve `{ allowSpawn, enforcement, denialReason }`. O Provider obedece,
+nao reinterpreta, e a recusa e `SandboxDeniedError` — nao erro de
+Provider: a operacao estava autorizada; o ambiente e que nao pode
+cumprir o limite. Esse e tambem o seam do backend fisico futuro
+(Landlock, job object, container): ele constroi o boundary do handle com
+`processEnforcement: 'full'` e o mesmo calculo libera spawn sob modo
+restritivo, sem tocar no Agent nem no Provider de processo. `partial`
+nao conta — so `full` e fisico.
+
+### O contrato
+
+`ProcessSpawnSpec`: argv, cwd EXPLICITO (nunca herdado de
+`process.cwd()`), stdio explicito por stream (`stdin`:
+ignore|pipe|data; `stdout`/`stderr`: pipe|inherit|collect), env de
+overrides, `graceMs` limitado e `AbortSignal` opcional. Nenhum default
+silencioso de stdio.
+
+O cwd, workspace-relativo, vira o resource canonico que a Policy julga
+(`workspace`, `workspace/<path>` ou `outside-workspace` — que morre na
+Policy antes de qualquer spawn). Resource, boundary do Sandbox e cwd
+fisico nao podem divergir; e filesystem + process compartilham o MESMO
+execution world (INV-630) — arquivo criado pelo processo e lido pelo
+LocalFilesystemProvider sem traducao.
+
+### Ambiente
+
+O filho NUNCA herda o ambiente do host por inteiro: base minima por
+allowlist, scrub do namespace `SPECTREE_*` herdado (fatos do Runtime
+nao sao confiaveis vindos do host), overrides explicitos do spec — que
+nao podem invadir o namespace — e por ultimo as variaveis gerenciadas
+(`SPECTREE_SESSION_ID`, `SPECTREE_AGENT_ID`, ...), escritas pelo
+Runtime como unica fonte legitima. Credencial do host fica fora por
+construcao.
+
+### Executavel
+
+Absoluto: canonicalizado e verificado. Nome simples: resolvido pelo
+PATH CONTROLADO do ambiente ja composto — o input nao redefine o PATH
+da resolucao. O resolvido na autorizacao e exatamente o executado.
+
+### Handle e lifecycle
+
+`spawn()` nao bloqueia: devolve um ProcessHandle (pid, done, stdout,
+stderr, stdin, terminate — superficie travada) que e seam INTERNO para
+consumidores futuros (shell, terminal); a Tool `process.spawn` aguarda
+o outcome e devolve fatos: exitCode, signal, duracao, saida coletada.
+`exitCode != 0` e OUTCOME, nunca ProcessError (INV-621) — quem decide o
+que significa e a Tool.
+
+`terminate()` e a unica API de encerramento: graceful -> graceMs ->
+forcado, em ARVORE (posix: process group; win32: taskkill /T) — best
+effort declarado, nunca inflado. Idempotente; `done` resolve com os
+fatos finais. Saida e coletada com `maxBytes` obrigatorio
+(`truncated = true` quando estoura — o texto nunca finge ser completo)
+e spill opcional, ele proprio limitado.
+
+### Posse e lifecycle de Session
+
+Todo processo pertence a uma Session (ProcessRegistry, do Runtime):
+Session A nao alcanca processo de B (ProcessOwnershipError, INV-617);
+`session.cancelled` termina os processos vivos da Session
+(INV-618); `runtime.shutdown()` encerra o que restou. Processo
+encerrado sai do registry.
+
+### Gate unico
+
+A capability `process` declara `providerOnly`: tool self-provided com
+`execute()` proprio e recusada pelo ToolRuntime — nao existe terceira
+rota entre o Agent e o spawn (INV-624). O gate e generico no Core (a
+capability declara; o Core nao conhece 'process' pelo nome).
+
+### Eventos
+
+`process.requested/resolved/started/exited/terminated` sob projecao
+segura: identidade do executavel e contagem de argumentos — nunca argv
+bruto (pode carregar segredo), stdin, env ou saida completa.
 
 ## Limitações conhecidas (deliberadas, Fase 1)
 

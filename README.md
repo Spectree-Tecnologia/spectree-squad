@@ -263,6 +263,7 @@ diretório pai).
 | 3 | Founder Gate — `ApprovalRequest`, `FounderGate`, `resume()` | E quando só um humano pode decidir? |
 | 4 | Capability Providers — `CapabilityResolver`, `LocalFilesystemProvider` | Como isso vira efeito real no mundo? |
 | 5 | Sandbox Runtime — `SandboxPolicy`, `SandboxResolver`, `LocalFilesystemSandboxProvider` | Sob quais limites físicos? |
+| 6 | Process Capability — `ProcessSpawnSpec`, `ProcessRegistry`, `LocalSubprocessProvider` | Qual processo pode nascer? |
 
 O Sandbox fecha a quinta dimensão: a Policy responde *se pode*, o Sandbox
 responde *dentro de quais limites físicos*. Três modos (`read-only`,
@@ -272,10 +273,30 @@ se declara `partial`, nunca `full`, que fica reservado para isolamento de
 kernel. Pedir mais garantia do que o backend entrega falha fechado, em vez
 de degradar em silêncio.
 
-A próxima fronteira é o **Process/Subprocess Capability**: com a fronteira
-pronta, a pergunta deixa de ser só "o agente pode executar este comando?"
-e passa a incluir qual processo nasce, com qual filesystem, qual rede e
-qual limite de vida.
+A Fase 6 pôs o primeiro consumidor crítico dentro dessa fronteira:
+**processos**. O Spectree nunca executa uma string de comando — executa
+`argv` explícito, com `cwd` no mesmo execution world do filesystem,
+ambiente montado por allowlist (segredo do host não entra; `SPECTREE_*`
+só o runtime escreve), saída limitada com `truncated` honesto, e
+`terminate()` que escala graceful→forçado sobre a árvore inteira. Todo
+processo pertence a uma Session: cancelar a Session encerra o que ela
+criou, e uma Session nunca alcança processo de outra. Shell não existe
+nesta camada — quando existir, será semântica sobre `process.spawn`,
+governada como qualquer processo.
+
+E o runtime não executa prometendo um limite que não aplica: modo
+restritivo (`read-only`, `workspace-write`) é promessa de confinamento
+físico, e nenhum backend hoje confina um processo do sistema operacional.
+Sob esses modos, portanto, **o processo não nasce** — quem precisa
+executar declara `danger-full-access`, que não promete nada. Execução não
+confinada vira escolha explícita e auditável em vez de efeito colateral
+de um modo que diz "workspace". Quando um backend físico chegar
+(Landlock, job object, container), ele declara enforcement `full` e o
+mesmo cálculo libera o spawn sob modo restritivo, sem tocar no agente.
+
+A próxima fronteira é o **Shell**: parser de comando de um lado,
+`process.spawn` do outro — sem que o provider de processo vire um
+executor gigante.
 
 ### Rodando
 
@@ -286,6 +307,7 @@ npm run example:policy # allow, deny e approval-required
 npm run example:approval # approve/resume, deny e revalidação bloqueando
 npm run example:provider # até o arquivo real, com traversal morrendo na Policy
 npm run example:sandbox  # a mesma escrita permitida e negada, só mudando o boundary
+npm run example:process  # processo governado: argv explícito, mesmo mundo do filesystem
 ```
 
 Arquitetura em `docs/architecture/SPECTREE-RUNTIME.md`; as decisões que
@@ -322,6 +344,7 @@ spectree-runtime/
   approval/                          # Fase 3: quando o humano decide
   capabilities/ providers/           # Fase 4: como vira efeito real
   sandbox/                           # Fase 5: sob quais limites físicos
+  process/                           # Fase 6: qual processo pode nascer
   tools/tool-runtime.js              # o ponto onde as quatro se encontram
   adapters/squad-agent.js            # ponte Squad -> Runtime
   adapters/policy-document.js        # o caminho unico da matriz (Fase 4.5)
