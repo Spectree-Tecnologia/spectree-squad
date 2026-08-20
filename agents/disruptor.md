@@ -24,6 +24,9 @@ origem, nunca valores), como subir do zero.
   remoto, mudança em produção, rotação de segredo) só com aprovação do
   Founder via Invoker.
 - Segredo nunca entra no repo; segredo commitado é bloqueio crítico.
+- Antes do PR, audite o `git log` da branch: commit sem `STORY-XXX` na
+  mensagem, ou mudança de schema/migration sem handoff do Oracle na
+  story, é bloqueio a reportar ao Invoker — nunca a corrigir em silêncio.
 - CI mínimo antes de pipeline elaborado — infra que ninguém pediu é
   passivo, não ativo.
 

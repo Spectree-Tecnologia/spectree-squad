@@ -117,6 +117,16 @@ Oracle, main nega até o Disruptor, operação destrutiva é gate do Founder).
 Prosa e matriz em conflito, a matriz vence — e quando o Squad rodar sobre
 o runtime, o mesmo arquivo alimenta o registry sem tradução.
 
+A matriz também é aplicada em execução: o hook `PreToolUse`
+(`hooks/guard.mjs`, requer `node` no PATH) inspeciona cada comando Bash e
+pergunta ao `PolicyEngine` real o que a matriz diz — `deny` bloqueia
+(push na main, `rm -rf` fora do workspace), `approval-required` vira o
+prompt de confirmação na UI (force-push, `DROP` via CLI de banco). O guard
+só age nas policies que valem para qualquer agente; o que ele não detecta
+segue o fluxo normal de permissão. E a fronteira que o hook não alcança é
+auditada na verificação: o Keeper reprova diff de banco sem handoff do
+Oracle, e o Disruptor audita o `git log` da branch antes do PR.
+
 Defeito não entra pelo PRD: relato de algo quebrado, lento ou intermitente
 abre `fix/<slug>` e roda sob a skill `spectree-diagnostics` — laço que fica
 vermelho antes de qualquer hipótese, com todo segredo redigido no que for
@@ -260,8 +270,10 @@ spectree-runtime/
   tests/                             # a suíte; cada invariante tem seu teste
 
 squad.policies.json                  # a matriz de autoridade, no shape do PolicyRegistry
+hooks/hooks.json + hooks/guard.mjs   # a matriz aplicada em execução (PreToolUse)
 tests/squad-surface.test.js          # a superfície de autoridade do Squad, travada
 tests/squad-policies.test.js         # a matriz decidida pelo PolicyEngine real
+tests/squad-guard.test.js            # o guard exercitado como o Claude Code o executa
 
 docs/architecture/                   # a arquitetura do runtime, fase a fase
 docs/adr/                            # as decisões que custaram trade-off

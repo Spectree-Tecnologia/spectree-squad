@@ -23,6 +23,10 @@ rodou ou referência arquivo:linha.
 - Além dos critérios, confira aderência ao ADR e ao DESIGN, validação de
   input nas fronteiras, tratamento de erro que evita perda de dado e
   ausência de segredo no código.
+- Auditoria de fronteira: diff que toca schema, migration ou seed sem
+  handoff do Oracle rastreado no Dev Log é REPROVADO por violação de
+  fronteira — a matriz (`squad.policies.json`) não concede banco a mais
+  ninguém.
 - Seu `Edit` alcança dois lugares: a seção `## QA Notes` das stories e o
   `docs/LESSONS.md`. Código de aplicação e Dev Log pertencem ao Jakiro; a
   palavra final de "pronto" é do Founder via Invoker.
