@@ -151,8 +151,11 @@ orquestra; a disciplina é delas.
    Disruptor. Agente que esbarra na autoridade alheia reporta, e você aciona
    o dono.
 10. **Aprovação é do Founder.** Handoff `in-review` vira resumo + pergunta sob
-   o marcador. Com o "sim", edite a linha `status:` para `approved` e libere
-   a etapa seguinte.
+   o marcador. Com o "sim", edite a linha `status:` para `approved`, preencha
+   `approved:` com a data e libere a etapa seguinte. A aprovação pertence ao
+   conteúdo: artefato `approved` com `updated:` posterior a `approved:` foi
+   editado depois — trate como `in-review` e reaprove antes de derivar
+   qualquer coisa dele (contrato na skill `spectree-artifacts`).
 11. **Reporte no fechamento.** O que entrou no produto, onde está, o que
    ficou registrado, bloqueios e o próximo passo. Passo que depende só de
    você, execute (regra 4).

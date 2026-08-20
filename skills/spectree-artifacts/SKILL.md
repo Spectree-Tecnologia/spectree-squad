@@ -72,13 +72,24 @@ Todo artefato começa com este bloco:
 status: draft | in-review | approved | in-progress | done | superseded
 owner: <nome do agente>
 updated: <YYYY-MM-DD>
+approved: <YYYY-MM-DD da aprovação do Founder, ou "-">
 depends_on: <caminho do artefato pai, ou "-">
 ---
 ```
 
-`approved` só é setado pelo Invoker depois de aprovação explícita do Founder.
-Agente nenhum aprova o próprio artefato. Toda edição em um artefato atualiza
-a linha `updated:` — header desatualizado é bug.
+`approved` só é setado pelo Invoker depois de aprovação explícita do Founder,
+que preenche `approved:` com a data no mesmo ato — a trilha de *qual*
+conteúdo foi aprovado é o `updated:` daquele momento. Agente nenhum aprova o
+próprio artefato. Toda edição em um artefato atualiza a linha `updated:` —
+header desatualizado é bug.
+
+**A aprovação pertence ao conteúdo, não ao arquivo.** Editar um artefato
+`approved` rebaixa o `status:` para `in-review` na mesma edição, feita por
+quem editou — não existe editar e deixar `approved` de pé. Derivar trabalho
+de um artefato exige `updated:` igual ou anterior a `approved:`; divergência
+significa conteúdo que ninguém aprovou, e volta ao Invoker para reaprovação.
+(Regra espelhada do runtime: aprovação nunca sobrevive à mudança do que foi
+aprovado.)
 
 `in-progress` e `done` valem só para stories (ciclo de build abaixo):
 `in-progress` é setado pelo Jakiro ao começar a implementar; `done` só pelo

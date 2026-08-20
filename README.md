@@ -72,7 +72,9 @@ Fluxo:
 
 Artefatos derivam em cadeia (`PRD -> EPIC/STORY -> ADR + DESIGN -> código`,
 com `INFRA.md` derivando das ADRs) e cada etapa só avança com o artefato pai
-aprovado pelo Founder. Lacunas de requisito viram perguntas organizadas por
+aprovado pelo Founder. A aprovação pertence ao conteúdo, não ao arquivo:
+editar um artefato `approved` o rebaixa a `in-review` até reaprovação — a
+mesma regra que o `resume()` do runtime aplica em código. Lacunas de requisito viram perguntas organizadas por
 **fronteira** — o Invoker pergunta de uma vez tudo que já é respondível,
 com recomendação para cada, e guarda o que depende de resposta anterior
 para a rodada seguinte, até nada restar assumido em silêncio. Stories declaram `blocked_by:` no header (bloqueio direto, nunca
@@ -166,7 +168,10 @@ As invariantes que esse caminho garante, todas cobertas por teste:
   `toolId`, não o input nem o output.
 - **Superfície de autoridade é congelada** — todo contexto que cruza uma
   fronteira de autoridade tem suas chaves fixadas por igualdade estrita,
-  para que uma fase futura não amplie autoridade em silêncio.
+  para que uma fase futura não amplie autoridade em silêncio. A regra
+  alcança o Squad: o frontmatter `tools:`/`skills:` dos agentes — a única
+  superfície onde o Claude Code aplica autoridade de verdade — é travado
+  por `tests/squad-surface.test.js` com a mesma igualdade estrita.
 
 O primeiro Provider real é o `LocalFilesystemProvider`: read, write e
 delete dentro de um workspace injetado no construtor (nunca lido de
@@ -245,6 +250,8 @@ spectree-runtime/
   tools/tool-runtime.js              # o ponto onde as quatro se encontram
   adapters/squad-agent.js            # ponte Squad -> Runtime
   tests/                             # a suíte; cada invariante tem seu teste
+
+tests/squad-surface.test.js          # a superfície de autoridade do Squad, travada
 
 docs/architecture/                   # a arquitetura do runtime, fase a fase
 docs/adr/                            # as decisões que custaram trade-off

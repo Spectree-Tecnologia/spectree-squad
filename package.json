@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test \"spectree-runtime/tests/*.test.js\"",
+    "test": "node --test \"spectree-runtime/tests/*.test.js\" \"tests/*.test.js\"",
     "example": "node spectree-runtime/example.js",
     "example:policy": "node spectree-runtime/example-policy.js",
     "example:approval": "node spectree-runtime/example-approval.js",
