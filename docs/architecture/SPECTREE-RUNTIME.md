@@ -778,6 +778,105 @@ mostra o kernel negando: dentro do workspace read/write/delete passam;
 fora, read, write, delete, rename, symlink e hard-link falham — e o neto
 do processo continua confinado.
 
+## Fase 8 — Execution Effects / Resource Model
+
+O `cwd` deixa de ser autoridade: toda execucao fisica governada carrega
+um `ExecutionEffectSet` explicito — o que ela pretende afetar, efeito a
+efeito — e NADA executa antes de o conjunto inteiro ser autorizado.
+
+```
+request -> resolve effects -> canonicalize -> fingerprint
+        -> Policy (CADA efeito) -> Founder Gate (conjunto)
+        -> Sandbox (modo derivado do conjunto) -> Provider -> outcome
+```
+
+### O modelo
+
+`ExecutionEffect` = `{kind, operation, resource, metadata}` com
+identidade canonica deterministica. Kinds: filesystem e process
+(normativos); network e environment sao vocabulario reservado — criar
+efeito deles e erro, nao permissao implicita. Operacoes de filesystem:
+read, write, create, delete, rename, link — semanticamente distintas
+(write nao autoriza delete). rename e link sao compostos: source E
+destination viram efeitos separados com o counterpart na identidade, e
+os dois participam da autorizacao.
+
+`ExecutionEffectSet`: deduplicado (read A tres vezes = um efeito; read A
+e write A permanecem dois), ordenado deterministicamente (a ordem de
+descoberta nao muda nada) e com fingerprint sha256 — a ligacao entre
+authorization, approval, sandbox, execution e audit, sem expor dado
+sensivel.
+
+### Resolucao (EffectResolver)
+
+Deterministica, sem LLM, fail-closed (INV-805): quem nao consegue
+declarar o conjunto com seguranca produz um plano `incomplete`, que NAO
+executa — nunca vira `workspace/*` por conveniencia. A resolucao
+pertence a quem sabe: `tool.resolveEffects(input)` >
+`tool.effects` estatico > `capability.resolveEffects` > caminho legado
+single-resource das Fases 1-7 (adaptador de compatibilidade; capability
+que declarou `effectKinds` nao regride e falha fechado).
+
+O caller nunca fornece o resource de autorizacao (INV-806): o resolver
+canonicaliza o input pela MESMA regra da Fase 4 — aliases convergem
+(`./src/../src/a.js` == `src/a.js`), traversal vira `outside-workspace`
+que nenhuma policy de workspace casa. O matching acontece sobre o
+canonico, nunca sobre o input bruto.
+
+### spawn sob o modelo
+
+`process.spawn` declara DOIS efeitos: o execution world
+(`process://workspace`, do cwd canonico) e a identidade do executavel
+(`process://executable/node`). Autorizar so o world deixou de bastar —
+comecar no workspace nao autoriza executavel nenhum (secao 80). argv sem
+identidade de executavel = plano incomplete = zero spawn.
+
+### Decisao composta
+
+O PolicyEngine existente decide CADA efeito (a capability da decisao e o
+kind do efeito — spawn com efeitos de filesystem e julgado pelas
+policies de filesystem). Composicao: qualquer DENY nega o conjunto;
+APPROVAL vence ALLOW; nao existe autorizacao parcial (INV-804). O deny
+composto e `EffectAuthorizationError` — que estende `PolicyDeniedError`:
+o detalhe tipado das fases anteriores continua valendo, com o efeito
+negado anexado.
+
+### Approval e revalidation
+
+Uma UNICA approval representa o conjunto (INV-807): fingerprint +
+efeitos projetados no record, na view e no evento — nunca o input bruto.
+No resume o conjunto e recalculado do input ORIGINAL e o fingerprint e a
+trava (INV-808): divergencia = `EffectRevalidationError`, a approval
+permanece `approved`, nada e automatico. `effect.revalidated` marca a
+revalidacao bem-sucedida entre `approval.approved` e a execucao.
+
+### Sandbox consome efeitos
+
+O modo fisico necessario e derivado do CONJUNTO: cada efeito exige o seu
+(pelo mesmo perfil declarativo da F5) e o mais exigente vence — uma tool
+cujo conjunto so le ganha boundary read-only, mesmo que a etiqueta dela
+diga write. Efeito de kind/operation nao classificado no perfil = fail
+closed. Os efeitos REDUZEM o teto, nunca ampliam (secao 31); o
+estreitamento fisico por-recurso (bind so dos recursos do conjunto) fica
+declarado como evolucao do backend, nao fingido.
+
+### Eventos
+
+`effect.resolved` (fingerprint + contagem), `effect.evaluated` (um por
+efeito: kind, operation, resource canonico, policyId, decisao),
+`effect.denied`, `effect.approval-required`, `effect.revalidated` — sob
+projecao segura, sem input bruto, argv, stdin ou segredo. Nenhum sinal
+fisico (`tool.started`, `provider.started`) antes de o conjunto inteiro
+estar autorizado (secao 48).
+
+### R8
+
+Superficies travadas por igualdade estrutural: ExecutionEffect,
+ResourceRef, ExecutionEffectSet, EffectPlan, EffectResolver e a projecao
+de EffectDecision nos eventos. `executeWithoutEffects` e variantes nao
+existem e ha teste provando (secao 61). Agent e Provider seguem isolados
+como antes.
+
 ## Limitações conhecidas (deliberadas, Fase 1)
 
 - Erro de tool falha a execução por padrão; um agente pode dar catch em

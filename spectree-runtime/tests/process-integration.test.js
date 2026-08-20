@@ -111,7 +111,7 @@ function build({
     },
     {
       id: 'oracle-process', effect: 'allow', principal: 'oracle',
-      capability: 'process', operations: ['spawn'], resources: ['workspace*'],
+      capability: 'process', operations: ['spawn'], resources: ['workspace*', 'executable/*'],
     },
   ]);
   return {
@@ -144,7 +144,10 @@ test('cadeia completa: Policy -> Sandbox -> Provider -> OS process (secao 173)',
     assert.equal(result.output.stdout.text.trim(), 'governed');
     // ordem congelada (secao 60), com process.* entre provider.started e completed
     assert.deepEqual(env.types(), [
-      'tool.requested', 'policy.evaluated',
+      'tool.requested',
+      // Fase 8: o spawn declara dois efeitos — world e executavel
+      'effect.resolved', 'effect.evaluated', 'effect.evaluated',
+      'policy.evaluated',
       'sandbox.requested', 'sandbox.applied',
       'tool.started', 'provider.started',
       'process.requested', 'process.resolved', 'process.started', 'process.exited',
@@ -325,6 +328,11 @@ test('bypass: tool process.* com execute() proprio e recusada — nao existe ter
       // resource legitimo para a Policy PERMITIR — e provar que quem
       // recusa e o gate provider-only, nao o default deny
       resource: () => ({ type: 'process', id: 'workspace' }),
+      // Fase 8: efeitos legitimos para a resolucao e a Policy passarem —
+      // e provar que quem recusa e o gate provider-only
+      resolveEffects: () => [
+        { kind: 'process', operation: 'spawn', resource: { type: 'process', id: 'workspace' } },
+      ],
       execute: async () => 'spawnei por fora',
     });
     await assert.rejects(

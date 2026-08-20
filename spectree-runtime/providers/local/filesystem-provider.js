@@ -32,6 +32,9 @@ export const filesystemCapability = Object.freeze({
   name: 'Filesystem',
   description: 'Operacoes de arquivo dentro do workspace',
   operations: Object.freeze(['read', 'write', 'delete']),
+  // Fase 8 (secao 55): os kinds de efeito que esta capability conhece —
+  // efeito fora desta lista e EffectResolutionError, nunca autorizacao
+  effectKinds: Object.freeze(['filesystem']),
 });
 
 /**
@@ -41,6 +44,14 @@ export const filesystemCapability = Object.freeze({
  */
 export function filesystemTools() {
   const resource = (input) => ({ type: 'filesystem', id: canonicalFilesystemId(input.path) });
+  // Fase 8 (secoes 12, 21): o efeito e derivado do MESMO canonico que a
+  // Fase 4 ja usava — as policies existentes continuam casando por
+  // construcao, e o cwd nunca participa (INV-802)
+  const effectsFor = (operation) => (input) => [{
+    kind: 'filesystem',
+    operation,
+    resource: { type: 'filesystem', id: canonicalFilesystemId(input.path) },
+  }];
   const pathSchema = {
     type: 'object',
     required: ['path'],
@@ -53,6 +64,7 @@ export function filesystemTools() {
       description: 'Le um arquivo do workspace',
       capability: 'filesystem',
       operation: 'read',
+      resolveEffects: effectsFor('read'),
       inputSchema: pathSchema,
       resource,
     },
@@ -62,6 +74,7 @@ export function filesystemTools() {
       description: 'Escreve um arquivo no workspace',
       capability: 'filesystem',
       operation: 'write',
+      resolveEffects: effectsFor('write'),
       inputSchema: {
         type: 'object',
         required: ['path', 'content'],
@@ -75,6 +88,7 @@ export function filesystemTools() {
       description: 'Remove um arquivo do workspace',
       capability: 'filesystem',
       operation: 'delete',
+      resolveEffects: effectsFor('delete'),
       inputSchema: pathSchema,
       resource,
     },

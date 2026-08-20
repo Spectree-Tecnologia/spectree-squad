@@ -5,6 +5,7 @@ import {
   ApprovalNotFoundError,
   ApprovalStateError,
   PolicyRevalidationError,
+  EffectRevalidationError,
 } from '../errors.js';
 
 /**
@@ -87,6 +88,8 @@ export class ApprovalManager {
       capabilityId: record.capabilityId,
       operation: record.operation,
       resource: record.resource,
+      effectSetFingerprint: record.effectSetFingerprint ?? null,
+      effects: record.effects ?? null,
       policyId: record.policyId,
       reason: record.reason,
       requestedAt: record.requestedAt,
@@ -134,6 +137,10 @@ export class ApprovalManager {
       capabilityId: invocation.capability ?? null,
       operation: invocation.operation,
       resource: invocation.resource ?? null,
+      // INV-807: a aprovacao pertence ao CONJUNTO de efeitos — o
+      // fingerprint e a identidade da autorizacao, nao so o toolId
+      effectSetFingerprint: invocation.effectSetFingerprint ?? null,
+      effects: invocation.effects ?? null,
       policyId: decisionContext.policyId ?? null,
       reason: decisionContext.reason ?? '',
       requestedAt,
@@ -157,6 +164,10 @@ export class ApprovalManager {
         capabilityId: record.capabilityId,
         operation: record.operation,
         resource: record.resource,
+        // projecao segura (secao 19): fingerprint + efeitos projetados,
+        // nunca input bruto
+        effectSetFingerprint: record.effectSetFingerprint ?? null,
+        effects: record.effects ?? null,
         policyId: record.policyId,
         reason: record.reason,
         expiresAt: record.expiresAt,
@@ -261,10 +272,28 @@ export class ApprovalManager {
     // Revalidacao silenciosa: mesma Tool, mesmo input, resource
     // recalculado pela regra R9 (secao 54). Nada de input novo do
     // Founder (secao 55, INV-309).
-    const { decision } = this.#authorize(
+    const { decision, effectPlan } = this.#authorize(
       { toolId: invocation.toolId, input: invocation.input },
       { agentId: invocation.agentId, session: { id: invocation.sessionId } },
     );
+    // Fase 8 (secoes 20, 50, INV-808): o resume recalcula o EffectSet a
+    // partir do input original e compara fingerprints ANTES de qualquer
+    // outra coisa — aprovacao nunca fornece novos recursos ou efeitos.
+    // Divergencia bloqueia e a approval permanece approved (secao 21).
+    if (record.effectSetFingerprint) {
+      const currentFingerprint = effectPlan?.fingerprint ?? null;
+      if (currentFingerprint !== record.effectSetFingerprint) {
+        throw new EffectRevalidationError({
+          approvalId,
+          approvedFingerprint: record.effectSetFingerprint,
+          currentFingerprint,
+        });
+      }
+      this.#bus.publish('effect.revalidated', {
+        ...this.#meta(record),
+        payload: { approvalId, effectSetFingerprint: currentFingerprint },
+      });
+    }
     const satisfied =
       decision.effect === 'allow' ||
       (decision.effect === 'approval-required' && decision.policyId === record.policyId);

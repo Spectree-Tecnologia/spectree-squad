@@ -83,8 +83,17 @@ export class SandboxProfileResolver {
    *   operacao exige — autorizada em principio, impossivel neste ambiente
    *   (secoes 31, 58).
    */
-  resolve({ tool, capabilityId, operation }) {
-    const requiredMode = requiredModeFor(this.#document, capabilityId, operation);
+  resolve({ tool, capabilityId, operation, effects = null }) {
+    // Fase 8 (secoes 28-31): com um EffectSet autorizado, o modo
+    // necessario e derivado do CONJUNTO — cada efeito exige o seu, e o
+    // mais exigente vence. Efeito de kind/operation nao classificado
+    // continua sendo SandboxConfigurationError (secao 132 F5): o
+    // conjunto nunca AMPLIA o que o perfil declarou.
+    const requiredMode = Array.isArray(effects) && effects.length > 0
+      ? effects
+          .map((effect) => requiredModeFor(this.#document, effect.kind, effect.operation))
+          .reduce((a, b) => (modeRank(a) >= modeRank(b) ? a : b))
+      : requiredModeFor(this.#document, capabilityId, operation);
     const capabilityCeiling = this.#document.capabilities?.[capabilityId]?.maxMode
       ?? this.#document.runtimeMaxMode;
 

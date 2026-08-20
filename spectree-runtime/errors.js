@@ -56,6 +56,43 @@ export class PolicyApprovalRequiredError extends PolicyError {
 
 export class PolicyConfigurationError extends PolicyError {}
 
+// ---- Fase 8: Execution Effects (secoes 67-70) -----------------------
+
+export class EffectError extends RuntimeError {}
+
+/** O Runtime nao conseguiu determinar com seguranca o efeito necessario
+ * (secao 68) — NAO significa que a Policy negou. Fail closed (INV-805). */
+export class EffectResolutionError extends EffectError {}
+
+/**
+ * O conjunto de efeitos foi resolvido mas nao autorizado (secao 69).
+ * Estende PolicyDeniedError deliberadamente: um deny composto E uma
+ * negacao de Policy — o detalhe tipado existente e preservado, com o
+ * conjunto anexado.
+ */
+export class EffectAuthorizationError extends PolicyDeniedError {
+  constructor(decision, { effectSetFingerprint = null, deniedEffect = null } = {}) {
+    super(decision);
+    this.effectSetFingerprint = effectSetFingerprint;
+    this.deniedEffect = deniedEffect;
+  }
+}
+
+/** O conjunto de efeitos no resume nao corresponde a autorizacao
+ * original (secoes 20, 50, 70). A approval permanece approved. */
+export class EffectRevalidationError extends EffectError {
+  constructor({ approvalId, approvedFingerprint, currentFingerprint }) {
+    super(
+      'effect revalidation blocked resume: approved fingerprint ' +
+      String(approvedFingerprint).slice(0, 12) + '... does not match current ' +
+      String(currentFingerprint).slice(0, 12) + '...',
+    );
+    this.approvalId = approvalId;
+    this.approvedFingerprint = approvedFingerprint;
+    this.currentFingerprint = currentFingerprint;
+  }
+}
+
 export class CapabilityError extends RuntimeError {}
 
 export class CapabilityNotFoundError extends CapabilityError {

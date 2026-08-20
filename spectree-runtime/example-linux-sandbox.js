@@ -85,7 +85,7 @@ runtime.providerRegistry.register(new LocalSubprocessProvider({
 for (const tool of [...filesystemTools(), ...processTools()]) runtime.toolRuntime.register(tool);
 runtime.policyRegistry.registerMany([
   { id: 'oracle-fs', effect: 'allow', principal: 'oracle', capability: 'filesystem', resources: ['filesystem/workspace*'] },
-  { id: 'oracle-process', effect: 'allow', principal: 'oracle', capability: 'process', operations: ['spawn'], resources: ['workspace*'] },
+  { id: 'oracle-process', effect: 'allow', principal: 'oracle', capability: 'process', operations: ['spawn'], resources: ['workspace*', 'executable/*'] },
 ]);
 
 const ctx = { agentId: 'oracle', session: { id: 'sess_demo' } };

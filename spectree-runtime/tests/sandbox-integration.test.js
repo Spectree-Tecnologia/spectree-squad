@@ -154,6 +154,8 @@ test('sequencia de eventos congelada, com sandbox antes da execucao (secao 68)',
     );
     assert.deepEqual(env.types(), [
       'tool.requested',
+      // Fase 8: o efeito unico da escrita e resolvido e avaliado
+      'effect.resolved', 'effect.evaluated',
       'policy.evaluated',
       'sandbox.requested',
       'sandbox.applied',
@@ -293,7 +295,7 @@ test('Sandbox indisponivel: fail closed, zero execucao (secoes 116, 163)', async
       env.runtime.toolRuntime.execute({ toolId: 'filesystem.write', input: { path: 'x.js', content: 'x' } }, ctx),
       SandboxUnavailableError,
     );
-    assert.deepEqual(env.types(), ['tool.requested', 'policy.evaluated', 'sandbox.requested', 'sandbox.failed']);
+    assert.deepEqual(env.types(), ['tool.requested', 'effect.resolved', 'effect.evaluated', 'policy.evaluated', 'sandbox.requested', 'sandbox.failed']);
     assert.ok(!existsSync(path.join(env.workspaceRoot, 'x.js')));
   } finally {
     env.cleanup();

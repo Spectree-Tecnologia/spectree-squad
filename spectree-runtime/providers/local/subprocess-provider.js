@@ -42,7 +42,24 @@ export const processCapability = Object.freeze({
   // INV-624: o Provider e o gate unico — nenhuma tool self-provided
   // pode carregar o proprio spawn (secoes 121/160)
   providerOnly: true,
+  // Fase 8 (secao 55): um processo pode declarar efeitos de filesystem
+  // CONHECIDOS pelo contrato da tool (secao 24) — o vocabulario e
+  // declarado aqui; efeito fora dele falha na resolucao
+  effectKinds: Object.freeze(['process', 'filesystem']),
 });
+
+/**
+ * Identidade canonica do executavel para o efeito de spawn (secao 25):
+ * `process://executable/<nome>`. Nome base, sem extensao de plataforma —
+ * a resolucao FISICA (PATH controlado, realpath) continua no Provider.
+ */
+export function canonicalExecutableName(rawArgv0) {
+  if (typeof rawArgv0 !== 'string' || rawArgv0.length === 0) return null;
+  const posix = rawArgv0.split(BACKSLASH).join('/');
+  const base = posix.slice(posix.lastIndexOf('/') + 1).toLowerCase();
+  const name = base.replace(/\.(exe|cmd|bat)$/, '');
+  return name.length > 0 ? name : null;
+}
 
 /** Tool process.spawn (secoes 8, 140): spec estruturado, nunca string. */
 export function processTools() {
@@ -63,6 +80,31 @@ export function processTools() {
         },
       },
       resource: (input) => ({ type: 'process', id: canonicalProcessWorld(input.cwd) }),
+      /**
+       * Fase 8 (secoes 24-25, INV-802): o spawn declara DOIS efeitos —
+       * o execution world (cwd canonico, preservando a defesa de
+       * traversal da Fase 4) e a identidade do executavel. O cwd deixa
+       * de ser o modelo completo: e contexto de execucao, e cada efeito
+       * e autorizado por si.
+       */
+      resolveEffects(input) {
+        const executable = canonicalExecutableName(input?.argv?.[0]);
+        if (!executable) {
+          return { completeness: 'incomplete', reason: 'executable identity cannot be determined from argv' };
+        }
+        return [
+          {
+            kind: 'process',
+            operation: 'spawn',
+            resource: { type: 'process', id: canonicalProcessWorld(input.cwd) },
+          },
+          {
+            kind: 'process',
+            operation: 'spawn',
+            resource: { type: 'process', id: 'executable/' + executable },
+          },
+        ];
+      },
     },
   ];
 }
