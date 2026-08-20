@@ -61,12 +61,34 @@ function matchesType(type, value) {
  * já chega — session e agentId (spec secao 12). Um futuro timeout entra
  * no mesmo ponto (spec secao 37).
  */
+/**
+ * Projecao default: o payload do evento espelha o payload da tool.
+ * @param {{phase: string, toolId: string, input?: object, output?: *, error?: string}} view
+ */
+const identityProjection = (view) => {
+  const { phase, ...payload } = view; // eslint-disable-line no-unused-vars
+  return payload;
+};
+
 export class ToolRuntime {
   #tools = new Map();
   #bus;
+  #projectEventPayload;
 
-  constructor({ eventBus }) {
+  /**
+   * @param {object} options
+   * @param {import('../events/event-bus.js').EventBus} options.eventBus
+   * @param {typeof identityProjection} [options.projectEventPayload]
+   *   Seam entre o payload da Tool e o payload do Event (R7): o que a tool
+   *   recebe/devolve nao precisa ser o que o bus publica. E aqui que uma
+   *   futura camada de redacao ou de observabilidade decide o que aparece
+   *   em tool.requested/completed/failed - sem tocar Tool nem AgentLoop.
+   *   Recebe {phase: 'requested'|'started'|'completed'|'failed', toolId,
+   *   input?, output?, error?} e devolve o payload publicado.
+   */
+  constructor({ eventBus, projectEventPayload = identityProjection }) {
     this.#bus = eventBus;
+    this.#projectEventPayload = projectEventPayload;
   }
 
   /** Registra uma Tool; id duplicado é erro. */
@@ -101,23 +123,36 @@ export class ToolRuntime {
   async execute(request, context = {}) {
     const { toolId, input = {} } = request;
     const meta = { sessionId: context.session?.id, agentId: context.agentId };
-    this.#bus.publish('tool.requested', { ...meta, payload: { toolId, input } });
+    this.#bus.publish('tool.requested', {
+      ...meta,
+      payload: this.#projectEventPayload({ phase: 'requested', toolId, input }),
+    });
     try {
       const tool = this.#tools.get(toolId);
       if (!tool) throw new ToolNotFoundError(toolId);
       const issues = validateInput(tool.inputSchema, input);
       if (issues.length > 0) throw new ToolValidationError(toolId, issues);
-      this.#bus.publish('tool.started', { ...meta, payload: { toolId } });
+      this.#bus.publish('tool.started', {
+        ...meta,
+        payload: this.#projectEventPayload({ phase: 'started', toolId }),
+      });
       const output = await tool.execute(input, {
         sessionId: context.session?.id,
         agentId: context.agentId,
       });
-      this.#bus.publish('tool.completed', { ...meta, payload: { toolId, output } });
+      this.#bus.publish('tool.completed', {
+        ...meta,
+        payload: this.#projectEventPayload({ phase: 'completed', toolId, output }),
+      });
       return { ok: true, toolId, output };
     } catch (error) {
       this.#bus.publish('tool.failed', {
         ...meta,
-        payload: { toolId, error: String(error?.message ?? error) },
+        payload: this.#projectEventPayload({
+          phase: 'failed',
+          toolId,
+          error: String(error?.message ?? error),
+        }),
       });
       throw error;
     }

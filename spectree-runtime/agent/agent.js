@@ -16,7 +16,6 @@ import { AgentError } from '../errors.js';
  * @property {string} mission
  * @property {object} runtime
  * @property {(toolId: string, input?: object) => Promise<object>} runtime.requestTool
- * @property {(type: string, payload?: object) => void} runtime.emit
  */
 
 /**

@@ -31,6 +31,12 @@ export class AgentLoop {
    * @returns {Promise<AgentResult>}
    */
   async run(agent, session) {
+    if (session.agentId !== agent.id) {
+      throw new SessionError(
+        'session ' + session.id + ' belongs to agent ' + session.agentId +
+        ', not ' + agent.id,
+      );
+    }
     if (session.state === 'created') session.start();
     if (session.state !== 'running') throw new SessionStateError(session.state, 'running');
 
@@ -50,7 +56,9 @@ export class AgentLoop {
           }
           return this.#toolRuntime.execute({ toolId, input }, { session, agentId: agent.id });
         },
-        emit: (type, payload) => this.#bus.publish(type, { ...meta, payload }),
+        // O EventBus nunca chega ao Agent (R1/R2/R8): lifecycle events sao
+        // exclusividade de AgentLoop, ToolRuntime e Session. Um Agent que
+        // pudesse publicar agent.completed falsificaria o proprio juiz.
       },
     };
 
@@ -58,7 +66,9 @@ export class AgentLoop {
     try {
       const output = await agent.run(context);
       if (session.isCancelled) {
-        // Cancelado durante a execucao: nenhum "completed" e emitido (spec 23).
+        // Contrato de cancelamento (R5): cooperativo. Tool em voo termina e
+        // emite seus eventos; nova tool nao inicia; e nenhum
+        // agent.completed/session.completed e emitido apos o cancel.
         return { status: 'cancelled' };
       }
       this.#bus.publish('agent.completed', { ...meta, payload: { output } });
