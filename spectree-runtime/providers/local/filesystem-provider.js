@@ -1,4 +1,4 @@
-import { promises as defaultFs, lstatSync } from 'node:fs';
+import { promises as defaultFs, lstatSync, realpathSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { ProviderExecutionError } from '../../errors.js';
 
@@ -98,6 +98,7 @@ export class LocalFilesystemProvider {
   operations = ['read', 'write', 'delete'];
 
   #root;
+  #realRoot = null;
   #fs;
 
   constructor({ workspaceRoot, fs = defaultFs }) {
@@ -130,17 +131,29 @@ export class LocalFilesystemProvider {
     if (resolved !== this.#root && !resolved.startsWith(this.#root + path.sep)) {
       throw new ProviderExecutionError('boundary-violation', 'resolved path escapes the workspace');
     }
-    // symlink defense (secao 43): nao confiar so na normalizacao textual.
-    // Alvo symlink -> recusa; diretorio pai resolvido tem de continuar
-    // dentro do workspace real.
-    try {
-      const stat = lstatSync(resolved, { throwIfNoEntry: false });
-      if (stat?.isSymbolicLink()) {
-        throw new ProviderExecutionError('symlink-denied', 'symlink access is denied: ' + relative);
-      }
-    } catch (error) {
-      if (error instanceof ProviderExecutionError) throw error;
-      // lstat falhou por outro motivo: a operacao concreta reportara
+    // Boundary FISICO (R12): a normalizacao textual nao enxerga um
+    // diretorio pai que e symlink/junction para fora do workspace.
+    // O realpath do ancestral existente mais profundo tem de continuar
+    // dentro do realpath do workspace — vale para read (o caminho todo
+    // existe) e para write (o pai pode ainda nao existir).
+    if (this.#realRoot === null) this.#realRoot = realpathSync(this.#root);
+    let probe = resolved;
+    while (!existsSync(probe)) {
+      const parent = path.dirname(probe);
+      if (parent === probe) break;
+      probe = parent;
+    }
+    const realProbe = realpathSync(probe);
+    if (realProbe !== this.#realRoot && !realProbe.startsWith(this.#realRoot + path.sep)) {
+      throw new ProviderExecutionError(
+        'boundary-violation',
+        'physical path escapes the workspace (symlinked ancestor): ' + relative,
+      );
+    }
+    // alvo final symlink -> recusa direta (secao 43)
+    const stat = lstatSync(resolved, { throwIfNoEntry: false });
+    if (stat?.isSymbolicLink()) {
+      throw new ProviderExecutionError('symlink-denied', 'symlink access is denied: ' + relative);
     }
     return resolved;
   }

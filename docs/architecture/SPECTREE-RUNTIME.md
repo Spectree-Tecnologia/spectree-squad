@@ -301,8 +301,11 @@ output (INV-419).
 
 O primeiro Provider real. Recebe somente `workspaceRoot` injetado — nada
 de process.env ou cwd (INV-417). Stateless. Invariantes fisicas proprias
-(secao 47), validas mesmo com Policy allow: boundary do workspace,
-recusa de symlink, recusa de deletar a raiz, verificacao
+(secao 47), validas mesmo com Policy allow: boundary FISICO do workspace
+— o realpath do ancestral existente mais profundo precisa continuar dentro
+do realpath do root (R12), fechando o escape por diretorio pai
+symlinkado —, recusa de symlink no alvo, recusa de deletar a raiz, e
+verificacao
 resource<->path (secao 139). Resource canonico:
 `filesystem://workspace/<posix-normalizado>` — path que escapa vira
 `outside-workspace`, que nenhuma policy de `workspace/*` casa: o

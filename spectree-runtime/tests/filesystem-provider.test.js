@@ -151,6 +151,64 @@ test('symlink escape (secoes 43/113): acesso via symlink e negado, alvo externo 
   assert.equal(readFileSync(path.join(outside, 'secret.txt'), 'utf8'), 'top-secret');
 });
 
+test('R12: read atraves de PARENT symlink e negado - o arquivo externo fica intocado', async (t) => {
+  const root = tempWorkspace(t);
+  const outside = path.join(path.dirname(root), 'spectree-r12-read-' + path.basename(root));
+  mkdirSync(outside, { recursive: true });
+  writeFileSync(path.join(outside, 'secret.txt'), 'r12-secret');
+  t.after(() => rmSync(outside, { recursive: true, force: true }));
+  try {
+    symlinkSync(outside, path.join(root, 'shared'), 'junction');
+  } catch {
+    t.skip('symlink nao suportado neste ambiente');
+    return;
+  }
+  const provider = new LocalFilesystemProvider({ workspaceRoot: root });
+  // o path textual 'shared/secret.txt' fica dentro do workspace; o path
+  // FISICO atravessa a junction e sai - o realpath do ancestral pega isso
+  await assert.rejects(
+    provider.execute({
+      operation: 'read',
+      input: { path: 'shared/secret.txt' },
+      resource: { type: 'filesystem', id: 'workspace/shared/secret.txt' },
+    }, {}),
+    (e) => e instanceof ProviderExecutionError && e.code === 'boundary-violation',
+  );
+  assert.equal(readFileSync(path.join(outside, 'secret.txt'), 'utf8'), 'r12-secret');
+});
+
+test('R12: write atraves de PARENT symlink e negado - nada e criado fora do workspace', async (t) => {
+  const root = tempWorkspace(t);
+  const outside = path.join(path.dirname(root), 'spectree-r12-write-' + path.basename(root));
+  mkdirSync(outside, { recursive: true });
+  t.after(() => rmSync(outside, { recursive: true, force: true }));
+  try {
+    symlinkSync(outside, path.join(root, 'drop'), 'junction');
+  } catch {
+    t.skip('symlink nao suportado neste ambiente');
+    return;
+  }
+  const provider = new LocalFilesystemProvider({ workspaceRoot: root });
+  await assert.rejects(
+    provider.execute({
+      operation: 'write',
+      input: { path: 'drop/planted.txt', content: 'escape attempt' },
+      resource: { type: 'filesystem', id: 'workspace/drop/planted.txt' },
+    }, {}),
+    (e) => e instanceof ProviderExecutionError && e.code === 'boundary-violation',
+  );
+  assert.equal(existsSync(path.join(outside, 'planted.txt')), false);
+  // e o write em subdiretorio AINDA INEXISTENTE dentro do workspace segue
+  // funcionando (o probe sobe ate o ancestral existente, que e o root real)
+  const ok = await provider.execute({
+    operation: 'write',
+    input: { path: 'deep/new/file.txt', content: 'legit' },
+    resource: { type: 'filesystem', id: 'workspace/deep/new/file.txt' },
+  }, {});
+  assert.deepEqual(ok.output, { written: true });
+  assert.equal(readFileSync(path.join(root, 'deep', 'new', 'file.txt'), 'utf8'), 'legit');
+});
+
 test('arquivo inexistente: ProviderExecutionError com causa distinguivel (secao 91)', async (t) => {
   const { runtime } = filesystemRuntime(t);
   await assert.rejects(
