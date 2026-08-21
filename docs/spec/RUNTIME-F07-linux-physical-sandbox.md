@@ -1,90 +1,213 @@
 ---
 status: in-review
 owner: TechLeader
-updated: 2026-08-20
-approved: - (o merge existe — PR #26, squash `1e40486`, tag `v0.31.0`, 2026-08-20 — e a marcacao desta fonte e a melhor das nove. O bloqueio e outro: esta e uma REVISAO DIFERENTE da que governou a implementacao. Tem 112 secoes, 1 a 112, sem buraco; o codigo da fase cita as secoes 118, 121, 122, 127 e 143, todas alem da ultima. Nao ha deslocamento constante — as secoes 14 a 20 batem exatas e a divergencia cresce depois. As irmas resolvem (F05 §151/§152/§154 e F08 §67-70 conferidos), so a F7 nao. Aguarda a revisao de >=143 secoes contra a qual a Fase 7 foi implementada.)
 depends_on: F1 Runtime Core, F2 Policy Engine, F3 Founder Gate, F4 Capability Providers, F4.5 Squad/Runtime Integration, F5 Sandbox Runtime, F6 Process/Subprocess
 ---
 
 # Spectree Runtime v2 — Fase 7: Linux Physical Sandbox
 
 > Transcrição da especificação normativa da Fase 7, produzida no harness de
-> planejamento do Founder (owner declarado na fonte: TechLeader; transcrição
-> feita pelo Rubick). Diferente das sete irmãs, esta fonte chegou com a
-> marcação markdown intacta — 2323 linhas, 161 headings, 318 linhas de cerca,
-> 112 separadores. O trabalho aqui não foi restaurar marcação: foi conformar
-> a fonte à forma do repositório. O texto é o do documento fonte, sem
-> correção, melhoria ou complemento. O texto commitado é o contrato real
-> (ver `docs/spec/README.md`).
+> planejamento do Founder (declarado na fonte: `Status: SPECIFICATION`,
+> `Owner: TechLeader`). O texto é o do documento fonte, sem correção, melhoria
+> ou complemento. O texto commitado é o contrato real (ver
+> `docs/spec/README.md`).
 >
-> **Equação de equivalência usada.** Como a fonte já traz headings e cercas
-> próprios, a equação das irmãs (linha de prosa → linha com no máximo um
-> prefixo) muda de forma. Aqui vale uma bijeção sobre as linhas não vazias,
-> com exatamente três transformações mecânicas e nenhuma exceção:
+> **Três fontes, e a que vence é a que o código endereça.** A primeira versão
+> deste arquivo nasceu de uma exportação achatada. A segunda veio de um
+> reexport com a marcação intacta — 2323 linhas, 318 linhas de cerca, 112
+> seções contíguas — e foi a melhor marcação das nove irmãs. A terceira é o
+> documento colado pelo Founder no chat: 345 linhas, 201 não vazias, **127
+> seções** contíguas de 1 a 127, e **zero cercas**. Venceu a terceira.
 >
-> 1. `# ` → `## ` em todo heading de topo, menos o título da linha 1 da
->    fonte, que permanece o único `#` do documento. São 113 linhas: as 112
->    seções numeradas e a linha `# **Fase 8 — Execution Effects / Resource
->    Model**` de dentro da §111, que a fonte não numerou e que esta
->    transcrição não numera.
-> 2. As 8 linhas de metadados da fonte (`**Status:**` a `**Referência
->    arquitetural principal:**`, marcadas na fonte com quebra dura de duas
->    colunas) ganharam o prefixo `- ` e viraram a lista de cabeçalho das
->    irmãs.
-> 3. Os 30 `### INV-7NN` viraram `- **INV-7NN**`, e a regra da linha
->    seguinte ganhou indentação de dois espaços. Zero junção: 30
->    identificadores, 30 regras, 60 linhas dos dois lados.
+> **Os dois eixos apontaram em direções opostas pela primeira vez, e a
+> revisão venceu a marcação.** O reexport de 112 seções tinha marcação
+> impecável e uma numeração que não resolve nenhuma das cinco citações
+> `secao NNN` que o código da fase faz — todas caem além da última seção
+> dele. Uma spec com marcação perfeita cuja numeração não resolve as citações
+> do código é um documento que mente sobre o próprio endereço. Marcação é
+> recuperável por reexport; revisão errada, não.
 >
-> Todo o resto passou intacto: as 318 linhas de cerca, os 112 separadores
-> `---`, a tabela de 7 linhas da §85, os 35 itens `- [ ]` da §105, os 3
-> blockquotes, e as 14 linhas iniciadas por `## ` de dentro da cerca da
-> §108 — que são conteúdo de bloco de código, não headings, e por isso não
-> foram tocadas.
+> **Quatro das cinco citações passam a resolver.** Nesta revisão, a §118 é
+> `Security error` (`SandboxUnavailableError`), a §121 é
+> `Definition of Done`, a §122 é `Definition of Architecture Done` e a §127 é
+> a `Regra de ouro da Fase 7`. As quatro conferem por título e por conteúdo.
+> A quinta, a §143, **resolve — em outra spec.** O cabeçalho da rodada
+> anterior a declarou órfã, e isso era falso: a busca tinha o escopo preso a
+> este arquivo. Medição de 2026-08-21 sobre `docs/spec/`, procurando
+> `^## 143\.` nas nove specs: a §143 existe na **F05**
+> (`RUNTIME-F05-sandbox-runtime.md:3050`, `## 143. Real enforcement backend`,
+> cuja última linha é "Nunca mascarar partial como full.") e na **F04**
+> (`RUNTIME-F04-capability-providers.md:3182`, `## 143. Real integration
+> tests`, sobre `temporary directory`). Nenhuma outra spec tem uma §143.
 >
-> Contagens não ancoradas que atravessam intactas: 2323 linhas na fonte,
-> 758 vazias, 1565 não vazias; 112 seções numeradas de 1 a 112, sem buraco e
-> sem repetição de número; 30 invariantes de INV-701 a INV-730, cada id
-> único; 318 linhas de cerca; 35 itens de Definition of Done; 112
-> separadores. A separação lista-vs-seção mede 112 seções e 35 itens de
-> lista dos dois lados: nenhum título de seção está soldado dentro de item
-> de lista, e nenhum item de lista foi promovido a seção.
+> O sítio da Fase 7 que a cita é
+> `sandbox/providers/linux-physical/linux-physical-sandbox-provider.js:142`
+> ("secao 39/143: nunca aceitar acima do que o probe PROVOU") e casa com a
+> **F05**. Ele não está sozinho: a mesma medição achou oito linhas em
+> `spectree-runtime/` citando 143, sete resolvendo na F05
+> (`sandbox/sandbox-contract.js:46`,
+> `sandbox/providers/local-filesystem-sandbox.js:11` e `:42`,
+> `sandbox/providers/test-sandbox-provider.js:33`,
+> `tests/sandbox-contract.test.js:33`, `tests/sandbox-unit.test.js:283` e a
+> desta fase) e uma na **F04** — `tests/filesystem-provider.test.js:15`, que
+> cita "secao 143" e "secao 144" como "workspace temporario real" e "limpo ao
+> final", verbatim a F04 §143 e a F04 §144 `Cleanup`. Não há citação órfã de
+> §143; há citação **ambígua**, e a correção delas é tarefa fora deste
+> arquivo.
 >
-> Do lado do destino a equação fecha assim: 2394 linhas, 760 em branco,
-> 1634 não vazias = 1565 da fonte, uma a uma, + 7 do cabeçalho + 62 deste
-> bloco de proveniência. Cercas 318 ↔ 318, seções 112 ↔ 112, invariantes
-> 30 ↔ 30, itens de Definition of Done 35 ↔ 35, separadores 112 ↔ 112.
+> **A causa vale mais que o conserto, e ela é estrutural.** Medição de
+> 2026-08-21 em `spectree-runtime/`: 798 linhas, em 84 arquivos, citam
+> `secao`/`secoes`/`seção`/`seções` seguido de número, e **nenhuma cita
+> número ≥ 180** — o maior citado é 178
+> (`tests/sandbox-integration.test.js:24`, "spec secoes 156-164, 178"). Como
+> a F05 traz 186 seções `^## N.` terminando em `## 186.` e a F06 traz 180
+> seções contíguas de 1 a 180 (declarado no cabeçalho dela e medido no mesmo
+> dia), **todo número que o código cita existe simultaneamente em pelo menos
+> duas specs.** Um `secao NNN` sem a fase não é ambíguo às vezes: é ambíguo
+> sempre. O falso órfão desta transcrição não foi azar — foi o resultado
+> garantido de procurar a seção num documento só. Resolver citação nua exige
+> varrer `docs/spec/` inteiro e desempatar pelo texto, nunca pela fase que
+> quem procura tem aberta.
 >
-> **`Status: SPECIFICATION` na lista abaixo é declaração da fonte**, não o
-> `status:` deste artefato — que é `in-review`, porque a matriz de
-> autoridade barra `rubick -> artifact-status.approve`.
+> Consequência fora deste arquivo: o `docs/spec/README.md` escolheu
+> justamente a §127 como exemplo de referência "histórica e não resolvível".
+> Ela resolve agora. A correção é do dono daquele arquivo.
 >
-> Aprovação a derivar: a Fase 7 embarcou em `main` no PR #26 — squash
-> `1e40486`, tag `v0.31.0`, em 2026-08-20. A data está no git; o flip de
-> `status:` e o preenchimento de `approved:` são ato do Invoker.
+> **A numeração tem repetições, e a aritmética fecha.** São 134 linhas que
+> casam `^N. ` na fonte, e não 127: as sete restantes são itens de lista
+> ordenada dentro de seção, com a sequência reiniciando em dois pontos — três
+> itens dentro da §3 (a cadeia de backends do DeepSeek) e quatro dentro da
+> §16 (os passos do probe de Bubblewrap). Fora esses sete, os números de
+> seção correm de 1 a 127 sem lacuna e sem repetição. As 201 linhas não
+> vazias decompõem-se em 1 título + 8 linhas de metadados + 127 linhas de
+> seção + 7 itens de lista + 30 linhas de invariante + 28 linhas do bloco de
+> handoff da §124. `1 + 8 + 127 + 7 + 30 + 28 = 201`, sem sobra.
 >
-> `updated:` registra a data do conteúdo, não a do arquivo: a transcrição
-> feita em 2026-08-21 conformou a forma e não alterou conteúdo.
+> **A divergência 30 × 31 nos invariantes era o detector, de novo.** O corpo
+> normativo traz trinta invariantes dos dois lados, contíguos, únicos, na
+> mesma ordem e com as mesmas trinta regras — divergem só em palavra solta
+> (artigo, maiúscula, um `de`/`do`). A trigésima primeira ocorrência estava
+> **no cabeçalho de transcrição da rodada anterior**, na frase que anunciava
+> a faixa de identificadores; o mesmo bloco ainda citava duas vezes o
+> placeholder de formato. Nenhum invariante foi fabricado e nenhum se perdeu.
 >
-> Divergência conhecida, não reconciliada por esta transcrição: a numeração
-> de seções desta fonte não resolve as citações `secao NNN` que o código da
-> Fase 7 faz. A "Regra de ouro da Fase 7" é a §109 aqui, e o código a chama
-> de §127; o código também cita §118, §121, §122 e §143, além da última
-> seção desta fonte. Nada foi renumerado — a fonte é a fonte.
+> É a segunda vez que o mesmo detector erra, e a F06 já fixou o método:
+> **conte o prefixo seguido de três dígitos, e conte a partir da primeira
+> seção numerada, nunca do arquivo inteiro.** A F07 mostra que as duas
+> metades do método são necessárias por motivos diferentes — aqui a frase de
+> faixa usava dígitos reais, então a âncora de três dígitos sozinha não
+> salvaria; só a segunda metade salva. Por isso este bloco **não escreve
+> nenhum identificador da família de invariantes**, nem real nem placeholder:
+> a próxima rodada que contar o arquivo inteiro vai medir trinta.
+>
+> **Correspondência entre as duas revisões: três seções de 127.** As duas
+> compartilham os cinco primeiros números; dessas cinco, três correspondem em
+> texto e foram as únicas em que a marcação do reexport foi aproveitada.
+>
+> - **§4** corresponde integralmente — mesmos sete componentes que a fase não
+>   altera, mesma cadeia de nove elos. A única diferença é que o reexport
+>   marca `não altera` em negrito. Três blocos restaurados.
+> - **§1** corresponde a menos de uma palavra: o reexport escreve "não possui
+>   **ainda** um mecanismo físico", esta revisão escreve "não possui um
+>   mecanismo físico". A divergência fica fora de todo bloco. Cinco blocos
+>   restaurados.
+> - **§5** tem o mesmo bloco de responsabilidades e a mesma frase final, mas
+>   esta revisão acrescenta a abertura "A responsabilidade de cada camada
+>   permanece:" e titula a seção de outro jeito
+>   (`Sandbox continua sendo uma camada independente` contra
+>   `Responsabilidades das camadas`). Um bloco restaurado; as quatro linhas
+>   em branco internas da cerca são conteúdo do bloco e vieram junto.
+>
+> **§2 e §3 não foram restauradas, de propósito.** Na §2 a prosa bate e a
+> primeira cadeia bate linha a linha, mas a segunda diverge: esta revisão
+> escreve `LinuxPhysicalSandbox` onde o reexport tem `SandboxResolver`
+> seguido de `LinuxPhysicalSandboxProvider`. Restaurar metade dos blocos de
+> uma seção sinaliza que a outra metade não é bloco — pior que deixar tudo
+> plano. Na §3 não há o que restaurar: o reexport traz três parágrafos de
+> prosa sem cerca nenhuma, e o texto diverge (esta revisão enumera três
+> passos onde o outro resume em prosa).
+>
+> **Da §6 em diante as duas revisões decompõem o assunto de forma
+> diferente.** A §6 daqui é sobre os três modos; a §6 de lá é a cadeia de
+> backends, que aqui é a §7. Foram amostrados dezenove pares — escolhidos
+> entre os de título idêntico, isto é, os mais prováveis de bater — e os
+> dezenove divergem em texto: §14, §15, §17 a §21, §30, §55, §67, §105,
+> §106, §107, §108, §109 e §110 na numeração do reexport, mais os
+> metadados do topo (`Baseline`, `Versão de referência` e o rótulo da
+> referência externa diferem entre as duas). A `Definition of Done` é o caso
+> mais claro: 35 itens marcados lá contra 39 sentenças aqui. A
+> `Regra de ouro` tem o mesmo título e nenhuma frase em comum.
+>
+> **Nenhum heading foi fabricado.** A fonte não tem uma única linha iniciada
+> por `#` e não tem uma única cerca. Este arquivo tem exatamente um heading —
+> o título — e nenhum `##`. Vale aqui, à letra, o precedente da F06: o título
+> da seção vem soldado à primeira frase do corpo (`1. Objetivo A Fase 6
+> terminou com:`), e cortá-lo seriam 127 julgamentos semânticos sobre o texto
+> do Founder. Promover linha achatada a heading ainda **apaga o número da
+> seção junto** — e o número é exatamente o endereço que o código cita. A
+> versão anterior deste arquivo tinha 113 `##` porque *aquela* fonte trazia
+> headings de verdade; esta não traz, e por isso a contagem é `0` dos dois
+> lados. Se o Founder quiser seções como heading real, isso é pedido de
+> reexport com marcação na origem.
+>
+> **Cerca vazia: não é mensurável nesta fonte.** A doença da §27/§47 da F04 e
+> da §97/§123 da F06 — cerca de abertura seguida imediatamente do fechamento,
+> que é lacuna do Founder e não dano de transporte — **não deixa rastro em
+> fonte achatada**: um bloco sem conteúdo dissolve em nada. O reexport de 112
+> seções não tem nenhuma. Fica o limite de medição registrado, para que a
+> próxima rodada não leia silêncio como ausência.
+>
+> **Divergência conhecida com o ADR-07, e ela é de data.** O adendo de
+> fidelidade do mount plan (o `/etc/resolv.conf` como symlink pendurado,
+> 2026-08-20) é **posterior** a esta especificação e não deve constar dela.
+> Ausência confirmada: a fonte não menciona `resolv`, mount plan nem
+> equivalente em nenhuma das 127 seções. É divergência entre spec e ADR, não
+> lacuna da transcrição.
+>
+> Preservado sem correção, porque a regra é não corrigir: um dos invariantes
+> escreve o identificador do WSL como `Wsl2`, com caixa diferente do resto do
+> documento. É assim na fonte.
+>
+> Aprovação: a Fase 7 embarcou em `main` no PR #26 — squash `1e40486`, tag
+> `v0.31.0`, em 2026-08-20. A citação fica no corpo e não no cabeçalho
+> (ADR-10, decisão 13) porque o `git log` **deste arquivo** não a contém: o
+> merge aprovou a implementação da fase, e este arquivo só nasceu na
+> transcrição posterior.
+>
+> `status: in-review` nesta edição, e **não por rebaixamento** — a ADR-10
+> (decisões 5 e 13) aboliu o rebaixamento e manda ler o `status:` da cópia em
+> `main`. É a matriz de autoridade que obriga: escrever a linha
+> `status: approved` é o ato `artifact-status.approve`, que nenhum agente
+> tem, e o guard lê o byte, não o delta. Sob a lei nova, preservar um
+> `approved` que já existia é indistinguível de concedê-lo.
+>
+> Convenção de transcrição: cada linha não vazia da fonte vira exatamente uma
+> linha deste arquivo, com no máximo um prefixo — `# ` no título, `- ` nas 8
+> linhas de metadados e nas 30 linhas de invariante. A exceção são as três
+> seções restauradas, onde a linha achatada foi quebrada **apenas nas
+> fronteiras dos blocos restaurados**, jamais entre frases: 68 linhas a mais
+> ao todo, sendo 18 de cerca e 50 de quebra dentro de texto que já existia.
+> Nenhum caractere de texto foi acrescentado, alterado ou removido em ponto
+> algum do documento. Linha em branco entre parágrafos é livre; dentro de
+> bloco, não — o conteúdo cercado é verbatim.
+>
+> Do lado do destino a equação fecha assim: 431 linhas não vazias = 5 do
+> cabeçalho + 1 do título + 157 deste bloco de proveniência + 8 de metadados
+> + 260 de corpo. As 260 do corpo são as 192 não vazias do corpo da fonte
+> (127 seções + 7 itens de lista + 30 invariantes + 28 do handoff), menos as
+> 3 linhas que se expandiram, mais as 71 que as três seções restauradas
+> passaram a ocupar. Seções 127 ↔ 127, invariantes 30 ↔ 30, heading 1 ↔ 1.
 
-- **Status:** SPECIFICATION
-- **Owner:** TechLeader
-- **Implementador:** Agente Opus 5
-- **Baseline:** Spectree Runtime v2 — Fases 1–6 congeladas
-- **Versão de referência:** pós-v0.30.0
-- **Prioridade:** Linux
-- **Ambiente de desenvolvimento local do Founder:** Windows + WSL2
-- **Referência arquitetural principal:** DeepSeek Harness Sandbox
+- Status: SPECIFICATION
+- Owner: TechLeader
+- Implementador: Agente Opus 5
+- Baseline: Fases 1–6 congeladas
+- Versão de referência: v0.30.0
+- Prioridade: Linux
+- Ambiente de desenvolvimento local do Founder: Windows + WSL2
+- Referência externa principal: DeepSeek Harness Sandbox
 
----
-
-## 1. Objetivo
-
-A Fase 6 terminou com:
+1. Objetivo A Fase 6 terminou com:
 
 ```text
 processEnforcement = unsupported
@@ -98,9 +221,7 @@ Sandbox workspace-write
 Process Capability
 ```
 
-não pode executar processos, porque o Runtime não possui ainda um mecanismo físico capaz de garantir o confinement do processo.
-
-A Fase 7 deve adicionar o primeiro backend físico real:
+não pode executar processos, porque o Runtime não possui um mecanismo físico capaz de garantir o confinement do processo. A Fase 7 deve adicionar o primeiro backend físico real:
 
 ```text
 LinuxPhysicalSandboxProvider
@@ -118,73 +239,17 @@ em:
 processEnforcement = full
 ```
 
-quando todas as garantias prometidas pelo profile forem efetivamente impostas.
+quando todas as garantias prometidas pelo profile forem efetivamente impostas. O objetivo não é criar um "wrapper de segurança" em JavaScript. O objetivo é fazer o sistema operacional participar da enforcement boundary.
 
-O objetivo não é criar um "wrapper de segurança" em JavaScript.
+2. Resultado esperado Antes: Policy ↓ Sandbox workspace-write ↓ processEnforcement unsupported ↓ SandboxUnavailableError Depois, em Linux com backend físico funcional: Policy ↓ Approval, quando necessário ↓ Capability ↓ LinuxPhysicalSandbox ↓ processEnforcement full ↓ Process O processo poderá executar com: workspace-write sem exigir: danger-full-access
 
-O objetivo é fazer o sistema operacional participar da enforcement boundary.
+3. Referência DeepSeek O DeepSeek define SandboxProvider como um seam abstrato que recebe o argv exato a ser executado e uma SandboxPolicy, devolvendo um argv confinado ou falhando fechado. O consumidor não conhece o mecanismo físico utilizado. No backend local Linux, o DeepSeek:
 
----
+1. tenta bubblewrap
+2. caso necessário, usa Landlock
+3. se nenhum backend funcional existir, falha fechado e faz probes funcionais para determinar se o backend realmente consegue impor a política desejada. O Spectree deve adotar esse padrão.
 
-## 2. Resultado esperado
-
-Antes:
-
-```text
-Policy
- ↓
-Sandbox workspace-write
- ↓
-processEnforcement unsupported
- ↓
-SandboxUnavailableError
-```
-
-Depois, em Linux com backend físico funcional:
-
-```text
-Policy
- ↓
-Approval, quando necessário
- ↓
-Capability
- ↓
-SandboxResolver
- ↓
-LinuxPhysicalSandboxProvider
- ↓
-processEnforcement full
- ↓
-Process
-```
-
-O processo poderá executar com:
-
-```text
-workspace-write
-```
-
-sem exigir:
-
-```text
-danger-full-access
-```
-
----
-
-## 3. Referência DeepSeek
-
-O DeepSeek define `SandboxProvider` como um seam abstrato que recebe o `argv` exato a ser executado e uma `SandboxPolicy`, devolvendo uma execução confinada ou falhando fechado.
-
-No backend local Linux, o DeepSeek usa uma estratégia de seleção/probe entre backends como Bubblewrap e Landlock, com fail-closed quando nenhum backend funcional consegue atender ao profile.
-
-O Spectree deve adotar esse padrão, sem copiar a implementação inteira.
-
----
-
-## 4. Decisão arquitetural
-
-A Fase 7 **não altera**:
+4. Decisão arquitetural A Fase 7 não altera:
 
 ```text
 Agent
@@ -224,9 +289,7 @@ ProcessProvider
 Linux process
 ```
 
----
-
-## 5. Responsabilidades das camadas
+5. Sandbox continua sendo uma camada independente A responsabilidade de cada camada permanece:
 
 ```text
 Policy
@@ -247,2148 +310,324 @@ Provider
 
 Não misturar essas responsabilidades.
 
----
-
-## 6. Primeiro backend físico
-
-A primeira implementação física será:
-
-```text
-LinuxPhysicalSandboxProvider
-```
-
-Ela deverá suportar uma cadeia de backends:
-
-```text
-LinuxPhysicalSandboxProvider
-        │
-        ├── BubblewrapBackend
-        │
-        └── LandlockBackend
-```
+6. Objetivo específico do backend Linux O backend precisa fornecer, no mínimo, um modo físico verificável para: read-only workspace-write danger-full-access não utiliza o backend físico. Conceitualmente: read-only ↓ filesystem writes proibidos workspace-write ↓ writes permitidos somente nas roots concedidas danger-full-access ↓ confinement bypass explícito O DeepSeek utiliza exatamente esses três modos e trata danger-full-access como bypass de confinement.
 
-Ordem preferencial:
-
-```text
-bubblewrap
-    ↓
-Landlock
-    ↓
-unavailable
-```
+7. Backend chain A implementação deve permitir: LinuxPhysicalSandboxProvider │ ├── BubblewrapBackend │ └── LandlockBackend O Provider seleciona o backend capaz de satisfazer a policy. Minha ordem recomendada: bubblewrap ↓ Landlock ↓ unavailable Isso acompanha a estratégia atual do DeepSeek.
 
-A seleção deve ser baseada em **probe funcional**, não apenas na presença do executável.
+8. Por que não usar apenas Landlock Landlock é poderoso, mas possui dependência da ABI disponível do kernel. Versões mais antigas podem não oferecer todas as operações necessárias. O próprio DeepSeek classifica enforcement antigo como partial quando a ABI não cobre todos os efeitos prometidos. Portanto: Landlock disponível ≠ Landlock automaticamente full
 
----
+9. Por que Bubblewrap Bubblewrap cria um novo mount namespace e permite construir explicitamente quais partes do filesystem estarão visíveis e quais são read-only. Também pode criar namespaces adicionais quando solicitado. Para a Fase 7, o uso principal será: filesystem visibility + read-only/write roots + isolated temporary execution world
 
-## 7. Escopo
+10. Não copiar o Bubblewrap inteiro para o Spectree O Runtime não deve reimplementar: mount namespace user namespace PID namespace seccomp em JavaScript. Bubblewrap será um backend externo especializado. O Spectree apenas constrói: policy → backend invocation e observa o resultado.
 
-Implementar:
+11. Estrutura esperada Adaptar à estrutura existente, mas conceitualmente: spectree-runtime/ ├── sandbox/ │ ├── providers/ │ │ ├── linux-physical/ │ │ │ ├── linux-physical-sandbox-provider │ │ │ ├── bubblewrap-backend │ │ │ ├── landlock-backend │ │ │ └── probe │ │ └── ... │ │ │ ├── sandbox-resolver │ ├── sandbox-contract │ └── ... │ ├── providers/ │ └── local/ │ └── subprocess-provider
 
-```text
-LinuxPhysicalSandboxProvider
-BubblewrapBackend
-LandlockBackend ou seu seam compatível
-FunctionalProbe
-BackendSelection
-EnforcementReport
-Sandbox lifecycle
-Filesystem confinement
-Process confinement
-Private temp
-Execution-world correlation
-Fail-closed behavior
-```
+12. Linux backend identification O backend deverá possuir identidade: providerId version platform = linux Exemplo conceitual: linux-physical-sandbox 1.0.0 linux Não usar o nome do mecanismo como identidade principal da Capability.
 
----
+13. Backend capability report O backend deverá conseguir informar: filesystem.read filesystem.write process.spawn process.descendants com um nível: full partial unsupported Exemplo: filesystem: read: full write: full process: spawn: full network: unsupported
 
-## 8. Fora do escopo
+14. full é um fato, não configuração É proibido fazer: config says full → backend = full O backend só pode devolver: full depois de validar que consegue impor a garantia.
 
-Não implementar:
+15. Functional probe O LinuxPhysicalSandboxProvider deverá possuir probe funcional. Não basta: which bwrap ou: bwrap --version Porque o executável pode existir mas não funcionar no host. O DeepSeek adota exatamente essa postura: probe funcional para determinar se o runner realmente consegue aplicar a sandbox.
 
-```text
-Windows native sandbox
-macOS sandbox
-Docker
-Kubernetes
-VM
-microVM
-E2B
-remote sandbox
-network isolation completo
-GPU isolation
-CPU quotas
-memory quotas
-Shell
-Terminal/PTy
-Git
-Database
-MCP
-Orchestrator
-```
+16. Bubblewrap probe O probe deve criar um processo descartável que tente:
 
----
+1. iniciar dentro da sandbox
+2. acessar um arquivo explicitamente permitido
+3. tentar uma operação proibida
+4. verificar o resultado Somente se o comportamento for conforme o contrato: BubblewrapBackend = usable
 
-## 9. Sandbox modes
+17. Landlock probe O mesmo conceito: LandlockBackend ↓ probe ↓ test rule enforcement Não confiar somente na presença das syscalls.
 
-Os modos existentes permanecem:
+18. Probe timeout Todo probe deve possuir: probeTimeoutMs para evitar: sandbox initialization → processo pendurado → Runtime inteiro bloqueado
 
-```text
-read-only
-workspace-write
-danger-full-access
-```
+19. Probe result O probe deve produzir: usable enforcement backend reason Exemplo: { "usable": true, "backend": "bubblewrap", "enforcement": "full" } ou: { "usable": false, "backend": "landlock", "reason": "kernel ABI insufficient" }
 
----
+20. Não esconder backend failure Um backend que falhou no probe não pode desaparecer silenciosamente. O diagnóstico deve estar disponível para: error event startup report example sem expor informações sensíveis.
 
-## 10. `read-only`
+21. Backend selection Fluxo: LinuxPhysicalSandboxProvider ↓ probe bubblewrap ↓ usable? ├── yes → select └── no ↓ probe Landlock ↓ usable? ├── yes → select └── no → unavailable
 
-Semântica:
+22. Runner caching Após probe bem-sucedido, o provider pode cachear o backend selecionado. O DeepSeek também seleciona/proba os runners e mantém o veredito. Mas: cached verdict não deve transformar um backend quebrado em full indefinidamente.
 
-```text
-workspace:
-  read   = permitido
-  write  = negado
-  delete = negado
+23. danger-full-access Não chamar nenhum backend. A execução segue pelo argv original: original argv → ProcessProvider Isso é deliberado e auditável.
 
-outside:
-  não acessível conforme o boundary
-```
+24. Confined execution Para: read-only workspace-write o backend deverá produzir uma execução confinada. A API pode seguir o modelo do DeepSeek: confine(argv, policy) → confined argv + metadata ou o modelo de SandboxHandle já existente. O contrato interno deve, porém, permitir o equivalente a: "este é o comando efetivamente confinado"
 
-Processo físico sujeito a esse profile deve ser confinado quando `full` for exigido.
+25. argv exato O backend recebe: argv = [program, arg1, arg2...] Não recebe: command string Não criar shell parsing. Isso mantém a regra da Fase 6.
 
----
+26. argv não pode ser alterado semanticamente O backend pode adicionar: sandbox launcher antes do processo original. Mas: original argv deve permanecer sem alteração semântica. Exemplo: [ bwrap, sandbox arguments, --, original argv... ]
 
-## 11. `workspace-write`
+27. Resource binding O Sandbox deve receber o mesmo Resource que: Policy ProcessProvider já conhecem. Não recalcular autorização.
 
-Semântica:
+28. Workspace root O backend deve receber uma root canônica: workspaceRoot e não: cwd arbitrário como fonte de autoridade.
 
-```text
-workspace:
-  read   = permitido
-  write  = permitido
-  delete = permitido conforme capability/policy
+29. Root canonicalization Antes de criar a sandbox: realpath(workspaceRoot) ou equivalente deve ser obtido. O backend não deve assumir que: /workspace/link é fisicamente: /workspace sem resolver.
 
-outside:
-  write = negado
-  delete = negado
-```
+30. Read-only profile Para read-only: workspace → read-only outside → hidden/denied write → denied O processo precisa de sinks mínimos para funcionar. Seguindo o DeepSeek, /dev/null pode ser disponibilizado quando necessário, sem transformar isso em writable workspace.
 
-O modo não significa filesystem irrestrito.
+31. Workspace-write profile Para workspace-write: workspace → read/write outside → not visible or denied temp → writable only when explicitly allowed O DeepSeek permite workspace e uma área temporária do backend nesse modo.
 
----
+32. Temp root Criar: sessionTempRoot por Session/sandbox invocation conforme a política. Deve ser: private writable cleanupable
 
-## 12. `danger-full-access`
+33. Temp must belong to execution world O processo deve enxergar o mesmo temp que o Sandbox conhece. Não criar: Process temp ≠ Sandbox temp
 
-`danger-full-access` significa:
+34. Cross-session isolation Session A: /tmp/spectree/A Session B: /tmp/spectree/B O processo de A não deve conseguir: read/write B
 
-> o Sandbox não adiciona um boundary físico adicional.
+35. Filesystem visibility Em Bubblewrap, o backend deve montar explicitamente as roots que o processo pode ver. Bubblewrap cria um novo mount namespace e permite selecionar exatamente as partes do filesystem visíveis à sandbox.
 
-Não significa:
+36. Landlock profile Quando Landlock for o backend: workspace → allowed path temp → allowed path others → denied As regras devem ser construídas a partir do profile.
 
-```text
-Policy bypass
-Approval bypass
-Capability bypass
-Provider bypass
-```
+37. Landlock ABI O backend deve verificar qual ABI está disponível. Se a ABI não suportar todos os file effects necessários: enforcement = partial e o Runtime deverá rejeitar requiredEnforcement = full. Isso acompanha a semântica do DeepSeek.
 
-O fluxo permanece:
+38. Full vs partial Exemplo: Bubblewrap → full para o profile implementado Landlock ABI antigo → partial sem backend → unsupported
 
-```text
-Policy
- ↓
-Approval
- ↓
-Capability
- ↓
-Provider
-```
+39. Não declarar full por backend name Proibido: backend == bubblewrap → full A profile efetiva também deve ser validada.
 
----
+40. Process confinement Quando o backend declarar: process.spawn = full isso significa que o processo e seus descendentes permanecem dentro do execution world prometido. Se o backend não consegue garantir isso: partial ou: unsupported
 
-## 13. `full`, `partial`, `unsupported`
+41. Process namespaces Não é obrigatório que a Fase 7 implemente isolamento completo de PID/IPC/network. O Profile atual é principalmente filesystem-oriented. A referência do DeepSeek também delimita o SandboxMode atual como file effects, deixando network e process visibility fora desse vocabulary.
 
-O backend deve reportar o nível real de enforcement:
+42. Não superprometer network Nesta fase: network = unsupported A existência de: bwrap --unshare-net não significa que o Profile atual deve começar a declarar uma network policy. Isso pertence a uma evolução posterior.
 
-```text
-full
-partial
-unsupported
-```
+43. Não superprometer process visibility Da mesma forma: process visibility não deve ser declarado como isolado apenas porque Bubblewrap pode usar PID namespaces. Não ampliar o contrato nesta fase.
 
-### `full`
+44. Same-world invariant Filesystem e Process devem compartilhar: workspace temp sandbox identity Portanto: process writes file → filesystem provider sees same file deve continuar verdadeiro.
 
-Todos os efeitos prometidos pelo profile estão fisicamente cobertos pelo backend.
+45. Sandbox execution world Criar conceito interno: executionWorldId para correlacionar: filesystem process sandbox session Isso prepara future: container microVM remote sem implementar nada disso agora.
 
-### `partial`
+46. SandboxHandle O SandboxHandle deve continuar expondo apenas: mode enforcement sandboxInstanceId assertPathAllowed release ou a superfície oficial equivalente. Não expor: bwrap argv landlock fd native handles ao Provider.
 
-Somente parte dos efeitos prometidos é fisicamente coberta.
+47. R8 A superfície do Sandbox Handle deve ser travada por: Object.keys() exatamente como fizemos em todas as outras boundaries.
 
-### `unsupported`
+48. Process Provider O Process Provider deve receber: SandboxHandle ou o prepared invocation produzido pelo Sandbox. Não deve receber: BubblewrapBackend LandlockBackend
 
-Não há enforcement físico utilizável para o efeito/profilerequerido.
+49. No Linux logic in Process Provider Nenhuma: if linux if bwrap if landlock dentro do LocalSubprocessProvider.
 
----
+50. No provider logic in Agent Nenhuma Tool/Persona deve conhecer: bubblewrap landlock
 
-## 14. Regra absoluta de honestidade
+51. Backend launcher Se Bubblewrap for usado: LinuxPhysicalSandboxProvider → bwrap O Runtime não deve assumir que o caminho é: /usr/bin/bwrap O provider deve resolver de forma segura.
 
-É proibido:
+52. Executable validation Verificar: exists executable correct platform antes de selecioná-lo.
 
-```text
-backendName == bubblewrap
-→ enforcement = full
-```
+53. Custom runner Não implementar inicialmente um: sandboxCommand arbitrário. Caso seja introduzido no futuro, deverá ter assinatura/capabilities muito bem definidas e nunca ser considerado full automaticamente.
 
-ou:
+54. Landlock launcher Se Landlock exigir um helper nativo: native/landlock-run seguir o princípio do DeepSeek de manter esse launcher pequeno, isolado e com interface explícita. A implementação do DeepSeek usa um launcher C11, com API nativa do Landlock e fail-closed em caso de erro. Não copiar o código do DeepSeek. A ideia arquitetural é o que deve ser reaproveitado.
 
-```text
-backendName == landlock
-→ enforcement = full
-```
+55. Helper binary lifecycle Qualquer helper nativo deverá possuir: version hash platform architecture conhecidos pelo Runtime.
 
-O nível precisa ser resultado de capability detection + probe funcional + efeito solicitado.
+56. Helper trust Não executar um helper encontrado casualmente no PATH como root de confiança. O caminho deverá ser controlado pelo pacote/installation do Runtime.
 
----
+57. Helper failure Se: helper missing helper not executable helper incompatible helper crashes resultado: SandboxUnavailableError quando o profile exigir confinement.
 
-## 15. Functional Probe
+58. Child exit ambiguity O backend deve distinguir: runner failed de: child returned non-zero O DeepSeek toma cuidado especial com isso: um launcher poderá utilizar códigos específicos de falha, mas o mero exit code do filho não deve ser interpretado automaticamente como falha do runner.
 
-Não é suficiente:
+59. Runner failure metadata O provider deve retornar evidência estruturada: backend failureType details não apenas: Error("sandbox failed")
 
-```text
-which bwrap
-```
+60. No silent unconfined fallback Proibido: bwrap failed ↓ Landlock failed ↓ spawn original argv O DeepSeek considera esse comportamento explicitamente proibido e falha com SANDBOX_UNAVAILABLE. O Spectree fará o mesmo: backend chain exhausted → SandboxUnavailableError
 
-ou:
+61. Approval interaction Quando: Policy = approval-required não aplicar Sandbox ainda. A ordem continua: Policy → Approval → Revalidation → Sandbox → Process
 
-```text
-bwrap --version
-```
+62. Policy revalidation No resume: Approval approved ↓ Policy revalidation ↓ Sandbox profile reconstruction ↓ physical apply Não reutilizar uma sandbox antiga.
 
-O probe deve executar um processo real e verificar fisicamente:
+63. Profile snapshot Uma invocation deve possuir: SandboxExecutionPolicy imutável. Não permitir alteração durante execução.
 
-```text
-access permitido
-access proibido
-write permitido
-write proibido
-```
+64. Tool restrictions A Tool pode pedir: read-only ou: workspace-write mas não pode ampliar o teto. O SandboxProfileResolver continua sendo a autoridade.
 
-conforme o profile.
+65. Runtime ceiling Exemplo: Runtime max = workspace-write Tool requests = danger-full-access Resultado: workspace-write ou rejeição, conforme policy do resolver. Nunca: danger-full-access
 
----
+66. Physical backend does not decide authority O backend recebe a policy já resolvida. Não contém: if agent == oracle ou: if founder
 
-## 16. Probe lifecycle
+67. Events Manter: sandbox.requested sandbox.applied sandbox.denied sandbox.failed sandbox.released Adicionar metadata: backendId enforcement sem expor detalhes internos.
 
-```text
-discover backend
- ↓
-prepare temporary probe world
- ↓
-execute probe
- ↓
-verify expected effects
- ↓
-cleanup
- ↓
-publish capability verdict
-```
+68. Event order Sucesso: policy.evaluated sandbox.requested sandbox.applied provider.started process.started ... sandbox.released Falha de backend: policy.evaluated sandbox.requested sandbox.failed sem: provider.started process.started
 
----
+69. Physical denial Quando o backend existe mas não consegue cumprir a policy: SandboxDeniedError ou: SandboxUnavailableError conforme a causa: denied vs no usable backend
 
-## 17. Probe timeout
+70. Error taxonomy Manter/expandir: SandboxError SandboxConfigurationError SandboxUnavailableError SandboxDeniedError SandboxCapabilityError SandboxCleanupError SandboxEscalationRequiredError Adicionar Linux-specific somente se necessário: LinuxSandboxProbeError LinuxSandboxBackendError LinuxSandboxRunnerError Preferência: manter os erros públicos genéricos e cause.metadata.backend para detalhes.
 
-Toda prova funcional deve possuir:
+71. Functional probe security O probe deverá usar: temporary directory e destruir tudo depois. Nunca testar sobre o workspace real do Founder.
 
-```text
-probeTimeoutMs
-```
+72. Probe scenario Exemplo: probe-root/ ├── allowed.txt └── outside.txt Confinar processo: allowed = readable outside = denied workspace write = allowed Se resultado corresponder: usable
 
-finito e limitado.
+73. Probe process O processo do probe deve ser um programa pequeno e determinístico. Não usar: bash -c complex script para provar a sandbox do próprio Bash. Preferir um helper dedicado ou Node process controlado.
 
-Um backend que trava no probe não pode travar o Runtime indefinidamente.
+74. Probe cannot trust Agent code O probe é infraestrutura do Runtime. Não reutilizar uma Tool do Agent para validar a sandbox.
 
----
+75. Probe no external network O probe deve ser local. Não depender: internet DNS cloud
 
-## 18. Probe result
+76. Probe no credentials Sem: API key cloud credentials SSH key
 
-Modelo conceitual:
+77. Probe cache Cachear apenas: backend capability verdict não: specific workspace permission Porque cada invocation possui roots/policy diferentes.
 
-```json
-{
-  "usable": true,
-  "backend": "bubblewrap",
-  "enforcement": "full",
-  "capabilities": {
-    "filesystem.read": "full",
-    "filesystem.write": "full",
-    "process.spawn": "full"
-  }
-}
-```
+78. Per-call policy Seguindo o DeepSeek, a policy física deve ser por invocation, e não apenas uma configuração global do provider. O backend mantém o mecanismo selecionado, enquanto cada chamada fornece sua policy efetiva. Isso permitirá: Session A → read-only Session B → workspace-write simultaneamente.
 
-Ou:
+79. No provider-global mode Proibido: sandboxProvider.mode = workspace-write como estado mutável global.
 
-```json
-{
-  "usable": false,
-  "backend": "landlock",
-  "enforcement": "partial",
-  "reason": "required filesystem effect unavailable"
-}
-```
+80. Concurrent invocations Testar: A → read-only B → workspace-write no mesmo Runtime/processo. Uma não pode afetar a outra.
 
----
+81. Sandbox instance isolation Cada invocation recebe: sandboxInstanceId único.
 
-## 19. Backend selection
+82. Cleanup Após execução: process finished outputs drained sandbox.release
 
-Algoritmo:
+83. Release idempotency release() release() não pode gerar double cleanup.
 
-```text
-probe Bubblewrap
-   ↓
-usable?
- ├── yes → select
- └── no
-      ↓
-probe Landlock
-      ↓
-usable?
- ├── yes → select
- └── no → SandboxUnavailableError
-```
+84. Cleanup after failure Falha de: process provider stdout stderr não pode impedir: sandbox.release
 
-Não executar sem confinement silenciosamente.
+85. Cleanup after cancellation Session.cancel() deve: terminate process release sandbox remove registry entry na ordem apropriada.
 
----
+86. Temp cleanup O temp privado deve ser removido após a execução. Se não puder ser removido: SandboxCleanupError com diagnóstico.
 
-## 20. No silent fallback
+87. No broad chmod/chown O backend Linux não deve usar: chmod -R 777 chown -R como mecanismo de sandbox. Essas operações não constituem confinement.
 
-Proibido:
+88. No root requirement Não exigir: sudo para o modo normal. Bubblewrap é justamente interessante porque utiliza user namespaces para construir sandbox sem exigir root em ambientes suportados.
 
-```text
-bwrap falhou
- ↓
-Landlock falhou
- ↓
-spawn original argv
-```
+89. WSL2 development No Windows do Founder: Windows ↓ WSL2 ↓ Linux distro ↓ Spectree Runtime O runtime deve ser executado dentro do Linux/WSL.
 
-Resultado obrigatório:
+90. WSL2 não é o sandbox O WSL2 é o execution host. O sandbox é: bubblewrap ou Landlock dentro do Linux. Essa distinção precisa aparecer na documentação.
 
-```text
-SandboxUnavailableError
-```
+91. Repository location in WSL Para desenvolvimento Linux: /home/<user>/spectree-squad é o local recomendado. Evitar: /mnt/c/... para workloads de filesystem do Runtime.
 
-quando o profile exigir enforcement.
+92. Windows interop A configuração de desenvolvimento deve evitar que um processo sandboxed tenha caminhos triviais para: /mnt/c ou executáveis Windows. Isso deve ser tratado no execution profile. Não assumir que WSL2 por si só bloqueia acesso ao host.
 
----
+93. WSL profile Adicionar um perfil de desenvolvimento: linux-wsl que possa detectar: WSL_INTEROP /mnt/c windows.exe execution e produzir diagnóstico seguro. Não alterar o sandbox contract para acomodar WSL.
 
-## 21. `argv` exato
+94. Não tratar WSL como production guarantee O backend Linux deve funcionar: Ubuntu native Debian native Linux VM WSL2 quando as capabilities exigidas existirem. Mas os testes devem diferenciar: native Linux WSL2 para troubleshooting.
 
-O backend físico deve receber o `argv` da execução:
+95. Environment diagnostics O backend pode informar: linux kernel version WSL detected backend enforcement sem expor dados pessoais do Founder.
 
-```text
-[
-  executable,
-  arg1,
-  arg2,
-  ...
-]
-```
+96. WSL-specific limitation Se uma função do kernel não estiver disponível na distro/kernel WSL: Landlock unsupported o Provider pode cair para: Bubblewrap se funcionalmente utilizável.
 
-Não deve receber uma string de shell.
+97. No fake fallback Se: bwrap unavailable Landlock unavailable resultado: SandboxUnavailableError
 
----
+98. CI Adicionar pelo menos: ubuntu-latest para backend Linux. Depois: Windows + WSL2 pode existir como validation environment específica.
 
-## 22. No shell parsing
+99. CI must not silently skip Se o job do Linux Physical Sandbox não consegue executar: functional probe o job deve falhar. Não: all sandbox tests skipped → green Essa é uma regra importante.
 
-A Fase 7 não implementa Shell.
+100. Platform matrix Obrigatório reportar: Platform Backend Result Linux + bubblewrap physical tested Linux + Landlock physical tested where available WSL2 + bubblewrap/Landlock physical tested Windows native unavailable expected macOS unavailable expected
 
-Não interpretar:
+101. Testes de segurança Obrigatórios: outside read outside write outside delete rename across boundary junction symlink hard-link reparse-like path process child grandchild temp isolation
 
-```text
-&&
-||
-|
->
-<
-;
-$()
-```
+102. Teste de same-world Process: write workspace/test.txt Filesystem Provider: read workspace/test.txt Resultado: same file
 
-O backend apenas confina a execução que já foi definida.
+103. Teste de boundary real Process tenta: workspace/escape-link/outside.txt Resultado: denied Mesmo que o path lexical pareça autorizado.
 
----
+104. Teste de full enforcement Para declarar: full todos os testes de effects relevantes precisam passar.
 
-## 23. `argv` preservation
+105. Teste de partial Criar fake/compatibility backend: partial e provar: required full → reject
 
-O backend pode introduzir:
+106. Teste de unavailable Nenhum backend: unsupported resultado: SandboxUnavailableError sem processo.
 
-```text
-sandbox launcher
-```
+107. Teste de backend selection Provar: bwrap usable → bwrap selected e: bwrap unusable Landlock usable → Landlock selected
 
-como Bubblewrap.
+108. Teste de runner failure Provar: bwrap executable exists but unusable → fallback. Se nenhum: → unavailable
 
-Mas o processo original deve permanecer semanticamente idêntico.
+109. Teste de concurrent policies A: read-only B: workspace-write mesmo Runtime. Provar isolamento.
 
-Exemplo conceitual:
+110. Teste de cancellation Process ativo: Session.cancel() → process terminates → sandbox released.
 
-```text
-[
-  "bwrap",
-  "...sandbox args...",
-  "--",
-  originalExecutable,
-  originalArg1,
-  originalArg2
-]
-```
+111. Teste de shutdown runtime.shutdown() → all sandbox handles released.
 
----
+112. Teste de no bypass Agent context continua: requestTool somente. Nenhum acesso a: SandboxProvider SandboxHandle bubblewrap Landlock
 
-## 24. Workspace root
+113. Teste de Process Provider Process Provider recebe somente: SandboxHandle ou prepared invocation. Nunca runner implementation.
 
-Receber:
+114. Teste de Tool Tool física continua podendo existir como: provider-backed ou: physical self-provided mas ambas passam pelo Sandbox.
 
-```text
-workspaceRoot
-```
+115. Teste de Pure Tool Pure Tool não deve iniciar Sandbox desnecessariamente.
 
-já canonicalizado pelo Runtime.
+116. Event projection Eventos: sandbox.applied devem conter apenas: sandboxInstanceId backendId mode enforcement sem: mounts completos kernel details environment
 
-Não usar:
+117. Event order Sucesso: policy.evaluated sandbox.requested sandbox.applied provider.started process.started process.exited provider.completed sandbox.released Failure: policy.evaluated sandbox.requested sandbox.failed sem execução.
 
-```text
-process.cwd()
-```
+118. Security error SandboxUnavailableError deve informar: mode required enforcement platform backend attempts sem segredos.
 
-como autoridade.
+119. Documentation Atualizar: docs/architecture/SPECTREE-RUNTIME.md com: Linux Physical Sandbox Backend selection Bubblewrap Landlock Functional probes Full/partial WSL2 development Execution world Security boundaries Failure semantics
 
----
+120. ADR Criar: docs/adr/ADR-07-linux-physical-sandbox.md Decisões: Linux é a primeira plataforma física. WSL2 é ambiente de desenvolvimento, não sandbox. Bubblewrap é primeiro runner preferencial. Landlock é fallback. Functional probe é obrigatório. Fail-closed é obrigatório. full depende do effect set real. partial é estruturalmente distinto. danger-full-access bypassa confinement explicitamente. Network/process visibility não fazem parte do SandboxMode desta fase. Containers/microVMs/remotes não são providers deste sandbox seam. O backend é por-call, não mode global. Process e filesystem compartilham execution world. O DeepSeek documenta exatamente essa última distinção: containers, microVMs e remote execution são ambientes de execução inteiros, não apenas outro backend de ctx.sandbox.
 
-## 25. Physical canonicalization
+121. Definition of Done A Fase 7 só será DONE quando: LinuxPhysicalSandboxProvider existir. Bubblewrap backend existir. Landlock backend existir ou estar formalmente suportado pelo seam. backend selection existir. functional probes existirem. probe timeout existir. read-only funcionar fisicamente. workspace-write funcionar fisicamente. danger-full-access permanecer sem confinement. full/partial/unsupported forem reportados honestamente. nenhuma promessa de full depender apenas de configuração. workspace root for canonicalized. temp root for isolated. process tree estiver no execution world. filesystem e process compartilhem execution world. path traversal estiver protegido. symlink/junction estiver protegido. hard-link behavior estiver testado. outside write estiver bloqueado. outside delete estiver bloqueado. child/grandchild estiverem confinados quando declarado full. provider cleanup funcionar. sandbox cleanup funcionar. concurrent Sessions funcionarem. policies por invocation funcionarem. no silent fallback existir. no root requirement existir para o caminho suportado. WSL2 for suportado quando o backend for funcional. WSL2 não for tratado como sandbox. Linux CI real existir. sandbox tests não puderem virar "all skipped". Fases 1–6 continuarem verdes. claude plugin validate . --strict passar. documentação atualizada. ADR-07 criado. nenhum Shell implementado. nenhum Terminal/PTy implementado. nenhum Windows native backend implementado. nenhum container/microVM/remote executor implementado.
 
-O backend deve considerar:
+122. Definition of Architecture Done A prova principal será: Policy ↓ Approval ↓ SandboxProfile ↓ LinuxPhysicalSandboxProvider ↓ Bubblewrap/Landlock ↓ Process e o teste físico deverá mostrar: workspace/ read ✓ write ✓ delete ✓ outside/ read ✗ write ✗ delete ✗ quando o Profile for workspace-write. Também: process ↓ child ↓ grandchild deve permanecer dentro da mesma execution world.
 
-```text
-realpath(workspaceRoot)
-```
+123. Invariantes
 
-e não somente a forma textual.
+- INV-701 LinuxPhysicalSandboxProvider é implementação de Sandbox, não Capability de negócio.
+- INV-702 Bubblewrap/Landlock não são conhecidos pelo Agent.
+- INV-703 Bubblewrap/Landlock não são conhecidos pelo Process Provider.
+- INV-704 Policy continua autorizando.
+- INV-705 Approval continua autorizando exceções humanas.
+- INV-706 Sandbox continua impondo boundary físico.
+- INV-707 Provider continua executando Capability.
+- INV-708 Sandbox policy é por invocation.
+- INV-709 Um backend incompatível não pode executar unconfined sob modo restritivo.
+- INV-710 full só pode ser reportado quando o effect set prometido estiver fisicamente coberto.
+- INV-711 partial nunca é tratado como full.
+- INV-712 danger-full-access é escolha explícita.
+- INV-713 O processo inicia já dentro da boundary.
+- INV-714 Não existe pós-confinamento.
+- INV-715 Workspace é fisicamente canonicalizado.
+- INV-716 Temp é isolado por Session/invocation conforme profile.
+- INV-717 Process e filesystem compartilham execution world.
+- INV-718 Nenhum Agent acessa Sandbox internals.
+- INV-719 Nenhum Tool amplia o Sandbox profile.
+- INV-720 Nenhum Provider amplia o Sandbox profile.
+- INV-721 Nenhuma policy contém detalhes de Linux backend.
+- INV-722 Nenhuma Persona contém detalhes de Linux backend.
+- INV-723 Wsl2 é host de desenvolvimento, não security boundary do Runtime.
+- INV-724 Functional probe é a autoridade para backend availability.
+- INV-725 Runner failure não pode virar child failure silenciosamente.
+- INV-726 No silent unconfined fallback.
+- INV-727 Cada SandboxHandle pertence a uma única invocation.
+- INV-728 Release é idempotente.
+- INV-729 Runtime shutdown libera todos os sandbox handles.
+- INV-730 Sandbox backend pode ser substituído por outro Linux backend sem alterar consumidor.
 
-Essa regra preserva o R12.
+124. Handoff obrigatório do Opus 5
 
----
-
-## 26. Symlink / Junction / Reparse
-
-No Linux, testar:
-
-```text
-symlink
-```
-
-e qualquer equivalente relevante.
-
-A boundary não pode ser somente lexical.
-
----
-
-## 27. Same execution world
-
-Process e filesystem devem compartilhar:
-
-```text
-workspace
-temp
-sandbox instance
-executionWorldId
-```
-
-Portanto:
-
-```text
-process escreve arquivo
- ↓
-filesystem.read
- ↓
-mesmo arquivo
-```
-
-deve continuar funcionando.
-
----
-
-## 28. ExecutionWorldId
-
-Cada invocation física deve possuir:
-
-```text
-executionWorldId
-```
-
-para correlacionar:
-
-```text
-Sandbox
-Process
-Filesystem
-Session
-```
-
-Não expor esse identificador ao Agent sem necessidade.
-
----
-
-## 29. Private temp
-
-O backend poderá criar um:
-
-```text
-sessionTempRoot
-```
-
-ou:
-
-```text
-sandboxTempRoot
-```
-
-por invocation.
-
-Características:
-
-```text
-private
-writable
-isolated
-cleanupable
-```
-
----
-
-## 30. Cross-session isolation
-
-Session A:
-
-```text
-temp/A
-```
-
-Session B:
-
-```text
-temp/B
-```
-
-A não pode acessar B e vice-versa.
-
----
-
-## 31. Bubblewrap backend
-
-Bubblewrap deve ser utilizado como backend físico quando funcional.
-
-Responsabilidades:
-
-```text
-mount namespace
-filesystem visibility
-read-only/write roots
-temp isolation
-execution world setup
-```
-
-Não reimplementar seus mecanismos internos em JavaScript.
-
----
-
-## 32. Bubblewrap root
-
-Não assumir:
-
-```text
-/usr/bin/bwrap
-```
-
-sempre.
-
-O provider deve resolver e validar de forma segura.
-
-Não confiar em um executável encontrado arbitrariamente no PATH sem controle.
-
----
-
-## 33. Landlock backend
-
-Quando Landlock estiver disponível, o backend deverá:
-
-```text
-detect ABI
-construct ruleset
-add allowed roots
-apply before execution
-```
-
-A aplicação precisa ocorrer antes do processo executar qualquer código controlado.
-
----
-
-## 34. Landlock ABI
-
-Se a ABI não suportar os efeitos necessários:
-
-```text
-partial
-```
-
-ou:
-
-```text
-unsupported
-```
-
-conforme o profile.
-
-Nunca promover ABI insuficiente para `full`.
-
----
-
-## 35. No root requirement
-
-O backend deve funcionar sem `sudo`/root quando o mecanismo escolhido permitir isso.
-
-Não criar uma arquitetura que exija privilégios elevados apenas para iniciar o Sandbox.
-
----
-
-## 36. Native helper
-
-Se Landlock exigir helper nativo:
-
-```text
-landlock-run
-```
-
-ou equivalente, o helper deverá ser pequeno, versionado, verificável e isolado do restante do Runtime.
-
-Não copiar código do DeepSeek diretamente.
-
----
-
-## 37. Helper trust
-
-Registrar:
-
-```text
-version
-platform
-architecture
-hash
-```
-
-quando aplicável.
-
-Não executar helper arbitrário encontrado no PATH como autoridade.
-
----
-
-## 38. Helper failure
-
-Se o helper:
-
-```text
-não existe
-não executa
-crasha
-retorna erro
-```
-
-o backend deve falhar de forma tipada.
-
-Nunca cair para execução não confinada.
-
----
-
-## 39. Process confinement
-
-Quando:
-
-```text
-processEnforcement = full
-```
-
-o processo deve nascer já sob a sandbox.
-
-Não:
-
-```text
-spawn
- ↓
-sandbox
-```
-
-Mas:
-
-```text
-sandbox preparation
- ↓
-spawn confined process
-```
-
----
-
-## 40. Descendants
-
-O confinement deve se aplicar aos descendentes do processo sempre que isso fizer parte do enforcement declarado.
-
-Testar:
-
-```text
-parent
- ↓
-child
- ↓
-grandchild
-```
-
-e provar que permanecem dentro do execution world.
-
----
-
-## 41. Process provider integration
-
-`LocalSubprocessProvider` não deve conhecer:
-
-```text
-bubblewrap
-landlock
-mount namespace
-```
-
-Ele recebe:
-
-```text
-SandboxHandle
-```
-
-ou uma prepared execution equivalente.
-
----
-
-## 42. Process Provider invariant
-
-O Process Provider continua responsável por:
-
-```text
-argv
-cwd
-environment
-stdio
-process lifecycle
-```
-
-O Sandbox continua responsável por:
-
-```text
-physical boundary
-```
-
----
-
-## 43. Provider boundary
-
-Nenhum backend físico deve ser capaz de alterar:
-
-```text
-Policy
-Approval
-Capability
-```
-
-Ele recebe uma execução já autorizada.
-
----
-
-## 44. Sandbox Profile Resolution
-
-O profile efetivo deve continuar sendo resultado de:
-
-```text
-Runtime ceiling
-∩
-Capability profile
-∩
-Tool requested profile
-```
-
-A Tool pode restringir.
-
-Nunca ampliar.
-
----
-
-## 45. `danger-full-access`
-
-Quando o profile efetivo for:
-
-```text
-danger-full-access
-```
-
-o backend físico não é necessário.
-
-O processo segue o caminho não confinado explicitamente.
-
-Esse fato deve ser observável nos eventos/auditoria.
-
----
-
-## 46. `full` enforcement
-
-Um backend só pode declarar:
-
-```text
-full
-```
-
-se o effect set do profile for integralmente comprovado.
-
-Para `workspace-write`, pelo menos:
-
-```text
-filesystem read
-filesystem write
-filesystem delete/rename
-process confinement
-relevant path traversal protections
-```
-
-devem ser cobertos conforme o contrato definido.
-
----
-
-## 47. Effects fora do escopo
-
-Nesta fase:
-
-```text
-network
-environment
-IPC
-GPU
-CPU
-memory quota
-```
-
-não devem ser declarados como `full` sem implementação física específica.
-
----
-
-## 48. Network
-
-Permanece:
-
-```text
-unsupported
-```
-
-nesta fase.
-
-Não implementar network isolation parcial apenas para aumentar a lista de features.
-
----
-
-## 49. Process visibility
-
-Não declarar:
-
-```text
-process visibility = isolated
-```
-
-sem backend que efetivamente garanta isso.
-
----
-
-## 50. Environment
-
-O ambiente continua sendo tratado pela Fase 6.
-
-O Sandbox pode fornecer o mundo físico, mas não deve reimplementar toda a política de environment do Process Provider.
-
----
-
-## 51. `SPECTREE_*`
-
-Continuar a regra:
-
-```text
-SPECTREE_*
-```
-
-é namespace controlado pelo Runtime.
-
-O processo não pode sobrescrever esses valores via input arbitrário.
-
----
-
-## 52. Session isolation
-
-Duas invocações simultâneas:
-
-```text
-A → read-only
-B → workspace-write
-```
-
-devem coexistir sem vazamento de profile ou temp.
-
----
-
-## 53. Per-call policy
-
-A SandboxPolicy é por invocation.
-
-Nunca criar:
-
-```text
-globalSandboxMode
-```
-
-como estado mutável.
-
----
-
-## 54. SandboxHandle
-
-A superfície oficial deve permanecer mínima:
-
-```text
-mode
-enforcement
-sandboxInstanceId
-assertPathAllowed
-release
-```
-
-ou equivalente já estabelecido na Fase 5.
-
----
-
-## 55. R8
-
-Aplicar teste estrutural:
-
-```text
-Object.keys(handle)
-```
-
-e, quando aplicável:
-
-```text
-Object.keys(sandboxContext)
-```
-
-Qualquer nova autoridade deve quebrar o teste antes de ser adicionada.
-
----
-
-## 56. Native resources
-
-SandboxHandle não deve expor:
-
-```text
-landlock fd
-mount namespace fd
-raw process handle
-bwrap internals
-```
-
-O backend é owner desses recursos.
-
----
-
-## 57. Lifecycle
-
-```text
-prepare
- ↓
-apply
- ↓
-spawn
- ↓
-process execution
- ↓
-output drain
- ↓
-release
-```
-
----
-
-## 58. Cleanup
-
-`release()` deve ocorrer:
-
-```text
-success
-failure
-cancel
-shutdown
-```
-
-inclusive quando o Provider falhar.
-
----
-
-## 59. Cleanup idempotency
-
-```text
-release()
-release()
-```
-
-não pode gerar double cleanup.
-
----
-
-## 60. Cleanup failure
-
-Se cleanup físico falhar:
-
-```text
-SandboxCleanupError
-```
-
-deve ser observável.
-
-Não esconder o problema.
-
----
-
-## 61. Event model
-
-Manter:
-
-```text
-sandbox.requested
-sandbox.applied
-sandbox.denied
-sandbox.failed
-sandbox.released
-```
-
----
-
-## 62. Event payload
-
-Publicar somente metadata segura:
-
-```text
-sandboxInstanceId
-backendId
-mode
-enforcement
-executionWorldId
-```
-
-Não publicar:
-
-```text
-mount details completos
-environment
-secrets
-native handles
-kernel internals
-```
-
----
-
-## 63. Event ordering
-
-Sucesso:
-
-```text
-policy.evaluated
-sandbox.requested
-sandbox.applied
-provider.started
-process.started
-process.exited
-provider.completed
-sandbox.released
-```
-
-Falha do backend:
-
-```text
-policy.evaluated
-sandbox.requested
-sandbox.failed
-```
-
-sem execução física.
-
----
-
-## 64. Policy deny
-
-```text
-Policy DENY
-```
-
-deve resultar em:
-
-```text
-sandbox.requested = 0
-provider.started = 0
-process.started = 0
-```
-
----
-
-## 65. Approval pending
-
-```text
-Approval pending
-```
-
-não deve aplicar Sandbox.
-
----
-
-## 66. Revalidation
-
-Após aprovação:
-
-```text
-Policy revalidation
- ↓
-Sandbox profile reconstruction
- ↓
-Physical sandbox
-```
-
-Se a Policy mudou para deny:
-
-```text
-Sandbox apply = 0
-Process = 0
-```
-
----
-
-## 67. Resource binding
-
-O Sandbox recebe o mesmo recurso canônico que a Policy e o Provider usam.
-
-A Fase 4 R12 continua válida.
-
-Não existir:
-
-```text
-Policy resource A
-Sandbox resource B
-Provider resource C
-```
-
----
-
-## 68. Physical boundary test
-
-Processo deve tentar:
-
-```text
-outside read
-outside write
-outside delete
-rename across boundary
-```
-
-e o teste deve verificar o filesystem real depois da execução.
-
----
-
-## 69. Symlink test
-
-Criar:
-
-```text
-workspace/link → outside
-```
-
-e tentar:
-
-```text
-write link/file
-```
-
-Resultado:
-
-```text
-DENIED
-```
-
----
-
-## 70. Hard-link test
-
-Criar arquivo fora do workspace e um hard link dentro quando o ambiente permitir.
-
-Tentar escrever pelo link.
-
-Se a implementação não puder garantir o boundary:
-
-```text
-enforcement = partial
-```
-
-e `full` não pode ser anunciado.
-
----
-
-## 71. Process child test
-
-Parent cria child.
-
-Child tenta escrever outside.
-
-Resultado:
-
-```text
-DENIED
-```
-
----
-
-## 72. Grandchild test
-
-Parent:
-
-```text
-child
-  ↓
-grandchild
-```
-
-O grandchild deve permanecer no mesmo boundary quando o backend declarar `full`.
-
----
-
-## 73. Same-world test
-
-Process cria:
-
-```text
-workspace/file.txt
-```
-
-Filesystem Provider lê o mesmo arquivo.
-
-Resultado:
-
-```text
-same execution world
-```
-
----
-
-## 74. Concurrent session test
-
-A:
-
-```text
-workspace/A
-temp/A
-read-only
-```
-
-B:
-
-```text
-workspace/B
-temp/B
-workspace-write
-```
-
-verificar isolamento das policies e temp roots.
-
----
-
-## 75. Backend fallback test
-
-Provar:
-
-```text
-Bubblewrap usable
-→ Bubblewrap selected
-```
-
-e:
-
-```text
-Bubblewrap unusable
-Landlock usable
-→ Landlock selected
-```
-
----
-
-## 76. Backend unavailable test
-
-Provar:
-
-```text
-Bubblewrap unavailable
-Landlock unavailable
-```
-
-resulta:
-
-```text
-SandboxUnavailableError
-```
-
-sem spawn.
-
----
-
-## 77. Partial enforcement test
-
-Usar um backend de teste que declara:
-
-```text
-partial
-```
-
-e exigir:
-
-```text
-full
-```
-
-Resultado:
-
-```text
-SandboxUnavailableError
-```
-
----
-
-## 78. Typo safety
-
-Qualquer enforcement desconhecido:
-
-```text
-Full
-FULL
-whatever
-```
-
-deve gerar erro de configuração/tipo.
-
-Nunca interpretar como permissivo.
-
----
-
-## 79. WSL2
-
-WSL2 é ambiente Linux de desenvolvimento.
-
-Não é o sandbox.
-
-O backend deverá detectar WSL quando útil para diagnósticos, mas o enforcement continua sendo Bubblewrap/Landlock.
-
----
-
-## 80. WSL filesystem
-
-Para desenvolvimento:
-
-```text
-/home/<user>/spectree-squad
-```
-
-é preferível a:
-
-```text
-/mnt/c/...
-```
-
-para workloads Linux.
-
----
-
-## 81. WSL interoperability
-
-Não assumir que WSL2 bloqueia automaticamente:
-
-```text
-/mnt/c
-windows executables
-Windows host integration
-```
-
-O profile do Runtime deve evitar dar esse acesso implicitamente ao processo sandboxed.
-
----
-
-## 82. WSL test
-
-Rodar o mesmo teste físico em:
-
-```text
-Ubuntu native
-WSL2
-```
-
-e registrar diferenças reais.
-
----
-
-## 83. CI
-
-Adicionar job Linux real:
-
-```text
-ubuntu-latest
-```
-
-com testes físicos.
-
----
-
-## 84. No silent skip
-
-Se o backend esperado não puder ser testado:
-
-```text
-job deve falhar
-```
-
-e não:
-
-```text
-all sandbox tests skipped
-```
-
----
-
-## 85. Platform matrix
-
-| Platform | Backend | Resultado |
-|---|---|---|
-| Linux + Bubblewrap | physical | testado |
-| Linux + Landlock | physical | testado quando disponível |
-| WSL2 + Linux backend | physical | testado |
-| Windows native | unavailable | esperado |
-| macOS | unavailable | esperado |
-
----
-
-## 86. Security probe environment
-
-Probes devem usar:
-
-```text
-temporary root
-```
-
-e nunca o workspace pessoal do Founder.
-
-Não usar:
-
-```text
-internet
-cloud
-credentials
-SSH keys
-```
-
-nos probes.
-
----
-
-## 87. No root
-
-Não exigir `sudo`/root para o caminho suportado por Bubblewrap quando o ambiente permitir.
-
-Se um backend exigir privilégio específico:
-
-```text
-unsupported/unavailable
-```
-
-deve ser preferível a elevar privilégios silenciosamente.
-
----
-
-## 88. Native helper
-
-Se existir helper para Landlock:
-
-```text
-version
-architecture
-hash
-```
-
-devem ser conhecidos.
-
-O helper não pode ser encontrado arbitrariamente no PATH e aceito como confiável.
-
----
-
-## 89. Helper failure
-
-Falha do helper:
-
-```text
-SandboxUnavailableError
-```
-
-quando o profile exige confinement.
-
----
-
-## 90. ToolRuntime
-
-Nenhuma mudança de responsabilidade:
-
-```text
-Policy
-Approval
-Sandbox
-Provider
-```
-
-continua sendo a cadeia.
-
-O ToolRuntime não conhece Bubblewrap/Landlock.
-
----
-
-## 91. Process Provider
-
-Nenhuma mudança de responsabilidade.
-
-Ele recebe o SandboxHandle/prepared execution.
-
-Não decide Sandbox.
-
----
-
-## 92. Capability Registry
-
-Nenhuma nova Capability criada.
-
-A Capability `process` continua sendo da Fase 6.
-
----
-
-## 93. Squad Integration
-
-`Squad` não deve conhecer:
-
-```text
-bubblewrap
-landlock
-executionWorld
-```
-
-`squad.policies.json` continua sendo somente autorização.
-
----
-
-## 94. Sandbox profile source
-
-O documento:
-
-```text
-sandbox.profiles.json
-```
-
-continua representando o profile físico.
-
-Não criar:
-
-```text
-linux.policies.json
-```
-
-ou uma segunda matriz de autorização.
-
----
-
-## 95. No platform policy duplication
-
-Platform-specific behavior pertence ao backend.
-
-Não duplicar profiles:
-
-```text
-linux-workspace-write.json
-windows-workspace-write.json
-```
-
-A semântica do profile permanece igual.
-
----
-
-## 96. Backend capability negotiation
-
-O Resolver pergunta:
-
-```text
-supports(profile, effects, requiredEnforcement)
-```
-
-O backend responde com fatos.
-
-O Resolver decide:
-
-```text
-compatible
-incompatible
-unavailable
-```
-
----
-
-## 97. Profile ceiling
-
-Exemplo:
-
-```text
-Runtime max = workspace-write
-Tool request = danger-full-access
-```
-
-Resultado efetivo não pode ultrapassar:
-
-```text
-workspace-write
-```
-
----
-
-## 98. `danger-full-access` audit
-
-O modo deve ser visível em:
-
-```text
-events
-logs
-example
-audit metadata
-```
-
-sem vazar secrets.
-
----
-
-## 99. Process environment
-
-Fase 6 continua sendo autoridade sobre:
-
-```text
-environment allowlist
-SPECTREE_* namespace
-secret scrub
-```
-
-O Sandbox não deve criar uma segunda lógica contraditória.
-
----
-
-## 100. Output
-
-A Fase 6 continua limitando:
-
-```text
-stdout
-stderr
-spill
-```
-
-O Sandbox não altera esse contrato.
-
----
-
-## 101. Process lifecycle
-
-A Fase 6 continua controlando:
-
-```text
-spawn
-terminate
-done
-ProcessRegistry
-Session cancellation
-shutdown
-```
-
-A Fase 7 apenas fornece a execution boundary.
-
----
-
-## 102. Shell
-
-Fora do escopo.
-
-A existência do backend físico prepara:
-
-```text
-process
-→ sandboxed process
-```
-
-para uma futura Shell Capability.
-
----
-
-## 103. Terminal
-
-Fora do escopo.
-
----
-
-## 104. Container / VM
-
-Fora do escopo.
-
-No futuro poderão representar **execution worlds inteiros**, e não apenas outro detalhe interno do SandboxProvider.
-
----
-
-## 105. Definition of Done
-
-A Fase 7 só poderá ser CLOSED quando:
-
-- [ ] LinuxPhysicalSandboxProvider existir.
-- [ ] BubblewrapBackend existir.
-- [ ] LandlockBackend ou seam compatível existir.
-- [ ] Backend selection existir.
-- [ ] Functional probes existirem.
-- [ ] Probe timeout existir.
-- [ ] Read-only estiver fisicamente implementado.
-- [ ] Workspace-write estiver fisicamente implementado.
-- [ ] Danger-full-access continuar explícito.
-- [ ] Full/partial/unsupported forem reportados honestamente.
-- [ ] Sem silent fallback.
-- [ ] Workspace root canonicalizada.
-- [ ] Temp root isolada.
-- [ ] Symlink/junction boundary testada.
-- [ ] Hard-link behavior testado.
-- [ ] Outside read/write/delete testados.
-- [ ] Child/grandchild boundary testados.
-- [ ] Filesystem e Process same-world testado.
-- [ ] Concurrent Sessions testadas.
-- [ ] Cleanup testado.
-- [ ] Cancellation cleanup testado.
-- [ ] Shutdown cleanup testado.
-- [ ] Policy deny impede sandbox.
-- [ ] Approval pending impede sandbox.
-- [ ] Policy revalidation deny impede sandbox.
-- [ ] Backend unavailable impede process.
-- [ ] Partial não conta como full.
-- [ ] R8 do SandboxHandle permanece travado.
-- [ ] WSL2 validado como host de desenvolvimento.
-- [ ] CI Linux físico existe.
-- [ ] Fases 1–6 permanecem verdes.
-- [ ] `claude plugin validate . --strict` passa.
-- [ ] documentação atualizada.
-- [ ] ADR-07 criado.
-- [ ] Shell/Terminal/Windows-native/containers/microVM/remote não implementados.
-
----
-
-## 106. Definition of Architecture Done
-
-A prova central deverá ser:
-
-```text
-Policy
- ↓
-Approval
- ↓
-SandboxProfile
- ↓
-LinuxPhysicalSandboxProvider
- ↓
-Bubblewrap / Landlock
- ↓
-Process
-```
-
-com prova física real:
-
-```text
-workspace:
-  read     ✓
-  write    ✓
-  delete   ✓
-
-outside:
-  read     ✗
-  write    ✗
-  delete   ✗
-```
-
-para `workspace-write`, conforme o effect set definido.
-
-Também:
-
-```text
-parent
- ↓
-child
- ↓
-grandchild
-```
-
-deve permanecer dentro do execution world quando o backend declarar `full`.
-
----
-
-## 107. Invariantes da Fase 7
-
-- **INV-701**
-  LinuxPhysicalSandboxProvider é implementação de Sandbox, não Capability de negócio.
-
-- **INV-702**
-  Bubblewrap/Landlock não são conhecidos pelo Agent.
-
-- **INV-703**
-  Bubblewrap/Landlock não são conhecidos pelo Process Provider.
-
-- **INV-704**
-  Policy continua autorizando.
-
-- **INV-705**
-  Approval continua autorizando exceções humanas.
-
-- **INV-706**
-  Sandbox continua impondo boundary físico.
-
-- **INV-707**
-  Provider continua executando Capability.
-
-- **INV-708**
-  Sandbox policy é por invocation.
-
-- **INV-709**
-  Backend incompatível não pode executar unconfined sob modo restritivo.
-
-- **INV-710**
-  `full` só pode ser reportado quando o effect set prometido estiver fisicamente coberto.
-
-- **INV-711**
-  `partial` nunca é tratado como `full`.
-
-- **INV-712**
-  `danger-full-access` é escolha explícita.
-
-- **INV-713**
-  O processo inicia já dentro da boundary.
-
-- **INV-714**
-  Não existe pós-confinamento.
-
-- **INV-715**
-  Workspace é fisicamente canonicalizado.
-
-- **INV-716**
-  Temp é isolado por Session/invocation conforme o Profile.
-
-- **INV-717**
-  Process e filesystem compartilham execution world.
-
-- **INV-718**
-  Nenhum Agent acessa Sandbox internals.
-
-- **INV-719**
-  Nenhum Tool amplia o Sandbox Profile.
-
-- **INV-720**
-  Nenhum Provider amplia o Sandbox Profile.
-
-- **INV-721**
-  Nenhuma Policy contém detalhes do Linux backend.
-
-- **INV-722**
-  Nenhuma Persona contém detalhes do Linux backend.
-
-- **INV-723**
-  WSL2 é host de desenvolvimento, não security boundary do Runtime.
-
-- **INV-724**
-  Functional probe é a autoridade para backend availability.
-
-- **INV-725**
-  Runner failure não pode virar child failure silenciosamente.
-
-- **INV-726**
-  No silent unconfined fallback.
-
-- **INV-727**
-  Cada SandboxHandle pertence a uma única invocation.
-
-- **INV-728**
-  Release é idempotente.
-
-- **INV-729**
-  Runtime shutdown libera todos os Sandbox Handles.
-
-- **INV-730**
-  Sandbox backend pode ser substituído por outro backend Linux sem alterar consumidores.
-
----
-
-## 108. Handoff obrigatório do Opus 5
-
-```text
-## Implementation
-
+Implementation
 arquivos criados/modificados
 
-## Backend Architecture
+Backend Architecture
+LinuxPhysicalSandboxProvider BubblewrapBackend LandlockBackend
 
-LinuxPhysicalSandboxProvider
-BubblewrapBackend
-LandlockBackend
+Runner Selection
+probe fallback failure
 
-## Runner Selection
+Enforcement
+full partial unsupported
 
-probe
-fallback
-failure
+Profiles
+read-only workspace-write danger-full-access
 
-## Enforcement
-
-full
-partial
-unsupported
-
-## Profiles
-
-read-only
-workspace-write
-danger-full-access
-
-## Functional Probe
-
+Functional Probe
 cenários reais
 
-## Physical Security
+Physical Security
+workspace outside symlink junction hard-link process descendants temp
 
-workspace
-outside
-symlink
-junction
-hard-link
-process descendants
-temp
+WSL2
+detecção limitações testes
 
-## WSL2
-
-detecção
-limitações
-testes
-
-## Same World
-
+Same World
 filesystem + process
 
-## Cleanup
+Cleanup
+process sandbox temp native resources
 
-process
-sandbox
-temp
-native resources
+CI
+Linux WSL2
 
-## CI
+DeepSeek Adaptation
+o que foi reutilizado o que foi deliberadamente alterado
 
-Linux
-WSL2
-
-## DeepSeek Adaptation
-
-o que foi adotado
-o que foi deliberadamente alterado
-
-## Known Limitations
-
+Known Limitations
 limitações reais
 
-## Scope Verification
+Scope Verification
+ausência de: Shell Terminal Windows native Container MicroVM Remote Network Orchestrator
 
-ausência de:
-Shell
-Terminal
-Windows native
-Container
-MicroVM
-Remote
-Network
-Orchestrator
-```
+125. Resultado estratégico Depois desta fase, teremos: SPECTREE RUNTIME Agent ↓ Policy ↓ Founder Approval ↓ Capability ↓ Sandbox ↓ Linux Physical Backend ├── Bubblewrap └── Landlock ↓ Process Provider ↓ Linux Execution World E o comportamento de processo muda de: workspace-write → SandboxUnavailable para: workspace-write → physical sandbox → Process quando o Linux host realmente oferecer a garantia necessária.
 
----
+126. O que isso destrava Depois da Fase 7 podemos finalmente entrar na próxima camada sem a dívida do R14: F8 — Execution Effects / Resource Model que vai resolver formalmente o problema que identificamos antes do Shell: cwd deixa de ser suficiente como modelo de efeito. A arquitetura evolui para: Invocation ↓ Effect Set ├── filesystem.read ├── filesystem.write ├── process.spawn ├── process.output └── future network.* ↓ Policy ↓ Approval ↓ Sandbox ↓ Execution Aí, finalmente: F9 — Shell poderá ser construído sobre uma representação capaz de dizer não apenas onde o shell começou, mas quais efeitos ele potencialmente produz.
 
-## 109. Regra de ouro da Fase 7
-
-> **O Spectree só pode declarar um processo como fisicamente confinado quando o sistema operacional estiver realmente impondo a fronteira declarada.**
-
-Não basta:
-
-```text
-JavaScript path check
-```
-
-Não basta:
-
-```text
-bwrap instalado
-```
-
-Não basta:
-
-```text
-Landlock disponível
-```
-
-A prova é:
-
-```text
-backend
-+
-profile
-+
-functional probe
-+
-physical black-box tests
-=
-enforcement fact
-```
-
----
-
-## 110. Resultado estratégico
-
-Após a Fase 7:
-
-```text
-Agent
- ↓
-Policy
- ↓
-Founder Approval
- ↓
-Capability
- ↓
-Linux Physical Sandbox
- ├── Bubblewrap
- └── Landlock
- ↓
-Process Provider
- ↓
-Linux Execution World
-```
-
-E a mudança prática será:
-
-```text
-Antes:
-
-workspace-write + process
-→ SandboxUnavailableError
-
-Depois:
-
-workspace-write + physical backend full
-→ sandboxed process
-```
-
----
-
-## 111. Próxima fronteira
-
-Depois da Fase 7, a próxima fase deverá ser:
-
-## **Fase 8 — Execution Effects / Resource Model**
-
-Antes da Shell.
-
-O motivo é estrutural: `cwd` funciona para Process, mas Shell pode produzir múltiplos efeitos em uma única invocação.
-
-Precisamos evoluir de:
-
-```text
-Invocation
- ↓
-Resource
-```
-
-para:
-
-```text
-Invocation
- ↓
-EffectSet
- ├── filesystem.read
- ├── filesystem.write
- ├── process.spawn
- ├── process.output
- └── future network.*
-```
-
-Só então Shell poderá ser implementado sem repetir o problema que corrigimos em R9/R14:
-
-> **Policy avalia uma coisa enquanto a execução efetivamente faz outra.**
-
----
-
-## 112. Regra estratégica final
-
-A Fase 7 não é uma integração de Bubblewrap.
-
-Ela é a implementação da primeira:
-
-```text
-Physical Execution Boundary
-```
-
-do Spectree Runtime.
-
-Bubblewrap e Landlock são mecanismos.
-
-A arquitetura do Spectree continua sendo:
-
-```text
-Policy
-   ↓
-Approval
-   ↓
-Capability
-   ↓
-Sandbox
-   ↓
-Provider
-```
-
-O mecanismo físico pode mudar sem mudar essa cadeia.
-
-Isso é o que permitirá ao Spectree evoluir posteriormente para:
-
-```text
-Linux native
-Container
-MicroVM
-Remote execution
-```
-
-sem reabrir o Core que já congelamos nas Fases 1–6.
+127. Regra de ouro da Fase 7 Não basta o Spectree saber que uma sandbox existe. Ele precisa provar que o processo está fisicamente confinado antes de chamar o processo de "confinado". Essa é a mesma disciplina que o DeepSeek aplica ao seu SandboxProvider: o backend precisa provar a execução confinada ou o Runtime deve recusar executar sem isolamento. E essa é a razão pela qual a Fase 7, para o Spectree, não é "integrar Bubblewrap". É criar a primeira execution boundary física verificável do Spectree Runtime.

@@ -1,26 +1,158 @@
 ---
-status: approved
+status: in-review
 owner: TechLeader
-updated: 2026-08-20
-approved: 2026-08-20 (merge do PR #27 em `main`: squash `97e25a7`, tag `v0.32.0`. Texto transcrito para este repositorio em 2026-08-21, com equivalencia de conteudo medida linha a linha)
 depends_on: F1 Runtime Core, F2 Policy Engine, F3 Founder Gate, F4 Capability Providers, F4.5 Squad/Runtime Integration, F5 Sandbox Runtime, F6 Process/Subprocess, F7 Linux Physical Sandbox
 ---
 
 # Spectree Runtime v2 — Fase 8: Execution Effects / Resource Model
 
 > Transcrição da especificação normativa da Fase 8, produzida no harness de
-> planejamento do Founder (owner declarado na fonte: TechLeader). Esta versão
-> restaura a marcação markdown perdida no transporte; o texto é o do documento
-> fonte, sem correção, melhoria ou complemento. O texto commitado é o contrato
-> real (ver `docs/spec/README.md`).
+> planejamento do Founder (declarado na fonte: `Status: Proposed`,
+> `Owner: TechLeader`). O texto é o do documento fonte, sem correção, melhoria
+> ou complemento. O texto commitado é o contrato real (ver
+> `docs/spec/README.md`).
+>
+> **Três fontes, e a vencedora é a que já estava em disco.** A primeira versão
+> deste arquivo nasceu de uma exportação achatada do documento original — o
+> transporte dissolveu 19 dos 190 blocos de código em prosa, bullets e listas,
+> e a marcação foi reconstruída por inferência. A segunda, que é o corpo atual,
+> vem do arquivo reexportado íntegro pelo Founder (`spec-fase8.md`, 2362
+> linhas), com a marcação original preservada, transportada e verificada seção
+> a seção. A terceira é uma colagem do documento no chat, medida nesta rodada:
+> 2093 linhas, 1506 não vazias, 587 vazias, 380 cercas. **Ela não acrescenta
+> nada, e a razão está medida abaixo.**
+>
+> A reconciliação entre a primeira e a segunda foi medida bloco a bloco. **A
+> aritmética fecha:** 190 blocos na fonte, 171 sobreviveram como bloco, 19
+> dissolveram → 38 linhas de cerca → `380 − 38 = 342`, exatamente o que a
+> primeira versão tinha. Classe A: o dano foi de marcação, não de texto — o
+> conteúdo dos 19 blocos dissolvidos sobreviveu integralmente como prosa,
+> bullet ou lista. Os 19, por seção: §11 (1), §30 (1), §44 (1), §52 (1), §60
+> (cinco blocos colapsados em um, líquido 4), §68 (2), §69 (1), §70 (1), §71
+> (1), §83 (2), §88 (4). Nenhum deles fica em §24, §25 ou entre os invariantes.
+>
+> **Duas perdas de caractere, dentro de blocos que sobreviveram**, restauradas
+> aqui: a primeira versão trazia `filesystem://workspace<normalized-path>` na
+> §7 e `process://executable<canonical-executable>` na §25 — a barra antes de
+> `<` caiu no transporte achatado nos dois casos. A fonte íntegra tem
+> `filesystem://workspace/<normalized-path>` e
+> `process://executable/<canonical-executable>`.
+>
+> **A colagem do chat é da linhagem achatada, e as duas perdas provam.** Ela
+> ainda traz `filesystem://workspace<normalized-path>` e
+> `process://executable<canonical-executable>`, sem a barra. É a mesma
+> exportação que já foi superada, não uma quarta revisão.
+>
+> **A aritmética contra a colagem, categoria por categoria.** Cercas: 380 dos
+> dois lados, 190 blocos dos dois lados, e **nenhuma cerca vazia em nenhum dos
+> dois** — a fase 8 não tem o buraco de fonte que a F04 (§27, §47) e a F06
+> (§97, §123) tinham. Seções: 88 contíguas de 1 a 88 dos dois lados. Família R:
+> `R8` (§64, §65, §66) e `R14` (§62) dos dois lados. Invariantes: dez, únicos e
+> contíguos dos dois lados, contados a partir da §1 — a "31ª ocorrência
+> fantasma" que enganou a F06 e a F07 não existe aqui, porque o cabeçalho da
+> rodada anterior citava a faixa e não os identificadores um a um.
+>
+> **As 132 linhas de diferença, todas explicadas.** A medição de abertura desta
+> rodada comparou 2225 linhas em disco contra 2093 na colagem. As 132 se
+> separam em 55 não vazias e 77 vazias:
+>
+> - **55 não vazias = o cabeçalho, e nada mais.** Eram as 7 linhas de
+>   frontmatter da forma antiga mais as 48 linhas do bloco de citação daquele
+>   momento. **O corpo tem exatamente 1506 linhas não vazias dos dois lados** —
+>   igualdade, não aproximação. Toda linha de conteúdo da colagem existe no
+>   disco.
+> - **77 vazias = 3 do cabeçalho + 74 do corpo.** As 74 são o saldo de duas
+>   correntes opostas: o disco acrescenta 264 linhas em branco de separação
+>   (entre parágrafo, heading, lista e cerca — o que a colagem achatada perdeu
+>   ao colar tudo grudado), e a colagem carrega 190 linhas em branco parasitas
+>   que o disco não tem, uma dentro de cada bloco, imediatamente antes da cerca
+>   de fechamento. `264 − 190 = 74`.
+>
+> Logo `132 = 58 + 74`: o cabeçalho daquele momento tinha 58 linhas a mais que
+> a colagem, e o corpo, 74. **Só o cabeçalho varia.** Esta edição o levou a 156
+> linhas e o arquivo a 2322; o corpo continua com as mesmas 2166 linhas, as
+> mesmas 380 cercas e as mesmas 1506 linhas não vazias que a colagem tem.
+>
+> A medição que isola as 190: uma linha em branco precede **as 380** cercas da
+> colagem, e apenas **as 190** de abertura no disco. As 587 linhas vazias da
+> colagem decompõem-se em 380 (antes de cada cerca) + 190 (depois de cada
+> fechamento) + 16 (em volta das oito listas) + 1 (dentro do bloco da §73, que
+> é legítima e está preservada no disco) = 587, sem sobra.
+>
+> **As 6 linhas de bullet de diferença são o preâmbulo de metadados.** Os 37
+> bullets de conteúdo são os mesmos nos dois lados, nas mesmas seis listas: §1
+> (8), §4 (3), §7 (7), §10 (5), §39 (6), §62 (8) = 37. Os 6 restantes do disco
+> são `Status`, `Owner`, `Phase`, `Depends on`, `Next` e `Normative language`,
+> que a colagem traz como linhas soltas e o disco promove a lista. `37 + 6 = 43`.
+>
+> **Nenhum heading fabricado, nenhum número de seção comido.** O disco tem 106
+> headings — 88 `##` (as seções 1 a 88, sem lacuna e sem repetição), 10 `###`
+> (os invariantes) e 8 `####` — e cada um deles é precedido por linha em branco
+> (106 medidos, 106 esperados). Todos os 106 existem na colagem como linha de
+> texto solta, com o mesmo título. A promoção a heading não inventou seção nem
+> perdeu numeração. Nota de correção ao registro anterior: o transporte achatado
+> perdeu **18** headings, não 16 — além dos dez invariantes, do
+> `Qualquer DENY vence o conjunto.` da §17 e dos cinco da §60, também os dois
+> `####` da §21 (`Static effect declaration` e `Resolver dinâmico`). Os 16
+> foram medidos contra a primeira versão em disco, que havia reconstruído esses
+> dois por inferência; contra a colagem crua são 18.
+>
+> **Veredito: a colagem não traz um único lugar em que acrescente algo.** As
+> quatro categorias empatam, o corpo tem o mesmo número de linhas não vazias, e
+> as duas perdas de caractere estão nela e não aqui. Nada foi restaurado desta
+> fonte porque não havia o que restaurar.
+>
+> Convenções de transporte, as mesmas fixadas pela F01: os headings numerados da
+> fonte (`# N.`) descem um nível porque o h1 é o título do documento, e os
+> subheadings descem junto; os separadores `---` entre seções são omitidos; as
+> cercas de código ficam sem tag de linguagem.
+>
+> **O nono invariante — *Sandbox consome efeitos resolvidos* — está coberto sob
+> outro nome, não descoberto.** Ele é o único dos dez que nenhum `.js` cita pelo
+> identificador; os outros nove são citados. Mas o comportamento que ele exige
+> está implementado em `spectree-runtime/sandbox/sandbox-profile-resolver.js`
+> (o `requiredMode` é derivado do conjunto de efeitos, o mais exigente vence, e
+> o conjunto nunca amplia o que o perfil declarou) e é provado por
+> `spectree-runtime/tests/effect-integration.test.js` — *"sandbox consome o
+> conjunto: o modo vem dos efeitos, nunca ampliado por eles"*. Implementação e
+> teste citam `secoes 28-31` em vez do identificador. Portanto o critério 13 da
+> §78 tem teste verde: a lacuna é de **citação**, não de cobertura, e se fecha
+> acrescentando o identificador às duas citações já existentes — não escrevendo
+> código novo.
+>
+> **Divergência de numeração entre o plano e o entregue, e como ler o corpo.**
+> O corpo desta spec diz `Next: F9 Shell` no preâmbulo e `F9 Shell` /
+> `F10 Terminal / PTY` no bloco da §87, e cita a `F9` como o Shell na §57 e na
+> §58. O repositório entregou outra coisa sob esse número: a `F9` de `main` é o
+> **Governed Model Harness** (`docs/spec/RUNTIME-F09-governed-model-harness.md`,
+> tag `v0.33.0`), que declara `depends_on: ... F8 Execution Effects` e que já
+> trata Shell como fase seguinte (§77-78: *"Shell pertence à F10"*; §119:
+> *"Fase 10 boundary"*). **Decisão do Founder: o entregue vence o plano** — o
+> Governed Model Harness fica como F9, o Shell passa a F10 e Terminal / PTY
+> passa a F11. A razão: as tags `v0.32.0` e `v0.33.0` já estão em `main`, e
+> renumerar o que foi entregue seria reescrever história para acomodar um
+> plano — o inverso da regra que este repositório acabou de adotar.
+>
+> A renumeração vive **aqui, não no corpo**: o texto é transcrição normativa e
+> as ocorrências ficam como o Founder as escreveu. **Onde ler `F9 Shell`, leia
+> F10; onde ler `F10 Terminal / PTY`, leia F11.** As seções afetadas são o
+> preâmbulo (`Next: F9 Shell`), a **§57** (`Shell preparation`), a **§58**
+> (`Shell não pode contornar Effects`) e a **§87** (`Decisão arquitetural`).
+>
+> A divergência não é cosmética. A §57 e a §58 foram escritas para um
+> consumidor específico — o Shell — e existem só para ele; e o Shell continua
+> sem construção e, até esta decisão, sem número. O que a renumeração separa é
+> a fase que tem consumidor construído (o Harness, que herdou o número) da que
+> tem o contrato escrito e nenhum código (o Shell).
 >
 > Aprovação a derivar: a Fase 8 embarcou em `main` no PR #27 — squash
-> `97e25a7`, tag `v0.32.0`, em 2026-08-20. A data está no git; o flip de
-> `status:` e o preenchimento de `approved:` são ato do Invoker (a matriz de
-> autoridade barra `rubick -> artifact-status.approve`).
+> `97e25a7`, tag `v0.32.0`, em 2026-08-20. O merge é a aprovação e a data está
+> no git; o `status:` que vale é o da cópia em `main`, e o flip é ato do
+> Invoker (a matriz de autoridade barra `rubick -> artifact-status.approve`).
 >
-> `updated:` registra a data do conteúdo, não a do arquivo: a transcrição
-> feita em 2026-08-21 restaurou marcação e não alterou conteúdo.
+> `status:` fica `in-review` nesta edição. Este bloco **não escreve nenhum
+> identificador da família de invariantes**: a próxima rodada que contar o
+> arquivo inteiro deve medir dez, e não onze.
 
 - Status: Proposed
 - Owner: TechLeader
@@ -31,15 +163,15 @@ depends_on: F1 Runtime Core, F2 Policy Engine, F3 Founder Gate, F4 Capability Pr
 
 ## 1. Objetivo
 
-A Fase 8 introduz o modelo normativo de Execution Effects.
+A Fase 8 introduz o modelo normativo de **Execution Effects**.
 
-O objetivo é retirar do cwd a responsabilidade implícita de representar tudo o que uma execução pode afetar.
+O objetivo é retirar do `cwd` a responsabilidade implícita de representar tudo o que uma execução pode afetar.
 
 Até a Fase 7, a autorização e o sandbox conseguem responder principalmente:
 
-"Este processo pode nascer neste workspace e sob este boundary?"
+> "Este processo pode nascer neste workspace e sob este boundary?"
 
-Isso é suficiente para process.spawn simples, mas não para uma operação expressiva que possa:
+Isso é suficiente para `process.spawn` simples, mas não para uma operação expressiva que possa:
 
 - ler vários recursos;
 - escrever em vários recursos;
@@ -52,7 +184,7 @@ Isso é suficiente para process.spawn simples, mas não para uma operação expr
 
 A Fase 8 deve permitir que o Runtime responda:
 
-"Quais efeitos esta execução está autorizada a produzir e sobre quais recursos?"
+> **"Quais efeitos esta execução está autorizada a produzir e sobre quais recursos?"**
 
 A partir desta fase:
 
@@ -60,7 +192,7 @@ A partir desta fase:
 cwd != execution effects
 ```
 
-cwd passa a ser somente contexto de execução, e não o modelo completo de autorização.
+`cwd` passa a ser somente **contexto de execução**, e não o modelo completo de autorização.
 
 ## 2. Resultado arquitetural esperado
 
@@ -114,149 +246,149 @@ resolve physical boundary
 execute
 ```
 
-Nenhuma execução física pode ocorrer antes da autorização de seu EffectSet.
+Nenhuma execução física pode ocorrer antes da autorização de seu `EffectSet`.
 
 ## 3. Princípios normativos
 
-- **INV-801** — Effect Set é a unidade normativa
+### INV-801 — Effect Set é a unidade normativa
 
-  Toda execução física governada pelo Runtime MUST possuir um ExecutionEffectSet.
+Toda execução física governada pelo Runtime MUST possuir um `ExecutionEffectSet`.
 
-  Uma execução sem ExecutionEffectSet MUST NOT ser considerada autorizável por este modelo.
+Uma execução sem `ExecutionEffectSet` MUST NOT ser considerada autorizável por este modelo.
 
-- **INV-802** — cwd não é efeito
+### INV-802 — `cwd` não é efeito
 
-  cwd MUST NOT ser utilizado como substituto de resource.
+`cwd` MUST NOT ser utilizado como substituto de `resource`.
 
-  cwd representa:
+`cwd` representa:
 
-  ```
-  onde o processo inicia
-  ```
+```
+onde o processo inicia
+```
 
-  e não:
+e não:
 
-  ```
-  o que o processo poderá afetar
-  ```
+```
+o que o processo poderá afetar
+```
 
-- **INV-803** — Efeitos são explícitos
+### INV-803 — Efeitos são explícitos
 
-  Cada efeito MUST possuir:
+Cada efeito MUST possuir:
 
-  ```
-  kind
-  operation
-  resource
-  ```
+```
+kind
+operation
+resource
+```
 
-  e uma identidade determinística.
+e uma identidade determinística.
 
-  Exemplo:
+Exemplo:
 
-  ```
-  {
-    kind: "filesystem",
-    operation: "write",
-    resource: "filesystem://workspace/docs/a.md"
-  }
-  ```
+```
+{
+  kind: "filesystem",
+  operation: "write",
+  resource: "filesystem://workspace/docs/a.md"
+}
+```
 
-- **INV-804** — Efeitos múltiplos são autorizados como conjunto
+### INV-804 — Efeitos múltiplos são autorizados como conjunto
 
-  Uma execução que possui múltiplos efeitos MUST ser tratada como uma única operação lógica composta por todos os efeitos declarados.
+Uma execução que possui múltiplos efeitos MUST ser tratada como uma única operação lógica composta por todos os efeitos declarados.
 
-  Não existe autorização parcial.
+Não existe autorização parcial.
 
-  Se:
+Se:
 
-  ```
-  E1 = ALLOW
-  E2 = ALLOW
-  E3 = DENY
-  ```
+```
+E1 = ALLOW
+E2 = ALLOW
+E3 = DENY
+```
 
-  o resultado da execução inteira é:
+o resultado da execução inteira é:
 
-  ```
-  DENY
-  ```
+```
+DENY
+```
 
-  Nenhum efeito autorizado individualmente pode fazer a execução prosseguir.
+Nenhum efeito autorizado individualmente pode fazer a execução prosseguir.
 
-- **INV-805** — Falta de efeito conhecido é fail-closed
+### INV-805 — Falta de efeito conhecido é fail-closed
 
-  Se o Runtime não conseguir determinar os efeitos necessários de uma operação física:
+Se o Runtime não conseguir determinar os efeitos necessários de uma operação física:
 
-  ```
-  EffectResolutionError
-  ```
+```
+EffectResolutionError
+```
 
-  ou erro equivalente MUST interromper a execução.
+ou erro equivalente MUST interromper a execução.
 
-  Não é permitido assumir:
+Não é permitido assumir:
 
-  ```
-  "provavelmente só afeta o workspace"
-  ```
+```
+"provavelmente só afeta o workspace"
+```
 
-- **INV-806** — Recursos são resolvidos pelo Runtime
+### INV-806 — Recursos são resolvidos pelo Runtime
 
-  O caller MUST NOT poder fornecer diretamente o resource utilizado para autorização quando esse recurso puder ser derivado da operação.
+O caller MUST NOT poder fornecer diretamente o `resource` utilizado para autorização quando esse recurso puder ser derivado da operação.
 
-  O Runtime deve derivar o recurso da:
+O Runtime deve derivar o recurso da:
 
-  ```
-  tool metadata
-  +
-  input
-  +
-  execution context
-  ```
+```
+tool metadata
++
+input
++
+execution context
+```
 
-  seguindo a mesma regra da Fase 2/Fase 4.
+seguindo a mesma regra da Fase 2/Fase 4.
 
-- **INV-807** — Approval pertence ao Effect Set
+### INV-807 — Approval pertence ao Effect Set
 
-  Quando uma execução exigir Founder approval, a aprovação MUST representar o conjunto de efeitos autorizado.
+Quando uma execução exigir Founder approval, a aprovação MUST representar o conjunto de efeitos autorizado.
 
-  A aprovação não pode autorizar apenas uma interpretação parcial do pedido.
+A aprovação não pode autorizar apenas uma interpretação parcial do pedido.
 
-- **INV-808** — Revalidation reavalia os efeitos
+### INV-808 — Revalidation reavalia os efeitos
 
-  resume() MUST recalcular o ExecutionEffectSet a partir do input original.
+`resume()` MUST recalcular o `ExecutionEffectSet` a partir do input original.
 
-  A aprovação nunca fornece novos recursos ou efeitos.
+A aprovação nunca fornece novos recursos ou efeitos.
 
-- **INV-809** — Sandbox consome efeitos resolvidos
+### INV-809 — Sandbox consome efeitos resolvidos
 
-  A Sandbox MUST receber uma representação derivada dos efeitos autorizados.
+A Sandbox MUST receber uma representação derivada dos efeitos autorizados.
 
-  O Sandbox não decide:
+O Sandbox não decide:
 
-  ```
-  "o que pode"
-  ```
+```
+"o que pode"
+```
 
-  Ele implementa:
+Ele implementa:
 
-  ```
-  "como impor fisicamente o que já foi autorizado"
-  ```
+```
+"como impor fisicamente o que já foi autorizado"
+```
 
-- **INV-810** — Provider não é Policy Engine
+### INV-810 — Provider não é Policy Engine
 
-  Provider MUST NOT interpretar política.
+Provider MUST NOT interpretar política.
 
-  Seu contrato continua sendo:
+Seu contrato continua sendo:
 
-  ```
-  request autorizado
-  +
-  contexto físico
-  →
-  efeito real
-  ```
+```
+request autorizado
++
+contexto físico
+→
+efeito real
+```
 
 ## 4. Conceito de Execution Effect
 
@@ -283,9 +415,9 @@ type EffectKind =
 
 Nesta fase:
 
-- filesystem é normativamente obrigatório;
-- process é normativamente obrigatório;
-- network e environment entram no vocabulário do modelo, mas não ganham enforcement físico adicional nesta fase.
+- `filesystem` é normativamente obrigatório;
+- `process` é normativamente obrigatório;
+- `network` e `environment` entram no vocabulário do modelo, mas não ganham enforcement físico adicional nesta fase.
 
 Isso evita criar vocabulário novo de Sandbox sem backend que o sustente.
 
@@ -331,7 +463,7 @@ porque políticas futuras poderão governá-las de forma diferente.
 
 ## 6. Resource Model
 
-O resource passa a ser um objeto normativo:
+O `resource` passa a ser um objeto normativo:
 
 ```
 interface ResourceRef {
@@ -357,14 +489,14 @@ Todo recurso MUST possuir representação canônica.
 Para filesystem:
 
 ```
-filesystem://workspace<normalized-path>
+filesystem://workspace/<normalized-path>
 ```
 
 O Runtime MUST normalizar:
 
 - separadores;
-- . ;
-- ..;
+- `.` ;
+- `..`;
 - caminho relativo;
 - caminho absoluto permitido;
 - realpath quando fisicamente disponível;
@@ -442,7 +574,7 @@ interface ExecutionEffectSet {
 }
 ```
 
-O fingerprint MUST ser determinístico.
+O `fingerprint` MUST ser determinístico.
 
 Exemplo conceitual:
 
@@ -486,7 +618,9 @@ LLM não pode participar da resolução.
 
 Não existe:
 
+```
 "acho que este comando provavelmente escreve aqui"
+```
 
 ## 12. Effect Resolver
 
@@ -512,12 +646,12 @@ interface EffectResolutionRequest {
 
 O resolver MUST:
 
-- validar input;
-- canonicalizar recursos;
-- determinar efeitos;
-- normalizar duplicatas;
-- ordenar deterministicamente;
-- produzir fingerprint.
+1. validar input;
+2. canonicalizar recursos;
+3. determinar efeitos;
+4. normalizar duplicatas;
+5. ordenar deterministicamente;
+6. produzir fingerprint.
 
 ## 13. Efeitos duplicados
 
@@ -640,7 +774,7 @@ DEFAULT-DENY
 
 Mas existe uma regra adicional:
 
-Qualquer DENY vence o conjunto.
+#### Qualquer DENY vence o conjunto.
 
 Exemplo:
 
@@ -678,7 +812,7 @@ Se houver múltiplos efeitos com:
 approval-required
 ```
 
-uma única ApprovalRequest deve representar o conjunto completo, salvo quando uma futura política explícita introduzir agrupamento diferente.
+uma única `ApprovalRequest` deve representar o conjunto completo, salvo quando uma futura política explícita introduzir agrupamento diferente.
 
 A aprovação deve carregar:
 
@@ -737,7 +871,7 @@ compare approval
 execute
 ```
 
-O fingerprint é uma trava adicional.
+O `fingerprint` é uma trava adicional.
 
 Se:
 
@@ -761,7 +895,7 @@ Uma Tool física deve declarar como seus efeitos são obtidos.
 
 Há dois modos:
 
-### Static effect declaration
+#### Static effect declaration
 
 Adequado quando os recursos são fixos.
 
@@ -772,7 +906,7 @@ effects: {
 }
 ```
 
-### Resolver dinâmico
+#### Resolver dinâmico
 
 Adequado quando depende do input.
 
@@ -798,7 +932,7 @@ Agora:
 physical
 ```
 
-deve possuir EffectResolver.
+deve possuir `EffectResolver`.
 
 Uma Tool física sem resolução de efeitos SHOULD ser rejeitada no registro quando o Runtime estiver operando no modelo F8.
 
@@ -826,7 +960,7 @@ O Provider não deve calcular novos efeitos normativos depois da autorização.
 
 ## 24. Process.spawn
 
-process.spawn é o primeiro caso crítico.
+`process.spawn` é o primeiro caso crítico.
 
 Hoje:
 
@@ -848,7 +982,7 @@ filesystem.write(workspace/dist/a.js)
 filesystem.delete(workspace/tmp)
 ```
 
-O cwd é apenas:
+O `cwd` é apenas:
 
 ```
 execution context
@@ -859,7 +993,7 @@ execution context
 Mesmo uma execução simples deve produzir pelo menos:
 
 ```
-process.spawn -> process://executable<canonical-executable>
+process.spawn -> process://executable/<canonical-executable>
 ```
 
 Mais os filesystem effects conhecidos pelo contrato da Tool.
@@ -870,7 +1004,7 @@ A Fase 8 não precisa descobrir magicamente tudo o que um processo arbitrário f
 
 Ela estabelece uma regra:
 
-Execution Effects representam o conjunto autorizado e conhecido no momento do spawn.
+> **Execution Effects representam o conjunto autorizado e conhecido no momento do spawn.**
 
 Quando a execução não consegue declarar o conjunto com segurança:
 
@@ -910,7 +1044,7 @@ Declared Effects
 
 são normativos.
 
-Observed Effects são auditáveis, quando um mecanismo futuro puder observá-los.
+`Observed Effects` são auditáveis, quando um mecanismo futuro puder observá-los.
 
 A F8 MUST NOT alegar possuir observabilidade completa do sistema operacional.
 
@@ -979,7 +1113,7 @@ workspace-write
 danger-full-access
 ```
 
-Esses continuam sendo perfis físicos.
+Esses continuam sendo **perfis físicos**.
 
 O novo modelo adiciona a dimensão:
 
@@ -999,9 +1133,11 @@ Sandbox Mode
 Physical Backend
 ```
 
-workspace-write não significa:
+`workspace-write` não significa:
 
+```
 "qualquer escrita dentro do workspace"
+```
 
 sem limite.
 
@@ -1197,7 +1333,7 @@ F7 continua responsável pela verdade física.
 
 ## 40. Rename
 
-rename MUST ser modelado como efeito composto, não apenas como write.
+`rename` MUST ser modelado como efeito composto, não apenas como `write`.
 
 Mínimo:
 
@@ -1221,7 +1357,7 @@ Não é suficiente autorizar somente o destination.
 
 ## 41. Link
 
-link MUST possuir:
+`link` MUST possuir:
 
 ```
 source
@@ -1234,7 +1370,7 @@ Isso é importante especialmente por causa da fronteira de hardlinks demonstrada
 
 ## 42. Delete
 
-delete MUST ser diferente de write.
+`delete` MUST ser diferente de `write`.
 
 Uma Policy que permita:
 
@@ -1252,7 +1388,7 @@ salvo quando isso for explicitamente declarado pelo modelo de Policy.
 
 ## 43. Create
 
-create MUST ser distinguível de write.
+`create` MUST ser distinguível de `write`.
 
 Um recurso inexistente não deixa de ser um recurso governável.
 
@@ -1272,6 +1408,7 @@ write workspace/existing.txt
 
 A ordem normativa para uma operação física é:
 
+```
 1. validate input
 2. resolve principal
 3. resolve workspace/session
@@ -1287,6 +1424,7 @@ A ordem normativa para uma operação física é:
 13. execute
 14. observe outcome
 15. publish safe audit events
+```
 
 ## 45. Event model
 
@@ -1301,7 +1439,7 @@ effect.approval-required
 
 com projeção segura.
 
-## 46. effect.resolved
+## 46. `effect.resolved`
 
 Payload mínimo:
 
@@ -1324,7 +1462,7 @@ environment
 full user input
 ```
 
-## 47. effect.evaluated
+## 47. `effect.evaluated`
 
 Cada decisão deve permitir auditoria sem revelar conteúdo sensível.
 
@@ -1382,7 +1520,7 @@ tool.started
 
 ## 50. Resume fingerprint
 
-O approvalId sozinho não basta.
+O `approvalId` sozinho não basta.
 
 O Runtime MUST verificar:
 
@@ -1426,7 +1564,9 @@ pode chegar à execução física governada.
 
 Um resolver pode saber:
 
+```
 "este processo pode escrever em arquivos"
+```
 
 mas não conseguir determinar em quais arquivos.
 
@@ -1545,11 +1685,11 @@ cmd2
 output
 ```
 
-A F9 deverá transformar essa expressão em um EffectPlan.
+A F9 deverá transformar essa expressão em um `EffectPlan`.
 
 Portanto:
 
-F9 não cria o modelo de Effects. F9 apenas passa a utilizá-lo.
+> **F9 não cria o modelo de Effects. F9 apenas passa a utilizá-lo.**
 
 ## 58. Shell não pode contornar Effects
 
@@ -1591,16 +1731,33 @@ O DeepSeek não deve ser tratado como especificação normativa do Spectree.
 
 A distinção MUST ser permanente:
 
+#### Policy
+
 ```
-Policy
 pode?
-Effects
+```
+
+#### Effects
+
+```
 o que pretende afetar?
-Sandbox
+```
+
+#### Sandbox
+
+```
 como limitar fisicamente?
-Provider
+```
+
+#### Provider
+
+```
 como executar?
-Process
+```
+
+#### Process
+
+```
 qual processo efetivamente nasceu?
 ```
 
@@ -1666,7 +1823,7 @@ O caminho canônico, porém, passa a ser:
 EffectSet
 ```
 
-Nenhuma nova feature deve ser construída diretamente sobre autorização baseada somente em cwd.
+Nenhuma nova feature deve ser construída diretamente sobre autorização baseada somente em `cwd`.
 
 ## 64. R8 — Surface Lock
 
@@ -1685,7 +1842,7 @@ Mudanças em seus campos devem quebrar testes de contrato.
 
 ## 65. R8 — Provider boundary
 
-O ProviderExecutionContext não deve ganhar:
+O `ProviderExecutionContext` não deve ganhar:
 
 ```
 PolicyEngine
@@ -1722,21 +1879,27 @@ EffectRevalidationError
 
 Sem reutilizar um erro genérico para significados diferentes.
 
-## 68. EffectResolutionError
+## 68. `EffectResolutionError`
 
 Indica:
 
+```
 o Runtime não conseguiu determinar com segurança o efeito necessário
+```
 
 Não significa:
 
+```
 Policy negou
+```
 
-## 69. EffectAuthorizationError
+## 69. `EffectAuthorizationError`
 
 Indica:
 
+```
 o conjunto de efeitos foi resolvido, mas não foi autorizado
+```
 
 Pode envolver:
 
@@ -1747,26 +1910,30 @@ APPROVAL-REQUIRED
 
 preferencialmente preservando o detalhe tipado já existente.
 
-## 70. EffectRevalidationError
+## 70. `EffectRevalidationError`
 
 Indica:
 
+```
 o conjunto de efeitos no momento do resume não corresponde à autorização original
+```
 
-A Approval permanece approved quando essa é a política já estabelecida para falhas de revalidation.
+A Approval permanece `approved` quando essa é a política já estabelecida para falhas de revalidation.
 
 ## 71. Observability
 
 O Runtime deve conseguir responder:
 
-- qual execução?
-- qual effectSet?
-- qual fingerprint?
-- quais effects?
-- quais decisões?
-- qual sandbox?
-- qual provider?
-- qual outcome?
+```
+qual execução?
+qual effectSet?
+qual fingerprint?
+quais effects?
+quais decisões?
+qual sandbox?
+qual provider?
+qual outcome?
+```
 
 sem necessariamente expor:
 
@@ -1827,7 +1994,7 @@ Não existe estado global de efeitos.
 
 ## 74. Effect Set immutability
 
-Depois de autorizado, o ExecutionEffectSet MUST ser imutável.
+Depois de autorizado, o `ExecutionEffectSet` MUST ser imutável.
 
 Para alterar:
 
@@ -1851,7 +2018,7 @@ descobrir efeitos
 pedir autorização depois
 ```
 
-A Fase 8 continua sendo pre-execution authorization.
+A Fase 8 continua sendo **pre-execution authorization**.
 
 Observabilidade pós-execução é auditoria, não autorização retroativa.
 
@@ -1875,9 +2042,9 @@ SandboxUnavailableError
 
 deve interromper a operação.
 
-## 77. danger-full-access
+## 77. `danger-full-access`
 
-danger-full-access continua sendo:
+`danger-full-access` continua sendo:
 
 ```
 ausência de confinement adicional
@@ -1905,32 +2072,32 @@ continuam existindo.
 
 A Fase 8 só pode ser considerada CLOSED quando:
 
-- Todo processo físico possui EffectSet.
-- cwd deixou de ser o modelo de autorização.
-- Recursos são canonicalizados deterministicamente.
-- Effects múltiplos são suportados.
-- DENY em qualquer efeito bloqueia a execução inteira.
-- Approval cobre o Effect Set completo.
-- Resume compara e revalida effectSetFingerprint.
-- Effects incompletos falham fechado.
-- rename possui source + destination.
-- link possui source + destination.
-- delete é semanticamente distinto de write.
-- create é semanticamente distinto de write.
-- Sandbox recebe somente efeitos autorizados/projeção correspondente.
-- Process Provider permanece ignorante sobre Policy e implementação de Sandbox.
-- Agent permanece isolado.
-- R8 trava as novas superfícies.
-- Eventos são projetados sem segredo.
-- F1–F7 continuam verdes.
-- Pelo menos um teste real prova multi-effect authorization.
-- Pelo menos um teste real prova deny composto.
-- Pelo menos um teste real prova approval composto.
-- Pelo menos um teste prova effect-set mutation/revalidation.
-- Pelo menos um teste prova que cwd não amplia authorization.
-- Pelo menos um teste prova que um effect fora do conjunto autorizado não executa.
-- npm test permanece verde.
-- claude plugin validate . --strict permanece verde.
+1. Todo processo físico possui `EffectSet`.
+2. `cwd` deixou de ser o modelo de autorização.
+3. Recursos são canonicalizados deterministicamente.
+4. Effects múltiplos são suportados.
+5. DENY em qualquer efeito bloqueia a execução inteira.
+6. Approval cobre o Effect Set completo.
+7. Resume compara e revalida `effectSetFingerprint`.
+8. Effects incompletos falham fechado.
+9. `rename` possui source + destination.
+10. `link` possui source + destination.
+11. `delete` é semanticamente distinto de `write`.
+12. `create` é semanticamente distinto de `write`.
+13. Sandbox recebe somente efeitos autorizados/projeção correspondente.
+14. Process Provider permanece ignorante sobre Policy e implementação de Sandbox.
+15. Agent permanece isolado.
+16. R8 trava as novas superfícies.
+17. Eventos são projetados sem segredo.
+18. F1–F7 continuam verdes.
+19. Pelo menos um teste real prova multi-effect authorization.
+20. Pelo menos um teste real prova deny composto.
+21. Pelo menos um teste real prova approval composto.
+22. Pelo menos um teste prova effect-set mutation/revalidation.
+23. Pelo menos um teste prova que `cwd` não amplia authorization.
+24. Pelo menos um teste prova que um effect fora do conjunto autorizado não executa.
+25. `npm test` permanece verde.
+26. `claude plugin validate . --strict` permanece verde.
 
 ## 79. Suite mínima obrigatória
 
@@ -1974,7 +2141,7 @@ O resultado MUST ser:
 DENY
 ```
 
-O fato de o processo começar no workspace não pode criar autorização para /etc/example.
+O fato de o processo começar no workspace não pode criar autorização para `/etc/example`.
 
 ## 81. Teste obrigatório — múltiplos effects
 
@@ -2011,13 +2178,17 @@ write B  APPROVAL
 
 o Runtime deve:
 
-- não executar
-- criar uma única approval
+```
+não executar
+criar uma única approval
+```
 
 e, após aprovação:
 
-- revalidar ambos
-- executar apenas se ambos continuarem autorizados
+```
+revalidar ambos
+executar apenas se ambos continuarem autorizados
+```
 
 ## 84. Teste obrigatório — fingerprint mutation
 
@@ -2105,9 +2276,9 @@ PolicyEngine
 
 A Fase 8 estabelece uma regra permanente para o Spectree Runtime:
 
-Policy autoriza efeitos; Sandbox impõe fronteiras físicas; Provider executa a operação.
+> **Policy autoriza efeitos; Sandbox impõe fronteiras físicas; Provider executa a operação.**
 
-O cwd deixa de ser autoridade.
+O `cwd` deixa de ser autoridade.
 
 O recurso deixa de ser um detalhe do Provider.
 
@@ -2126,18 +2297,26 @@ sem transformar nenhum desses componentes em uma rota paralela de autorização.
 
 A Fase 8 estará CLOSED somente quando o Runtime puder demonstrar, por testes:
 
+```
 "eu sei exatamente quais efeitos esta execução pretende produzir"
+```
 
 e, antes de executar:
 
+```
 "todos esses efeitos foram autorizados"
+```
 
 e, antes do spawn:
 
+```
 "o Sandbox físico suporta a boundary necessária"
+```
 
 e, depois:
 
+```
 "o efeito executado continua correlacionável à autorização original"
+```
 
 Sem essas quatro provas, a Fase 8 não deve ser considerada concluída.

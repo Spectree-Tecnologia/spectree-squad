@@ -1,7 +1,7 @@
 ---
-status: approved
+status: in-review
 owner: TechLeader
-updated: 2026-08-19
+updated: 2026-08-21
 approved: 2026-08-19 (merge do PR #9 em `main`: squash `c55d5e6`, tag `v0.17.0`. Texto transcrito para este repositorio em 2026-08-21, com equivalencia de conteudo medida linha a linha — a transcricao restaurou marcacao, nao alterou conteudo, e por isso `updated:` registra a data do conteudo e nao a do arquivo)
 depends_on: F1 Runtime Core (docs/spec/RUNTIME-F01-runtime-core.md)
 ---
@@ -9,15 +9,77 @@ depends_on: F1 Runtime Core (docs/spec/RUNTIME-F01-runtime-core.md)
 # Spectree Runtime v2 — F02 Policy Engine + Capability Contract
 
 > Transcrição da especificação normativa da Fase 2, produzida no harness de
-> planejamento do Founder (owner declarado na fonte: TechLeader; status
-> declarado na fonte: APPROVED FOR IMPLEMENTATION). Esta versão restaura a
-> marcação markdown perdida no transporte; o texto é o do documento fonte,
-> sem correção, melhoria ou complemento. O texto commitado é o contrato real
-> (ver `docs/spec/README.md`).
+> planejamento do Founder (declarado na fonte: `Status: APPROVED FOR
+> IMPLEMENTATION`, `Owner: TechLeader`). O texto é o do documento fonte, sem
+> correção, melhoria ou complemento. O texto commitado é o contrato real (ver
+> `docs/spec/README.md`).
 >
-> Aprovação a derivar: a Fase 2 embarcou em `main` no PR #9 — squash
-> `c55d5e6`, tag `v0.17.0`, em 2026-08-19. A data está no git; o flip de
-> `status:` e o preenchimento de `approved:` são ato do Invoker.
+> **Duas fontes; esta é a que vale.** A primeira versão deste arquivo nasceu de
+> uma exportação achatada do documento original — o transporte dissolveu blocos
+> de código em prosa e em listas, e a marcação foi reconstruída por inferência.
+> A versão atual vem do documento colado íntegro pelo Founder no chat em
+> 2026-08-21, com a marcação original preservada, transportada e verificada
+> seção a seção: 75 seções contíguas de 1 a 75, `INV-201` a `INV-215` presentes
+> e únicos, 400 linhas de cerca contra 292 na versão achatada.
+>
+> **A perda medida: marcação no corpo, conteúdo na cauda.** Nas seções 1 a 75,
+> nenhuma linha de texto se perdeu na exportação achatada — o dano foi
+> exclusivamente de marcação: blocos rebaixados a prosa ou a bullets, a matriz
+> de decisão da §71 achatada em lista, as enumerações ordenadas das §24, §27 e
+> §28 rebaixadas, e cinco títulos inferidos que a fonte não tem (`### DENY`,
+> `### APPROVAL`, `### ALLOW` na §46; `### Antes`, `### Depois` na §74).
+> Nenhum `INV-` e nenhuma seção mudou de sentido. Fora do corpo numerado,
+> porém, faltava **conteúdo**: a seção `Review do TechLeader — REQUEST
+> CHANGES`, com o pacote de correção que define `R9`, `R10` e `R11`, não
+> existia neste arquivo.
+>
+> **Onde o review vive, e por quê.** Fica aqui, ao final e fora da numeração
+> normativa. O `docs/spec/README.md` declara `TechLeader Review` como etapa do
+> processo da fase, e esta é a rodada de correção que emendou este contrato
+> antes do merge — não é uma decisão tomada fora do documento. `R9`, `R10` e
+> `R11` são load-bearing: o código os cita pelo identificador
+> (`spectree-runtime/tools/tool-runtime.js`,
+> `spectree-runtime/providers/local/filesystem-provider.js`,
+> `spectree-runtime/approval/approval-manager.js`, `hooks/guard.mjs`), e as
+> specs F03, F04 e F07 e o `ADR-04` derivam deles. Das regras `R1` a `R14`
+> citadas no código, só o `R8` tinha definição em disco (§4, P-007); estas três
+> são as primeiras órfãs a ganhar a sua. Qualquer outro endereço — ADR próprio
+> ou arquivo de review separado — poria a definição de `R9` onde nem o
+> comentário do código nem as specs irmãs apontam. O review não é corpo
+> normativo: é o registro da rodada que mudou o corpo.
+>
+> **Contradição registrada, não resolvida: `R9` contra a §22.** A §22 cria o
+> seam como `resolveResource(request, context)`. O `R9` manda remover
+> `request.resource` como autoridade e resolver o recurso a partir da
+> Tool/Capability — e é o `R9` que o Runtime implementa:
+> `spectree-runtime/tools/tool-runtime.js` traz `#resolveResource(tool, input)`
+> com o comentário "Nunca do request (R9)", e
+> `spectree-runtime/tests/review-r9-r11.test.js` prova que um `request.resource`
+> forjado é ignorado e que o Agent não transforma `production` em
+> `development`. A assinatura que a §22 nomeia não existe no Runtime. A §7
+> **não** está em contradição: o `resource` continua dentro do
+> `AuthorizationContext` exatamente como o código o monta — o `R9` mudou de
+> onde o valor vem, não se ele existe. O `INV-214` já dizia "quando a Tool o
+> declarar" e sobrevive intacto ao `R9`. O corpo é do Founder e não foi
+> reescrito: a contradição fica registrada aqui, restrita a uma assinatura na
+> §22.
+>
+> **A cauda chega truncada.** O trecho do review começa em "Mas é uma correção
+> pequena..." — o achado que precede essa frase não veio no que o Founder
+> colou. O que existe foi transportado como está; completar não é ato de
+> transcrição.
+>
+> Divergência deliberada de forma em relação à `RUNTIME-F01`: os `INV-` desta
+> fase aparecem como a fonte os traz (linha do identificador, linha do texto),
+> sem o bullet em negrito que a versão achatada inferiu. Identificadores e
+> sentenças são os mesmos, byte a byte.
+>
+> `status:` rebaixado a `in-review` nesta edição: substituir o corpo pelo texto
+> fiel à fonte íntegra e acrescentar uma seção ausente é emenda substantiva
+> (ADR-10, decisão 5). A linha `approved:` fica como estava — ela descreve a
+> transcrição anterior, e a ressalva "restaurou marcacao, nao alterou conteudo"
+> deixou de valer para este arquivo: houve conteúdo acrescentado, e por isso a
+> aprovação de 2026-08-19 não cobre o que está aqui.
 
 - Implementador: Agente Opus 5
 - Baseline: Spectree Runtime v2 — Fase 1 congelada
@@ -28,11 +90,13 @@ depends_on: F1 Runtime Core (docs/spec/RUNTIME-F01-runtime-core.md)
 
 A Fase 1 criou o Runtime Core com cinco primitivas:
 
-- Agent
-- AgentLoop
-- ToolRuntime
-- Session
-- EventBus
+```
+Agent
+AgentLoop
+ToolRuntime
+Session
+EventBus
+```
 
 O ToolRuntime.execute(request, context) é hoje o choke point único através do qual um Agent solicita execução de ferramenta. O context já carrega session e agentId, e a documentação do Runtime identifica explicitamente esse ponto como o seam para uma futura Policy Engine.
 
@@ -55,7 +119,6 @@ Provider / Tool
 ```
 
 A regra central desta fase é:
-
 Permissão deixa de ser uma instrução de prompt e passa a ser uma decisão executável do Runtime.
 
 ## 2. Objetivo da Fase
@@ -87,31 +150,35 @@ nesta sessão, neste contexto?"
 
 A resposta deve ser uma decisão do Runtime:
 
-- allow
-- deny
-- approval-required
+```
+allow
+deny
+approval-required
+```
 
 ## 3. O que NÃO é objetivo desta fase
 
 Não implementar ainda:
 
-- ❌ Sandbox
-- ❌ Orchestrator
-- ❌ Dynamic Agent Selection
-- ❌ LLM Provider
-- ❌ SessionStore
-- ❌ EventStore
-- ❌ Git provider
-- ❌ GitHub provider
-- ❌ Database provider
-- ❌ Browser provider
-- ❌ MCP provider
-- ❌ Network isolation
-- ❌ Secret manager
-- ❌ Distributed policy service
-- ❌ UI de aprovação
-- ❌ Dashboard
-- ❌ Policy editor
+```
+❌ Sandbox
+❌ Orchestrator
+❌ Dynamic Agent Selection
+❌ LLM Provider
+❌ SessionStore
+❌ EventStore
+❌ Git provider
+❌ GitHub provider
+❌ Database provider
+❌ Browser provider
+❌ MCP provider
+❌ Network isolation
+❌ Secret manager
+❌ Distributed policy service
+❌ UI de aprovação
+❌ Dashboard
+❌ Policy editor
+```
 
 A Fase 2 deve criar apenas os contratos e o enforcement local.
 
@@ -157,17 +224,21 @@ A Tool nunca inicia execução antes da decisão da Policy.
 
 A Policy responde:
 
-- allow
-- deny
-- approval-required
+```
+allow
+deny
+approval-required
+```
 
 Ela não executa:
 
-- filesystem
-- shell
-- git
-- database
-- browser
+```
+filesystem
+shell
+git
+database
+browser
+```
 
 ### P-004 — Tool não decide autorização
 
@@ -189,24 +260,29 @@ Essa responsabilidade pertence à Policy.
 
 O nome do agente:
 
-- Oracle
-- Jakiro
-- Disruptor
-- Keeper
+```
+Oracle
+Jakiro
+Disruptor
+Keeper
+```
 
 não constitui autoridade por si só.
-
 A identidade pode ser input da Policy, mas não pode ser implicitamente interpretada como permissão.
 
 ### P-006 — Capability não é Policy
 
 Capability representa:
 
+```
 o que o Runtime sabe executar.
+```
 
 Policy representa:
 
+```
 quem pode executar o quê.
+```
 
 Não misturar os dois conceitos.
 
@@ -219,7 +295,6 @@ Object.keys(actual)
 ```
 
 ou equivalente estrutural.
-
 Não aceitar apenas testes como:
 
 ```
@@ -275,7 +350,6 @@ A relação entre eles:
 ## 6. Principal
 
 Criar uma abstração mínima para representar o ator que solicita a execução.
-
 O Runtime deve identificar o principal por:
 
 ```
@@ -283,7 +357,6 @@ principal.id
 ```
 
 Neste estágio, o Agent é o principal.
-
 Exemplo:
 
 ```
@@ -293,20 +366,20 @@ principal:
 ```
 
 Não criar ainda usuários, grupos ou roles complexos.
-
 O contrato deve, contudo, permitir futuros tipos:
 
-- agent
-- human
-- service
-- system
+```
+agent
+human
+service
+system
+```
 
 sem reescrever o PolicyEngine.
 
 ## 7. AuthorizationContext
 
 Criar um objeto explícito para a decisão.
-
 Modelo mínimo:
 
 ```
@@ -327,21 +400,16 @@ Exemplo:
     type: 'agent',
     id: 'oracle'
   },
-
   session: {
     id: 'sess_123'
   },
-
   tool: {
     id: 'database.query'
   },
-
   operation: 'execute',
-
   input: {
     query: '...'
   },
-
   resource: {
     type: 'database',
     id: 'production'
@@ -352,31 +420,30 @@ Exemplo:
 ## 8. Regra importante sobre input
 
 O input pode ser usado pela Policy.
-
 Porém, a Policy deve receber apenas o mínimo necessário para a decisão.
-
 O Runtime não deve assumir que todo input de Tool é seguro para ser replicado em logs/eventos.
-
 A Policy deve operar sobre o contexto de autorização.
-
 A projeção de eventos continua sendo responsabilidade do seam criado na Fase 1.
 
 ## 9. Operation
 
 A Fase 2 deve separar:
 
+```
 Tool ID
+```
 
 de:
 
+```
 Operation
+```
 
 Exemplo:
 
 ```
 toolId:
 filesystem
-
 operation:
 read
 ```
@@ -386,7 +453,6 @@ ou:
 ```
 toolId:
 git
-
 operation:
 push
 ```
@@ -396,13 +462,11 @@ ou:
 ```
 toolId:
 database
-
 operation:
 migration
 ```
 
 Por enquanto, ToolRuntime continuará compatível com o contrato da Fase 1.
-
 Quando não houver uma operação explícita no request, utilizar:
 
 ```
@@ -410,13 +474,11 @@ operation = execute
 ```
 
 como default.
-
 Isso evita quebrar o AgentLoop atual.
 
 ## 10. Resource
 
 Capability e Policy precisam de um conceito de recurso.
-
 Um recurso deve ser identificável por:
 
 ```
@@ -426,22 +488,22 @@ resource.id
 
 Exemplos conceituais:
 
-- filesystem / workspace
-- filesystem / arbitrary-path
-- database / development
-- database / production
-- git / repository
-- github / repository
-- browser / current-page
+```
+filesystem / workspace
+filesystem / arbitrary-path
+database / development
+database / production
+git / repository
+github / repository
+browser / current-page
+```
 
 Não implementar os providers acima agora.
-
 Criar apenas o contrato.
 
 ## 11. Policy
 
 Uma Policy é uma regra declarativa.
-
 Modelo:
 
 ```
@@ -469,7 +531,6 @@ Uma Policy não executa código da Tool.
 ## 12. PolicyDecision
 
 O PolicyEngine deve retornar uma decisão explícita.
-
 Modelo mínimo:
 
 ```
@@ -512,7 +573,6 @@ Approval:
 ## 13. Policy precedence
 
 A avaliação deve ser determinística.
-
 Nesta fase utilizar:
 
 ```
@@ -527,7 +587,9 @@ default deny
 
 Portanto:
 
+```
 DENY sempre vence ALLOW.
+```
 
 Exemplo:
 
@@ -558,7 +620,9 @@ Priority pode resolver empate ou seleção de regra, mas não pode transformar u
 
 Se:
 
+```
 nenhuma policy corresponde
+```
 
 o resultado obrigatório é:
 
@@ -589,13 +653,11 @@ PolicyEngine
 ```
 
 A implementação da Fase 2 pode utilizar um registry em memória.
-
 Não implementar persistência.
 
 ## 17. PolicyRegistry
 
 Criar um registry separado da avaliação.
-
 Conceito:
 
 ```
@@ -608,17 +670,23 @@ PolicyEngine
 
 Isso evita misturar:
 
+```
 storage/configuration
+```
 
 com:
 
+```
 authorization logic
+```
 
 No futuro o registry poderá ser alimentado por:
 
-- config file
-- database
-- remote policy provider
+```
+config file
+database
+remote policy provider
+```
 
 sem alterar o PolicyEngine.
 
@@ -626,10 +694,11 @@ sem alterar o PolicyEngine.
 
 Criar a abstração:
 
+```
 Capability
+```
 
 Capability descreve uma capacidade operacional que o Runtime pode oferecer.
-
 Modelo mínimo:
 
 ```
@@ -657,10 +726,11 @@ Capability não contém autorização.
 
 Criar:
 
+```
 CapabilityRegistry
+```
 
 para registrar capabilities disponíveis.
-
 API conceitual:
 
 ```
@@ -675,30 +745,36 @@ O registry deve rejeitar IDs duplicados.
 ## 20. Capability ≠ Tool
 
 Manter explícita a diferença.
+Capability:
 
 ```
-Capability:
 filesystem
+```
 
 Tools:
+
+```
 filesystem.read
 filesystem.write
 ```
 
 ou:
 
-```
 Capability:
+
+```
 database
+```
 
 Tools:
+
+```
 database.query
 database.migrate
 database.seed
 ```
 
 Uma Capability representa uma família de capacidade.
-
 Uma Tool representa uma operação executável concreta.
 
 ## 21. Tool → Capability
@@ -720,7 +796,6 @@ Exemplo:
 ```
 
 O campo pode ser opcional inicialmente para compatibilidade.
-
 Se a Tool não declarar Capability:
 
 ```
@@ -728,13 +803,11 @@ capability = tool.id
 ```
 
 como fallback temporário.
-
 Isso permitirá migrar progressivamente as Tools existentes.
 
 ## 22. Resource Resolver
 
 Não construir um sistema complexo de resolução de recursos nesta fase.
-
 Criar apenas um seam:
 
 ```
@@ -749,7 +822,6 @@ resource.id
 ```
 
 A primeira implementação pode utilizar metadata declarada pela Tool.
-
 Não inferir recursos complexos a partir de strings arbitrárias.
 
 ## 23. Integração com ToolRuntime
@@ -761,7 +833,6 @@ execute(request, context)
 ```
 
 como definido na Fase 1.
-
 A evolução será internamente:
 
 ```
@@ -784,6 +855,7 @@ execute()
 
 O algoritmo mínimo deve ser:
 
+```
 1. receber request
 2. resolver Tool
 3. validar input
@@ -797,6 +869,7 @@ O algoritmo mínimo deve ser:
 11. se allow → emitir tool.started
 12. executar Tool
 13. emitir tool.completed
+```
 
 A execução física deve ser impossível antes da decisão.
 
@@ -829,7 +902,6 @@ policy.evaluated
 ```
 
 para todas as decisões.
-
 E adicionalmente:
 
 ```
@@ -856,17 +928,18 @@ reason
 
 Nunca publicar automaticamente:
 
-- input completo
-- credentials
-- secrets
-- tool output
+```
+input completo
+credentials
+secrets
+tool output
+```
 
 O Runtime deve manter a separação de projeção criada na Fase 1.
 
 ## 27. Approval Required
 
 A Fase 2 não implementará aprovação humana.
-
 Quando a Policy retornar:
 
 ```
@@ -875,14 +948,18 @@ approval-required
 
 o ToolRuntime deve:
 
+```
 1. publicar policy.evaluated
 2. publicar policy.approval-required
 3. NÃO executar a Tool
 4. retornar/lançar erro tipado
+```
 
 Criar:
 
+```
 PolicyApprovalRequiredError
+```
 
 Esse erro será consumido numa fase futura pelo Founder Gate / Approval Service.
 
@@ -896,10 +973,12 @@ deny
 
 o ToolRuntime deve:
 
+```
 1. publicar policy.evaluated
 2. publicar policy.denied
 3. NÃO executar a Tool
 4. lançar PolicyDeniedError
+```
 
 O ToolRuntime não deve transformar um deny em tool.started.
 
@@ -907,10 +986,11 @@ O ToolRuntime não deve transformar um deny em tool.started.
 
 Uma decisão deny:
 
+```
 não inicia a Tool
+```
 
 mas pode falhar a execução do Agent normalmente.
-
 Ou seja:
 
 ```
@@ -928,15 +1008,12 @@ catch
 ```
 
 e decidir como continuar.
-
 A Policy controla autorização.
-
 O Agent continua responsável por comportamento.
 
 ## 30. Estado do Runtime após approval-required
 
 A execução deve ser interrompida exatamente antes da Tool.
-
 Não iniciar:
 
 ```
@@ -944,7 +1021,6 @@ tool.started
 ```
 
 O futuro Orchestrator/Approval Layer poderá decidir se a operação será retomada.
-
 Não implementar retry/resume nesta fase.
 
 ## 31. Regra de lifecycle
@@ -959,8 +1035,10 @@ policy.denied
 
 e:
 
-- ❌ tool.started
-- ❌ tool.completed
+```
+❌ tool.started
+❌ tool.completed
+```
 
 Para approval:
 
@@ -972,8 +1050,10 @@ policy.approval-required
 
 e:
 
-- ❌ tool.started
-- ❌ tool.completed
+```
+❌ tool.started
+❌ tool.completed
+```
 
 Para allow:
 
@@ -987,7 +1067,6 @@ tool.completed
 ## 32. Compatibilidade com o EventBus
 
 O EventBus da Fase 1 permanece congelado.
-
 Não alterar:
 
 ```
@@ -997,13 +1076,11 @@ unsubscribe
 ```
 
 A Policy apenas passa a utilizá-lo como consumidor/publicador de eventos.
-
 A abstração existente continua suficiente para o runtime atual.
 
 ## 33. Surface of Authority
 
 Este é um requisito crítico.
-
 O Agent não deve receber:
 
 ```
@@ -1023,7 +1100,6 @@ runtime.requestTool
 ```
 
 A Fase 2 não altera a superfície do Agent.
-
 Deve existir teste estrutural equivalente a:
 
 ```
@@ -1064,16 +1140,16 @@ Isso evita que o próprio Agent consulte ou manipule a camada de autoridade.
 ## 35. Policy Context Immutability
 
 A implementação deve tratar o AuthorizationContext como snapshot da decisão.
-
 A Policy não deve modificar:
 
-- session
-- agent
-- tool
-- input
+```
+session
+agent
+tool
+input
+```
 
 O PolicyEngine recebe contexto e retorna decisão.
-
 Não possui efeitos colaterais de execução.
 
 ## 36. Determinismo
@@ -1087,21 +1163,21 @@ AuthorizationContext
 ```
 
 o PolicyEngine deve retornar a mesma decisão.
-
 Não usar:
 
-- LLM
-- randomness
-- current time
-- network
-- external API
+```
+LLM
+randomness
+current time
+network
+external API
+```
 
 para decidir autorização.
 
 ## 37. Policy Matching
 
 A primeira implementação deve ser simples.
-
 Uma Policy poderá corresponder por:
 
 ```
@@ -1114,7 +1190,6 @@ resource.id
 ```
 
 Suporte parcial é aceitável.
-
 Por exemplo:
 
 ```
@@ -1122,15 +1197,16 @@ resources: ["database/*"]
 ```
 
 pode ser suportado por glob simples.
-
 Não implementar:
 
-- CEL
-- OPA
-- Rego
-- ABAC completo
-- RBAC completo
-- IAM DSL
+```
+CEL
+OPA
+Rego
+ABAC completo
+RBAC completo
+IAM DSL
+```
 
 nesta fase.
 
@@ -1149,10 +1225,11 @@ resource
 ```
 
 precisam satisfazer seus critérios declarados.
-
 Campos omitidos significam:
 
+```
 wildcard
+```
 
 Exemplo:
 
@@ -1162,7 +1239,6 @@ principal: oracle
 ```
 
 significa qualquer ferramenta Database para Oracle.
-
 Mas:
 
 ```
@@ -1185,10 +1261,8 @@ Exemplo:
 ```
 id: deny-oracle-production
 effect: deny
-
 principal:
   id: oracle
-
 resource:
   id: production
 ```
@@ -1206,17 +1280,13 @@ para o mesmo contexto.
 ```
 id: oracle-database
 effect: allow
-
 principal:
   id: oracle
-
 capability:
   id: database
-
 operation:
   - query
   - migration
-
 resource:
   id: development
 ```
@@ -1242,13 +1312,10 @@ por ausência de allow.
 ```
 id: production-migration
 effect: approval-required
-
 capability:
   id: database
-
 operation:
   - migration
-
 resource:
   id: production
 ```
@@ -1271,9 +1338,7 @@ if (agent === 'oracle') allow();
 ```
 
 Nunca.
-
 O Runtime deve conseguir carregar as policies.
-
 Uma configuração inicial pode ser:
 
 ```
@@ -1281,7 +1346,6 @@ spectree-runtime/policy/
 ```
 
 ou outro caminho coerente com o repositório.
-
 A fonte de configuração deve ser desacoplada da implementação do PolicyEngine.
 
 ## 43. Compatibilidade com o Squad atual
@@ -1295,9 +1359,7 @@ Keeper → QA
 ```
 
 comecem a ser representadas como policies.
-
 Não é obrigatório migrar todas imediatamente.
-
 Como prova de conceito, implementar pelo menos:
 
 ```
@@ -1336,31 +1398,38 @@ tool does NOT execute
 
 Criar testes para:
 
-- Policy matching
-  - principal match;
-  - tool match;
-  - capability match;
-  - operation match;
-  - resource match;
-  - wildcard;
-  - ausência de match.
-- Decision
-  - allow;
-  - deny;
-  - approval-required;
-  - default deny.
-- Precedence
-  - deny vence allow;
-  - approval-required vence allow;
-  - allow funciona quando nenhuma restrição superior existe.
-- Determinism
-  - Mesmo contexto → mesma decisão.
+Policy matching
+
+* principal match;
+* tool match;
+* capability match;
+* operation match;
+* resource match;
+* wildcard;
+* ausência de match.
+
+Decision
+
+* allow;
+* deny;
+* approval-required;
+* default deny.
+
+Precedence
+
+* deny vence allow;
+* approval-required vence allow;
+* allow funciona quando nenhuma restrição superior existe.
+
+Determinism
+
+* Mesmo contexto → mesma decisão.
 
 ## 46. Testes obrigatórios — ToolRuntime
 
 Criar testes provando:
 
-### DENY
+DENY
 
 ```
 Tool.execute()
@@ -1368,7 +1437,7 @@ Tool.execute()
 
 não é chamado.
 
-### APPROVAL
+APPROVAL
 
 ```
 Tool.execute()
@@ -1376,7 +1445,7 @@ Tool.execute()
 
 não é chamado.
 
-### ALLOW
+ALLOW
 
 ```
 Tool.execute()
@@ -1446,7 +1515,6 @@ Object.keys(context.runtime)
 ```
 
 Isso deve continuar passando após a Fase 2.
-
 Qualquer tentativa futura de adicionar:
 
 ```
@@ -1495,7 +1563,6 @@ jakiro/session-B
 ```
 
 com policy diferentes.
-
 Exemplo:
 
 ```
@@ -1504,7 +1571,6 @@ jakiro → database → deny
 ```
 
 Executar em paralelo.
-
 Provar:
 
 ```
@@ -1537,7 +1603,6 @@ migration
 ```
 
 quando a operação não estiver coberta.
-
 Isso prova a separação:
 
 ```
@@ -1550,18 +1615,19 @@ Operation
 
 Testar:
 
-- register
-- resolve
-- has
-- list
-- duplicate id
+```
+register
+resolve
+has
+list
+duplicate id
+```
 
 Sem persistência.
 
 ## 53. Migration safety
 
 As Tools existentes da Fase 1 não devem ser quebradas.
-
 Se uma Tool não tiver:
 
 ```
@@ -1569,7 +1635,6 @@ capability
 ```
 
 ela deve continuar podendo ser executada somente quando uma Policy explícita compatível a permitir.
-
 Não usar:
 
 ```
@@ -1587,12 +1652,12 @@ toolRuntime.execute(request, context)
 ```
 
 deve continuar funcionando.
-
 A assinatura pública não deve ser quebrada.
-
 A adição do PolicyEngine deve ocorrer via:
 
+```
 constructor dependency
+```
 
 ou outro mecanismo compatível.
 
@@ -1600,14 +1665,17 @@ ou outro mecanismo compatível.
 
 Para testes de infraestrutura do próprio Runtime, pode existir um PolicyEngine padrão com:
 
+```
 default deny
+```
 
 Não criar um:
 
+```
 allow all
+```
 
 global para "facilitar desenvolvimento".
-
 Para testes que precisam permitir determinada Tool, usar policy explícita:
 
 ```
@@ -1618,13 +1686,14 @@ allow-test-tool
 
 Adicionar pelo menos:
 
-- PolicyError
-- PolicyDeniedError
-- PolicyApprovalRequiredError
-- PolicyConfigurationError
+```
+PolicyError
+PolicyDeniedError
+PolicyApprovalRequiredError
+PolicyConfigurationError
+```
 
 Erros devem ser diferenciáveis.
-
 Não usar:
 
 ```
@@ -1636,9 +1705,7 @@ genérico para todas as situações.
 ## 57. Logging
 
 Não introduzir logger global nesta fase.
-
 Eventos do EventBus são a observabilidade canônica.
-
 O futuro logger poderá consumir:
 
 ```
@@ -1656,27 +1723,23 @@ projectEventPayload
 ```
 
 Não remover.
-
 Não duplicar um segundo sistema de redaction dentro da Policy.
-
 Policy pode decidir autorização.
-
 Projection decide o que é publicado.
-
 São responsabilidades diferentes.
 
 ## 59. Imutabilidade da Policy
 
 Após ser registrada, uma Policy não deve ser mutada silenciosamente.
-
 Preferência:
 
-- register
-- remove
-- replace
+```
+register
+remove
+replace
+```
 
 em vez de modificar o objeto já registrado.
-
 Isso facilita auditoria futura.
 
 ## 60. Policy IDs
@@ -1688,14 +1751,14 @@ id
 ```
 
 único.
-
 O PolicyEngine deve retornar esse id na decisão quando uma regra explícita tiver sido responsável pelo resultado.
-
 Isso será necessário futuramente para:
 
-- audit
-- replay
-- explainability
+```
+audit
+replay
+explainability
+```
 
 ## 61. Explainability
 
@@ -1706,9 +1769,7 @@ reason
 ```
 
 O objetivo não é uma explicação gerada por LLM.
-
 Deve ser uma explicação determinística.
-
 Exemplo:
 
 ```
@@ -1725,16 +1786,17 @@ ou:
 
 Uma decisão deve permitir reconstruir:
 
-- quem
-- o quê
-- qual operação
-- qual recurso
-- qual policy
-- qual resultado
-- por quê
+```
+quem
+o quê
+qual operação
+qual recurso
+qual policy
+qual resultado
+por quê
+```
 
 Não é necessário persistir isso ainda.
-
 O EventBus deve tornar esses dados observáveis.
 
 ## 63. Segurança por construção
@@ -1759,7 +1821,6 @@ A autorização deve acontecer antes da execução física.
 ## 64. Relação com Sandbox futuro
 
 O PolicyEngine da Fase 2 não é sandbox.
-
 Policy responde:
 
 ```
@@ -1783,7 +1844,6 @@ Provider
 ```
 
 é uma evolução futura válida.
-
 Não fundir as duas responsabilidades agora.
 
 ## 65. Relação com Founder Approval
@@ -1795,7 +1855,6 @@ approval-required
 ```
 
 mas não implementa a aprovação.
-
 Futuro:
 
 ```
@@ -1816,69 +1875,38 @@ O mecanismo de resume pertence a uma fase futura.
 
 A Fase 2 só pode ser declarada DONE quando:
 
-- PolicyEngine existir.
-
-- PolicyRegistry existir.
-
-- PolicyDecision existir.
-
-- AuthorizationContext existir.
-
-- Capability existir.
-
-- CapabilityRegistry existir.
-
-- ToolRuntime.execute() passar obrigatoriamente pela Policy.
-
-- default deny estiver implementado.
-
-- deny explícito estiver implementado.
-
-- approval-required estiver implementado.
-
-- allow estiver implementado.
-
-- deny superar allow.
-
-- approval-required superar allow.
-
-- Policy não executar Tool.
-
-- Tool não decidir autorização.
-
-- Agent não enxergar PolicyEngine.
-
-- Agent não enxergar CapabilityRegistry.
-
-- superfície estrutural do Agent permanecer inalterada.
-
-- eventos de Policy existirem.
-
-- Tool não iniciar quando deny.
-
-- Tool não iniciar quando approval-required.
-
-- Tool iniciar quando allow.
-
-- Resource estiver representado no contexto.
-
-- Operation estiver representada no contexto.
-
-- Tool puder declarar Capability.
-
-- Tools legadas continuarem compatíveis.
-
-- duas Sessions puderem executar policies diferentes simultaneamente.
-
-- todos os testes passarem.
-
-- claude plugin validate . --strict passar.
-
-- exemplo executável continuar funcionando.
-
-- documentação arquitetural for atualizada.
-
-- nenhuma funcionalidade de Fase 3 tiver sido incorporada.
+* PolicyEngine existir.
+* PolicyRegistry existir.
+* PolicyDecision existir.
+* AuthorizationContext existir.
+* Capability existir.
+* CapabilityRegistry existir.
+* ToolRuntime.execute() passar obrigatoriamente pela Policy.
+* default deny estiver implementado.
+* deny explícito estiver implementado.
+* approval-required estiver implementado.
+* allow estiver implementado.
+* deny superar allow.
+* approval-required superar allow.
+* Policy não executar Tool.
+* Tool não decidir autorização.
+* Agent não enxergar PolicyEngine.
+* Agent não enxergar CapabilityRegistry.
+* superfície estrutural do Agent permanecer inalterada.
+* eventos de Policy existirem.
+* Tool não iniciar quando deny.
+* Tool não iniciar quando approval-required.
+* Tool iniciar quando allow.
+* Resource estiver representado no contexto.
+* Operation estiver representada no contexto.
+* Tool puder declarar Capability.
+* Tools legadas continuarem compatíveis.
+* duas Sessions puderem executar policies diferentes simultaneamente.
+* todos os testes passarem.
+* claude plugin validate . --strict passar.
+* exemplo executável continuar funcionando.
+* documentação arquitetural for atualizada.
+* nenhuma funcionalidade de Fase 3 tiver sido incorporada.
 
 ## 67. Definition of Architecture Done
 
@@ -1900,23 +1928,31 @@ Tool
 
 e se for possível substituir:
 
+```
 PolicyRegistry in-memory
+```
 
 futuramente por outra fonte sem alterar:
 
-- Agent
-- AgentLoop
-- ToolRuntime
+```
+Agent
+AgentLoop
+ToolRuntime
+```
 
 Da mesma forma:
 
+```
 CapabilityRegistry
+```
 
 deve poder receber providers futuros sem conhecer:
 
-- Agent
-- PolicyEngine
-- Session
+```
+Agent
+PolicyEngine
+Session
+```
 
 ## 68. Exemplo mínimo obrigatório
 
@@ -1924,14 +1960,23 @@ Criar um cenário executável:
 
 ```
 Agent: oracle
+```
 
 Tool:
+
+```
 database.migrate
+```
 
 Capability:
+
+```
 database
+```
 
 Resource:
+
+```
 development
 ```
 
@@ -1958,12 +2003,11 @@ Segundo cenário:
 
 ```
 Agent: jakiro
+mesma Tool
+mesmo recurso
 ```
 
-- mesma Tool
-- mesmo recurso
-- sem policy compatível.
-
+sem policy compatível.
 Resultado:
 
 ```
@@ -2002,19 +2046,20 @@ docs/architecture/SPECTREE-RUNTIME.md
 
 adicionando:
 
-- Policy Model
-- Authorization Context
-- Policy Decision
-- Policy Precedence
-- Capability Model
-- Tool → Capability
-- Policy Events
-- Default Deny
-- Approval Required
-- Extension Points
+```
+Policy Model
+Authorization Context
+Policy Decision
+Policy Precedence
+Capability Model
+Tool → Capability
+Policy Events
+Default Deny
+Approval Required
+Extension Points
+```
 
 Também criar um ADR somente se houver uma decisão arquitetural irreversível ou trade-off relevante.
-
 Não criar ADR apenas para aumentar documentação.
 
 ## 70. Handoff obrigatório do Opus 5
@@ -2023,47 +2068,36 @@ O handoff deve conter:
 
 ```
 ## Implementation
-
 arquivos criados/modificados
 
 ## Policy model
-
 diagrama
 
 ## Capability model
-
 diagrama
 
 ## Enforcement point
-
 onde Policy entra no ToolRuntime
 
 ## Decision matrix
-
 allow / deny / approval-required
 
 ## Event sequence
-
 allow / deny / approval
 
 ## Tests
-
 comando + resultado
 
 ## Compatibility
-
 provas do Runtime Fase 1
 
 ## Authority surface
-
 prova estrutural
 
 ## Known limitations
-
 limitações reais
 
 ## Scope verification
-
 confirmação explícita de que Sandbox,
 Orchestrator, LLM Provider e persistence
 não foram implementados
@@ -2071,70 +2105,62 @@ não foram implementados
 
 ## 71. Matriz de decisão obrigatória
 
-- Contexto
-- Resultado
-
-- Policy allow, sem deny
-  - allow
-- Policy deny + allow
-  - deny
-- Policy approval + allow
-  - approval-required
-- Nenhuma policy
-  - deny
-- Tool inexistente
-  - ToolNotFoundError
-- Input inválido
-  - ToolValidationError
-- Policy inválida
-  - PolicyConfigurationError
+| Contexto | Resultado |
+|---|---|
+| Policy allow, sem deny | allow |
+| Policy deny + allow | deny |
+| Policy approval + allow | approval-required |
+| Nenhuma policy | deny |
+| Tool inexistente | ToolNotFoundError |
+| Input inválido | ToolValidationError |
+| Policy inválida | PolicyConfigurationError |
 
 ## 72. Invariantes da Fase 2
 
-- **INV-201**
-  Nenhuma Tool executa antes de PolicyDecision.
+INV-201
+Nenhuma Tool executa antes de PolicyDecision.
 
-- **INV-202**
-  Ausência de Policy nunca concede acesso.
+INV-202
+Ausência de Policy nunca concede acesso.
 
-- **INV-203**
-  deny sempre vence allow.
+INV-203
+deny sempre vence allow.
 
-- **INV-204**
-  approval-required nunca inicia Tool.
+INV-204
+approval-required nunca inicia Tool.
 
-- **INV-205**
-  PolicyEngine nunca executa Tool.
+INV-205
+PolicyEngine nunca executa Tool.
 
-- **INV-206**
-  Tool nunca decide sua própria autorização.
+INV-206
+Tool nunca decide sua própria autorização.
 
-- **INV-207**
-  Agent não recebe acesso ao PolicyEngine.
+INV-207
+Agent não recebe acesso ao PolicyEngine.
 
-- **INV-208**
-  Agent não recebe acesso ao CapabilityRegistry.
+INV-208
+Agent não recebe acesso ao CapabilityRegistry.
 
-- **INV-209**
-  A superfície do Agent Context permanece estruturalmente travada.
+INV-209
+A superfície do Agent Context permanece estruturalmente travada.
 
-- **INV-210**
-  Policy decision é determinística.
+INV-210
+Policy decision é determinística.
 
-- **INV-211**
-  Policy não modifica o contexto de autorização.
+INV-211
+Policy não modifica o contexto de autorização.
 
-- **INV-212**
-  Capability não implica autorização.
+INV-212
+Capability não implica autorização.
 
-- **INV-213**
-  Operation deve fazer parte da decisão.
+INV-213
+Operation deve fazer parte da decisão.
 
-- **INV-214**
-  Resource deve fazer parte da decisão quando a Tool o declarar.
+INV-214
+Resource deve fazer parte da decisão quando a Tool o declarar.
 
-- **INV-215**
-  Todos os eventos de Policy carregam Session/Agent quando disponíveis.
+INV-215
+Todos os eventos de Policy carregam Session/Agent quando disponíveis.
 
 ## 73. Fluxo final da Fase 2
 
@@ -2185,7 +2211,7 @@ para:
 
 Ao final da Fase 2, o Spectree deverá ter realizado uma mudança arquitetural fundamental:
 
-### Antes
+Antes
 
 ```
 Agent
@@ -2193,7 +2219,7 @@ Agent
 "Sou o Oracle, portanto posso mexer no banco."
 ```
 
-### Depois
+Depois
 
 ```
 Agent
@@ -2218,13 +2244,11 @@ Tool
 ```
 
 A autoridade deixa de estar na persona.
-
 Ela passa a estar no Runtime.
 
 ## 75. Regra de fechamento
 
 A Fase 2 não será considerada bem-sucedida porque "tem um PolicyEngine".
-
 Ela será bem-sucedida quando pudermos demonstrar experimentalmente:
 
 ```
@@ -2248,7 +2272,101 @@ DENY
 ```
 
 em um contexto não autorizado,
-
 sem modificar o Agent, a Tool ou o AgentLoop.
 
 Essa é a prova de que o Spectree deixou de depender de convenção de prompt para governar execução.
+
+> Fora da numeração normativa: registro da rodada de review que emendou o
+> contrato desta fase, transcrito da fonte. Ver o bloco de proveniência no
+> topo — inclusive quanto ao trecho que a fonte traz truncado.
+
+## Review do TechLeader — REQUEST CHANGES
+
+Mas é uma correção pequena comparada ao ganho arquitetural do PR.
+
+Pacote de correção que eu mandaria ao Opus:
+
+```
+R9 — Resource authority
+1. remover request.resource como autoridade de autorização
+2. resolver resource a partir da Tool/Capability
+3. garantir que Policy veja o recurso efetivamente executado
+4. adicionar teste de resource spoofing
+5. provar que o agent não consegue transformar production em development
+
+R10 — Safe event projection
+1. default projector não publica input
+2. preservar seam customizado
+3. adicionar teste de ausência de secret/input no evento default
+
+R11 — Capability semantics
+1. adicionar teste documentando que CapabilityRegistry é catálogo
+2. não transformar registry em gate nesta fase
+3. registrar explicitamente como requisito da fase de Providers
+```
+
+Depois:
+
+```
+npm test
+→ esperado >57 verdes
+
+npm run example:policy
+→ 3 cenários
+
+claude plugin validate . --strict
+→ green
+
+resource spoof test
+→ green
+```
+
+### Conclusão do TechLeader
+
+O Opus acertou o desenho central da Fase 2.
+A transformação já aconteceu:
+
+Antes
+
+```
+Agent
+  ↓
+Tool
+```
+
+para:
+
+Agora
+
+```
+Agent
+  ↓
+ToolRuntime
+  ↓
+AuthorizationContext
+  ↓
+PolicyEngine
+  ↓
+Decision
+  ↓
+Tool
+```
+
+Isso é uma evolução arquitetural real e não apenas uma nova biblioteca. O PR também demonstra que a superfície do Agent continua travada, que o EventBus permanece congelado e que nenhum agente do Squad precisou ser modificado.
+
+Mas eu não vou aprovar enquanto o chamador puder influenciar o recurso que a própria Policy usa para autorizar a operação.
+
+Esse é exatamente o tipo de bug que parece pequeno em um exemplo de teste e se torna crítico quando colocarmos:
+
+```
+Supabase
+GitHub
+Cloud Run
+produção
+segredos
+infraestrutura
+```
+
+atrás dessas Tools.
+
+Corrigido o R9, eu reavalio o PR para aprovação.

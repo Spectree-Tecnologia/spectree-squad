@@ -1,7 +1,7 @@
 ---
-status: approved
+status: in-review
 owner: TechLeader
-updated: 2026-08-19
+updated: 2026-08-21
 approved: 2026-08-19 (merge do PR #8 em `main`: squash `0cdb168`, tag `v0.16.0`, 2026-08-19 22:25 -03. Texto transcrito para este repositorio em 2026-08-21, com equivalencia de conteudo medida linha a linha — a transcricao restaurou marcacao, nao alterou conteudo, e por isso `updated:` registra a data do conteudo e nao a do arquivo)
 depends_on: -
 ---
@@ -9,16 +9,34 @@ depends_on: -
 # Spectree Runtime v2 — F01 Runtime Core
 
 > Transcrição da especificação normativa da Fase 1, produzida no harness de
-> planejamento do Founder (owner declarado na fonte: TechLeader). Esta versão
-> restaura a marcação markdown perdida no transporte; o texto é o do documento
-> fonte, sem correção, melhoria ou complemento. O texto commitado é o contrato
-> real (ver `docs/spec/README.md`).
+> planejamento do Founder (declarado na fonte: `Status: APPROVED`,
+> `Owner: TechLeader`). O texto é o do documento fonte, sem correção, melhoria
+> ou complemento. O texto commitado é o contrato real (ver
+> `docs/spec/README.md`).
+>
+> **Duas fontes; esta é a que vale.** A primeira versão deste arquivo nasceu de
+> uma exportação achatada do documento original — o transporte dissolveu 21 dos
+> 86 blocos de código em listas e prosa, e a marcação foi reconstruída por
+> inferência. A versão atual vem do documento colado íntegro pelo Founder no
+> chat em 2026-08-21, com a marcação original preservada, transportada e
+> verificada seção a seção: 47 seções contíguas de 1 a 47, `INV-001` a
+> `INV-010` presentes e únicos, 86 blocos de código.
+>
+> A reconciliação entre as duas versões foi medida linha a linha: **nenhuma
+> linha de texto se perdeu na exportação achatada.** Os 21 blocos dissolvidos
+> preservaram seu conteúdo integralmente; o dano foi exclusivamente de
+> marcação — identificadores literais rebaixados a prosa ou a bullets, e cinco
+> enumerações ordenadas (§5.1, §7, §11, §15, §46) rebaixadas a bullets sem
+> número. Nenhum `INV-` e nenhuma seção mudou de sentido.
 >
 > Aprovação a derivar (ADR-10, decisão 10 item 6): a Fase 1 embarcou no merge
 > de `feat/runtime-core-phase-1` em `main` — squash `0cdb168`, tag `v0.16.0`,
 > em 2026-08-19 (reflog: `pull --ff-only origin main` às 22:25 -03, entre os
 > commits `0d5b3c3` e `ca59952` da branch da fase). A data está no git; o flip
 > de `status:` e o preenchimento de `approved:` são ato do Invoker.
+>
+> `status:` rebaixado a `in-review` nesta edição: substituir o corpo pelo texto
+> fiel à fonte íntegra é emenda substantiva (ADR-10, decisão 5).
 
 - Implementador: Agente Opus 5
 - Repositório: Spectree-Tecnologia/spectree-squad
@@ -60,15 +78,17 @@ O runtime deve ser independente da persona dos agentes do Squad.
 
 Hoje temos:
 
-- Invoker
-- Lina
-- Lion
-- Rubick
-- Zeus
-- Oracle
-- Jakiro
-- Keeper
-- Disruptor
+```
+Invoker
+Lina
+Lion
+Rubick
+Zeus
+Oracle
+Jakiro
+Keeper
+Disruptor
+```
 
 Esses agentes continuam existindo.
 
@@ -76,11 +96,13 @@ Porém, o runtime não deve conhecer nenhum deles pelo nome.
 
 O runtime deve conhecer apenas:
 
-- Agent
-- AgentLoop
-- ToolRuntime
-- Session
-- EventBus
+```
+Agent
+AgentLoop
+ToolRuntime
+Session
+EventBus
+```
 
 Portanto:
 
@@ -189,13 +211,13 @@ Agent = identidade + instrução + configuração + execução
 
 Responsabilidades:
 
-- possuir identidade;
-- receber uma missão;
-- possuir contexto de execução;
-- acessar ferramentas através do ToolRuntime;
-- publicar eventos;
-- produzir resultado;
-- respeitar o ciclo de vida definido pelo AgentLoop.
+1. possuir identidade;
+2. receber uma missão;
+3. possuir contexto de execução;
+4. acessar ferramentas através do ToolRuntime;
+5. publicar eventos;
+6. produzir resultado;
+7. respeitar o ciclo de vida definido pelo AgentLoop.
 
 O Agent não deve implementar diretamente:
 
@@ -238,9 +260,11 @@ run(context) -> AgentResult
 
 O AgentResult deve permitir distinguir pelo menos:
 
-- completed
-- failed
-- cancelled
+```
+completed
+failed
+cancelled
+```
 
 Não criar neste momento estados complexos de workflow.
 
@@ -268,15 +292,15 @@ O loop não deve conhecer a implementação específica de um agente.
 
 Responsabilidade:
 
-- iniciar execução;
-- entregar contexto ao Agent;
-- processar solicitações de ferramenta;
-- aguardar resultados;
-- continuar o ciclo;
-- detectar conclusão;
-- detectar falha;
-- detectar cancelamento;
-- emitir eventos de lifecycle.
+1. iniciar execução;
+2. entregar contexto ao Agent;
+3. processar solicitações de ferramenta;
+4. aguardar resultados;
+5. continuar o ciclo;
+6. detectar conclusão;
+7. detectar falha;
+8. detectar cancelamento;
+9. emitir eventos de lifecycle.
 
 ## 8. Limite do AgentLoop
 
@@ -292,11 +316,15 @@ Isso pertence à camada de Orchestration.
 
 O loop executa:
 
+```
 um Agent
+```
 
 e não:
 
+```
 um Squad inteiro
+```
 
 Esta distinção é obrigatória.
 
@@ -367,13 +395,15 @@ A implementação concreta pode ser diferente.
 
 O contrato deve permitir posteriormente adicionar:
 
-- filesystem
-- shell
-- git
-- github
-- database
-- browser
-- mcp
+```
+filesystem
+shell
+git
+github
+database
+browser
+mcp
+```
 
 sem modificar o Agent.
 
@@ -381,14 +411,14 @@ sem modificar o Agent.
 
 O ToolRuntime deve:
 
-- registrar ferramentas;
-- localizar ferramenta pelo ID;
-- validar input;
-- executar ferramenta;
-- capturar resultado;
-- capturar erro;
-- emitir eventos;
-- devolver resultado ao AgentLoop.
+1. registrar ferramentas;
+2. localizar ferramenta pelo ID;
+3. validar input;
+4. executar ferramenta;
+5. capturar resultado;
+6. capturar erro;
+7. emitir eventos;
+8. devolver resultado ao AgentLoop.
 
 Fluxo:
 
@@ -460,7 +490,9 @@ Isso permanece.
 
 A Session representa:
 
+```
 uma execução concreta do runtime
+```
 
 Exemplo:
 
@@ -501,11 +533,13 @@ cancelled
 
 Estados mínimos:
 
-- created
-- running
-- completed
-- failed
-- cancelled
+```
+created
+running
+completed
+failed
+cancelled
+```
 
 Não adicionar estados arbitrários nesta fase.
 
@@ -513,13 +547,13 @@ Não adicionar estados arbitrários nesta fase.
 
 A Session deve:
 
-- possuir ID único;
-- possuir timestamps;
-- identificar Agent;
-- guardar missão;
-- manter estado de lifecycle;
-- possuir referência ao contexto;
-- associar eventos à execução.
+1. possuir ID único;
+2. possuir timestamps;
+3. identificar Agent;
+4. guardar missão;
+5. manter estado de lifecycle;
+6. possuir referência ao contexto;
+7. associar eventos à execução.
 
 A Session não deve ser responsável por:
 
@@ -720,6 +754,7 @@ AgentLoop / ToolRuntime / Session
 
 O Agente Opus 5 deve conseguir demonstrar o seguinte fluxo:
 
+```
 1. criar Session
 2. publicar session.created
 3. iniciar Session
@@ -739,6 +774,7 @@ O Agente Opus 5 deve conseguir demonstrar o seguinte fluxo:
 17. publicar agent.completed
 18. Session conclui
 19. publicar session.completed
+```
 
 Em caso de erro:
 
@@ -849,11 +885,15 @@ mas a implementação concreta pode ficar para uma fase posterior.
 
 O motivo é impedir que:
 
+```
 Spectree Runtime
+```
 
 se torne:
 
+```
 Claude Runtime
+```
 
 O Runtime deve ser model-agnostic.
 
@@ -872,11 +912,13 @@ O runtime deve funcionar em testes sem:
 
 Criar fake/mock implementations para:
 
-- Agent
-- Tool
-- ToolRuntime
-- EventBus
-- Session
+```
+Agent
+Tool
+ToolRuntime
+EventBus
+Session
+```
 
 quando necessário.
 
@@ -884,43 +926,52 @@ quando necessário.
 
 O Opus 5 deve criar testes unitários para:
 
-- Agent
-  - criação;
-  - execução;
-  - resultado de sucesso;
-  - falha;
-  - cancelamento.
-- AgentLoop
-  - execução simples;
-  - múltiplas iterações;
-  - tool request;
-  - tool result;
-  - tool failure;
-  - agent failure;
-  - cancellation.
-- ToolRuntime
-  - registro;
-  - lookup;
-  - input válido;
-  - input inválido;
-  - execução;
-  - erro;
-  - tool inexistente.
-- Session
-  - lifecycle válido;
-  - transições inválidas;
-  - IDs;
-  - timestamps;
-  - conclusão;
-  - falha;
-  - cancelamento.
-- EventBus
-  - publish;
-  - subscribe;
-  - unsubscribe;
-  - múltiplos subscribers;
-  - isolamento de erro de subscriber;
-  - ordem dos eventos.
+Agent
+
+- criação;
+- execução;
+- resultado de sucesso;
+- falha;
+- cancelamento.
+
+AgentLoop
+
+- execução simples;
+- múltiplas iterações;
+- tool request;
+- tool result;
+- tool failure;
+- agent failure;
+- cancellation.
+
+ToolRuntime
+
+- registro;
+- lookup;
+- input válido;
+- input inválido;
+- execução;
+- erro;
+- tool inexistente.
+
+Session
+
+- lifecycle válido;
+- transições inválidas;
+- IDs;
+- timestamps;
+- conclusão;
+- falha;
+- cancelamento.
+
+EventBus
+
+- publish;
+- subscribe;
+- unsubscribe;
+- múltiplos subscribers;
+- isolamento de erro de subscriber;
+- ordem dos eventos.
 
 ## 29. Teste de integração obrigatório
 
@@ -1034,14 +1085,18 @@ A Session pode inicialmente existir em memória.
 
 Porém:
 
-- Session
-- Event
-- EventBus
+```
+Session
+Event
+EventBus
+```
 
 devem possuir contratos que permitam adicionar posteriormente:
 
-- SessionStore
-- EventStore
+```
+SessionStore
+EventStore
+```
 
 sem alterar o AgentLoop.
 
@@ -1049,12 +1104,14 @@ sem alterar o AgentLoop.
 
 O runtime deve emitir eventos suficientes para permitir posteriormente:
 
-- TUI
-- CLI
-- logs
-- audit
-- metrics
-- session replay
+```
+TUI
+CLI
+logs
+audit
+metrics
+session replay
+```
 
 Não implementar essas interfaces agora.
 
@@ -1066,13 +1123,15 @@ Criar tipos/classes de erro claros.
 
 No mínimo:
 
-- AgentError
-- ToolError
-- ToolNotFoundError
-- ToolValidationError
-- SessionError
-- SessionStateError
-- RuntimeError
+```
+AgentError
+ToolError
+ToolNotFoundError
+ToolValidationError
+SessionError
+SessionStateError
+RuntimeError
+```
 
 Não utilizar apenas:
 
@@ -1128,25 +1187,27 @@ O runtime não deve ficar arquiteturalmente preso a Tools infinitas.
 
 O Agente Opus 5 está explicitamente proibido de expandir o escopo para:
 
-- ❌ Policy Engine
-- ❌ Sandbox
-- ❌ Dynamic Planner
-- ❌ Workflow Engine
-- ❌ Plugin Marketplace
-- ❌ MCP Server
-- ❌ Git integration
-- ❌ GitHub integration
-- ❌ Database integration
-- ❌ Browser integration
-- ❌ Cloud execution
-- ❌ Distributed EventBus
-- ❌ Redis
-- ❌ Kafka
-- ❌ UI/TUI
-- ❌ Dashboard
-- ❌ Cost tracking
-- ❌ Agent memory/RAG
-- ❌ Vector database
+```
+❌ Policy Engine
+❌ Sandbox
+❌ Dynamic Planner
+❌ Workflow Engine
+❌ Plugin Marketplace
+❌ MCP Server
+❌ Git integration
+❌ GitHub integration
+❌ Database integration
+❌ Browser integration
+❌ Cloud execution
+❌ Distributed EventBus
+❌ Redis
+❌ Kafka
+❌ UI/TUI
+❌ Dashboard
+❌ Cost tracking
+❌ Agent memory/RAG
+❌ Vector database
+```
 
 Esses itens poderão consumir os contratos criados nesta fase posteriormente.
 
@@ -1224,7 +1285,9 @@ A Fase 1 somente será considerada DONE quando:
 
 Não aceitar implementação apenas porque:
 
+```
 "funciona no exemplo"
+```
 
 O objetivo da Fase 1 é criar fundação, não demo.
 
@@ -1248,17 +1311,17 @@ sobre quantidade de funcionalidades.
 
 Ao finalizar a implementação, o agente deve entregar:
 
-### A. Código
+A. Código
 
 ```
 spectree-runtime/
 ```
 
-### B. Testes
+B. Testes
 
 Testes unitários + integração.
 
-### C. Architecture Document
+C. Architecture Document
 
 ```
 docs/architecture/SPECTREE-RUNTIME.md
@@ -1266,21 +1329,23 @@ docs/architecture/SPECTREE-RUNTIME.md
 
 Contendo:
 
-- responsabilidades
-- dependências
-- lifecycle
-- event model
-- tool model
-- session model
-- extension points
+```
+responsabilidades
+dependências
+lifecycle
+event model
+tool model
+session model
+extension points
+```
 
-### D. Decision Record
+D. Decision Record
 
 Criar ADR somente se houver uma decisão arquitetural realmente irreversível ou com trade-off significativo.
 
 Não criar ADR artificial.
 
-### E. Runtime Example
+E. Runtime Example
 
 Um exemplo mínimo executável:
 
@@ -1296,15 +1361,17 @@ Session
 EventBus
 ```
 
-### F. Handoff
+F. Handoff
 
 O handoff deve informar:
 
-- Implemented
-- Tests
-- Architecture
-- Known limitations
-- Next extension points
+```
+Implemented
+Tests
+Architecture
+Known limitations
+Next extension points
+```
 
 ## 44. Handoff obrigatório
 
@@ -1355,11 +1422,13 @@ O objetivo é criar o microkernel inicial.
 
 Cinco primitivas:
 
-- Agent
-- AgentLoop
-- ToolRuntime
-- Session
-- EventBus
+```
+Agent
+AgentLoop
+ToolRuntime
+Session
+EventBus
+```
 
 Devem ser pequenas, independentes e extensíveis.
 
@@ -1393,16 +1462,16 @@ deve ser possível sem reescrever estes cinco componentes.
 
 Antes de declarar a fase concluída, o Opus 5 deve responder objetivamente:
 
-- O Agent pode existir sem conhecer Claude Code?
-- O AgentLoop pode executar qualquer Agent compatível?
-- O ToolRuntime pode receber qualquer Tool compatível?
-- Uma Session é independente do projeto e de outras Sessions?
-- O EventBus permite observar toda a execução?
-- O runtime pode ser testado sem API externa?
-- Um segundo LLM provider poderá ser adicionado sem alterar AgentLoop?
-- Um futuro Policy Engine poderá ficar entre Agent e ToolRuntime?
-- Um futuro persistent EventStore poderá substituir o EventBus in-memory sem alterar os consumidores?
-- O Squad atual continua funcionando?
+1. O Agent pode existir sem conhecer Claude Code?
+2. O AgentLoop pode executar qualquer Agent compatível?
+3. O ToolRuntime pode receber qualquer Tool compatível?
+4. Uma Session é independente do projeto e de outras Sessions?
+5. O EventBus permite observar toda a execução?
+6. O runtime pode ser testado sem API externa?
+7. Um segundo LLM provider poderá ser adicionado sem alterar AgentLoop?
+8. Um futuro Policy Engine poderá ficar entre Agent e ToolRuntime?
+9. Um futuro persistent EventStore poderá substituir o EventBus in-memory sem alterar os consumidores?
+10. O Squad atual continua funcionando?
 
 Se qualquer resposta for não, a Fase 1 não está pronta.
 

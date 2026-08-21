@@ -1,31 +1,72 @@
 ---
-status: approved
+status: in-review
 owner: TechLeader
-updated: 2026-08-19
-approved: 2026-08-19 (merge do PR #10 em `main`: squash `85ad4bc`, tag `v0.18.0`. Texto transcrito para este repositorio em 2026-08-21, com equivalencia de conteudo medida linha a linha — a transcricao restaurou marcacao, nao alterou conteudo, e por isso `updated:` registra a data do conteudo e nao a do arquivo)
 depends_on: F1 Runtime Core, F2 Policy Engine
 ---
 
 # Spectree Runtime v2 — Fase 3: Founder Gate / Approval Runtime
 
 > Transcrição da especificação normativa da Fase 3, produzida no harness de
-> planejamento do Founder (owner declarado na fonte: TechLeader). Esta versão
-> restaura a marcação markdown perdida no transporte; o texto é o do documento
-> fonte, sem correção, melhoria ou complemento. O texto commitado é o contrato
-> real (ver `docs/spec/README.md`).
+> planejamento do Founder (declarado na fonte: `Status: APPROVED FOR
+> IMPLEMENTATION`, `Owner: TechLeader`). O texto é o do documento fonte, sem
+> correção, melhoria ou complemento. O texto commitado é o contrato real (ver
+> `docs/spec/README.md`).
 >
-> Aprovação a derivar: a Fase 3 embarcou em `main` no PR #10 — squash
-> `85ad4bc`, tag `v0.18.0`, em 2026-08-19. A data está no git; o flip de
-> `status:` e o preenchimento de `approved:` são ato do Invoker.
+> **Duas fontes; esta é a que vale.** A primeira versão deste arquivo nasceu de
+> uma exportação achatada do documento original — o transporte dissolveu 45 dos
+> 221 blocos de código, e a matriz da §93 chegou como lista agrupada. A versão
+> atual vem do documento colado íntegro pelo Founder no chat, com a marcação
+> original preservada, transportada e verificada seção a seção: 98 seções
+> contíguas de 1 a 98, `INV-301` a `INV-320` presentes e únicos, 442 linhas de
+> cerca — 221 blocos de código.
 >
-> `updated:` registra a data do conteúdo, não a do arquivo: a transcrição foi
-> feita em 2026-08-21 com equivalência medida linha a linha — restaurou
-> marcação, não alterou conteúdo.
+> **A conta da reconciliação fecha.** 442 cercas na fonte contra 352 em disco:
+> 90 linhas de cerca, 45 blocos. Deles, **42 dissolveram** em bullets ou prosa
+> e **3 desapareceram numa fusão** — a §95 recebeu quatro blocos da fonte
+> (`oracle`, `database.migrate`, `database/production`, `approval-required`)
+> como um bloco só, com os rótulos `Agent:`, `Tool:`, `Resource:` e `Policy:`
+> puxados de fora para dentro da cerca. 42 × 2 + 3 × 2 = 90; 442 − 90 = 352,
+> exatamente o que estava em disco. **Nenhuma linha de texto se perdeu**: o
+> dano foi exclusivamente de marcação — identificadores literais rebaixados a
+> prosa ou a bullets, e nenhuma seção, nenhum `INV-` e nenhum estado mudou de
+> sentido.
 >
-> Regra de transcrição: cada linha não vazia da fonte vira exatamente uma linha
-> deste arquivo, com no máximo um prefixo. Por isso a matriz da seção 93 aparece
-> como lista agrupada (estado atual / operação / resultado) e não como tabela —
-> juntar três linhas em uma quebraria a equivalência medida.
+> **A máquina de estados não perdeu estado nem transição.** Seis dos 45 blocos
+> carregavam matéria de máquina de estados: os seis estados da §8, os quatro
+> terminais da §8, a regra "depois de terminal, nenhuma nova decisão", os cinco
+> estados de Session da §17, e as duas consequências de corrida da §48
+> ("não resume." e "resume ainda precisa verificar Session cancellation"). Os
+> seis chegaram inteiros como bullets ou prosa, na mesma ordem e com o mesmo
+> texto. O grafo de lifecycle da §8 sobreviveu como cerca, e as onze linhas da
+> §93 nunca foram cerca na fonte — são tabela, e por isso não entram nos 45.
+> O único ponto em que o achatamento produziu leitura falsa é essa tabela: as
+> três colunas viraram lista agrupada e a linha de cabeçalho (`Estado atual` /
+> `Operação` / `Resultado`) passou a ler como uma décima segunda transição. A
+> tabela está restaurada.
+>
+> **Esta fase não traz review.** A F02 carrega o pacote do TechLeader que
+> define `R9`, `R10` e `R11`; a F3 não tem seção equivalente na fonte íntegra.
+> Ela cita `R8` (§26) e `R9` (§54) e não define nenhum dos dois — as definições
+> moram na F02 (`R8` na §4, P-007; `R9` no review anexo). A citação resolve; a
+> fase não a produz.
+>
+> Aprovação: a Fase 3 embarcou em `main` no PR #10 — squash `85ad4bc`, tag
+> `v0.18.0`, em 2026-08-19. A citação fica no corpo e não no cabeçalho (ADR-10,
+> decisão 13) porque o `git log` **deste arquivo** não a contém: o merge
+> aprovou a implementação da fase, e este arquivo só nasceu na transcrição de
+> 2026-08-21.
+>
+> `status: in-review` nesta edição, e **não por rebaixamento** — a ADR-10
+> (decisões 5 e 13) aboliu o rebaixamento e manda ler o `status:` da cópia em
+> `main`. É a matriz de autoridade que obriga: escrever a linha
+> `status: approved` é o ato `artifact-status.approve`, que nenhum agente tem,
+> e o guard lê o byte, não o delta. Sob a lei nova, preservar um `approved` que
+> já existia é indistinguível de concedê-lo.
+>
+> Convenção de transcrição: cada linha não vazia da fonte vira exatamente uma
+> linha deste arquivo, com no máximo um prefixo. Linha em branco entre
+> parágrafos é livre e foi acrescentada; dentro de bloco de código, não —
+> o conteúdo cercado é verbatim.
 
 - Status: APPROVED FOR IMPLEMENTATION
 - Owner: TechLeader
@@ -38,9 +79,11 @@ depends_on: F1 Runtime Core, F2 Policy Engine
 
 A Fase 2 criou a decisão:
 
-- ALLOW
-- DENY
-- APPROVAL_REQUIRED
+```
+ALLOW
+DENY
+APPROVAL_REQUIRED
+```
 
 O fluxo atual para approval-required termina aqui:
 
@@ -143,11 +186,15 @@ A aprovação humana não deve executar a Tool diretamente.
 
 O Founder decide:
 
+```
 "autorizar esta execução"
+```
 
 O Runtime decide:
 
+```
 "como e quando essa execução será retomada"
+```
 
 Portanto:
 
@@ -175,23 +222,25 @@ Tool.execute()
 
 A Fase 3 não deve implementar:
 
-- ❌ Web UI
-- ❌ TUI
-- ❌ Dashboard
-- ❌ Slack integration
-- ❌ WhatsApp integration
-- ❌ Email approval
-- ❌ GitHub approval UI
-- ❌ OAuth
-- ❌ User identity provider
-- ❌ Database persistence
-- ❌ Redis
-- ❌ Kafka
-- ❌ Distributed approval service
-- ❌ Sandbox
-- ❌ Capability providers reais
-- ❌ Orchestrator
-- ❌ LLM provider
+```
+❌ Web UI
+❌ TUI
+❌ Dashboard
+❌ Slack integration
+❌ WhatsApp integration
+❌ Email approval
+❌ GitHub approval UI
+❌ OAuth
+❌ User identity provider
+❌ Database persistence
+❌ Redis
+❌ Kafka
+❌ Distributed approval service
+❌ Sandbox
+❌ Capability providers reais
+❌ Orchestrator
+❌ LLM provider
+```
 
 O Runtime deve permitir que esses componentes sejam adicionados posteriormente.
 
@@ -295,12 +344,14 @@ approval.resumed
 
 Estados mínimos:
 
-- pending
-- approved
-- denied
-- expired
-- cancelled
-- resumed
+```
+pending
+approved
+denied
+expired
+cancelled
+resumed
+```
 
 Lifecycle permitido:
 
@@ -317,14 +368,18 @@ approved
 
 Estados terminais:
 
-- denied
-- expired
-- cancelled
-- resumed
+```
+denied
+expired
+cancelled
+resumed
+```
 
 Depois de terminal:
 
+```
 nenhuma nova decisão
+```
 
 ## 9. Regra de decisão única
 
@@ -376,14 +431,18 @@ reason?
 
 Decisões:
 
-- approve
-- deny
+```
+approve
+deny
+```
 
 Não criar:
 
-- maybe
-- later
-- partial
+```
+maybe
+later
+partial
+```
 
 nesta fase.
 
@@ -412,9 +471,11 @@ Não implementar ainda autenticação.
 
 O campo existe para:
 
-- audit
-- correlation
-- future identity provider
+```
+audit
+correlation
+future identity provider
+```
 
 ## 12. Founder Gate
 
@@ -454,14 +515,16 @@ O ApprovalManager será o componente central da Fase 3.
 
 Responsabilidades:
 
-- criar ApprovalRequest;
-- registrar pedido;
-- publicar evento;
-- receber decisão;
-- validar lifecycle;
-- persistir estado através de ApprovalStore;
-- emitir eventos;
-- sinalizar o mecanismo de resume.
+```
+criar ApprovalRequest;
+registrar pedido;
+publicar evento;
+receber decisão;
+validar lifecycle;
+persistir estado através de ApprovalStore;
+emitir eventos;
+sinalizar o mecanismo de resume.
+```
 
 Não executar Tool diretamente.
 
@@ -481,17 +544,21 @@ InMemoryApprovalStore
 
 Responsabilidades:
 
-- create
-- get
-- update
+```
+create
+get
+update
+```
 
 Não implementar banco.
 
 O contrato precisa permitir futuramente:
 
-- PostgresApprovalStore
-- RedisApprovalStore
-- SupabaseApprovalStore
+```
+PostgresApprovalStore
+RedisApprovalStore
+SupabaseApprovalStore
+```
 
 sem modificar o ApprovalManager.
 
@@ -536,11 +603,13 @@ Durante pending, a Session pode assumir um estado de espera.
 
 A Fase 1 possui:
 
-- created
-- running
-- completed
-- failed
-- cancelled
+```
+created
+running
+completed
+failed
+cancelled
+```
 
 Não alterar esses cinco estados.
 
@@ -563,7 +632,9 @@ A Fase 3 não deve suspender o Agent inteiro.
 
 Ela suspende:
 
+```
 uma Tool Invocation
+```
 
 Exemplo:
 
@@ -581,7 +652,9 @@ ApprovalRequest pending
 
 O AgentLoop pode:
 
+```
 retornar um resultado de suspensão
+```
 
 em vez de permanecer bloqueado indefinidamente.
 
@@ -609,7 +682,9 @@ Não guardar o objeto Tool diretamente se isso impedir serialização futura.
 
 A intenção é que posteriormente seja possível persistir:
 
+```
 "o que estava aguardando aprovação"
+```
 
 ## 20. Regra de segurança do Resume
 
@@ -694,7 +769,9 @@ expiresAt?
 
 Se não existir:
 
+```
 sem expiração
+```
 
 Para esta fase, o Store pode detectar expiração no momento da leitura/decisão.
 
@@ -727,8 +804,10 @@ O runtime não pode retomar uma Approval cancelada.
 
 Duas decisões concorrentes sobre o mesmo ApprovalRequest:
 
-- approve
-- deny
+```
+approve
+deny
+```
 
 devem resultar em exatamente uma vencedora.
 
@@ -742,8 +821,10 @@ Não é necessário lock distribuído ainda.
 
 O Agent não pode:
 
-- approve
-- deny
+```
+approve
+deny
+```
 
 de sua própria ApprovalRequest.
 
@@ -769,10 +850,12 @@ runtime.requestTool
 
 Não adicionar:
 
-- approvalManager
-- approvalStore
-- founderGate
-- approvalRequest
+```
+approvalManager
+approvalStore
+founderGate
+approvalRequest
+```
 
 O teste estrutural deve continuar falhando se isso acontecer.
 
@@ -818,11 +901,13 @@ expiresAt?
 
 Não publicar:
 
-- input
-- output
-- credentials
-- tokens
-- secrets
+```
+input
+output
+credentials
+tokens
+secrets
+```
 
 A mesma regra de projeção segura da Fase 2 continua válida.
 
@@ -1042,11 +1127,13 @@ ApprovalRequest
 
 o Manager deve:
 
-- criar ID;
-- congelar snapshot;
-- registrar no Store;
-- publicar approval.requested;
-- retornar referência ao pending operation.
+```
+criar ID;
+congelar snapshot;
+registrar no Store;
+publicar approval.requested;
+retornar referência ao pending operation.
+```
 
 Não executar Tool.
 
@@ -1265,11 +1352,15 @@ concorrem, a operação que alterar o estado primeiro vence.
 
 Se cancelled vencer:
 
+```
 não resume.
+```
 
 Se approved vencer antes:
 
+```
 resume ainda precisa verificar Session cancellation
+```
 
 antes da execução.
 
@@ -1287,13 +1378,15 @@ Mas o Runtime não deve assumir onde a decisão humana acontece.
 
 Possíveis futuros consumidores:
 
-- Invoker CLI
-- ChatGPT
-- TUI
-- Web UI
-- Slack
-- WhatsApp
-- Dashboard
+```
+Invoker CLI
+ChatGPT
+TUI
+Web UI
+Slack
+WhatsApp
+Dashboard
+```
 
 Todos conversariam com o mesmo ApprovalManager.
 
@@ -1416,7 +1509,9 @@ approve
 
 A decisão humana autoriza:
 
+```
 a operação específica solicitada
+```
 
 Não altera a operação.
 
@@ -1424,9 +1519,11 @@ Não altera a operação.
 
 O ApprovalManager não deve produzir:
 
-- HTML
-- JSON específico de UI
-- terminal formatting
+```
+HTML
+JSON específico de UI
+terminal formatting
+```
 
 Ele deve produzir entidades e eventos do Runtime.
 
@@ -1434,14 +1531,16 @@ Ele deve produzir entidades e eventos do Runtime.
 
 Os eventos devem permitir reconstruir:
 
-- quem solicitou
-- o quê
-- qual política exigiu aprovação
-- qual recurso
-- quando
-- quem decidiu
-- qual decisão
-- se foi retomado
+```
+quem solicitou
+o quê
+qual política exigiu aprovação
+qual recurso
+quando
+quem decidiu
+qual decisão
+se foi retomado
+```
 
 Isso é necessário para futura auditoria.
 
@@ -1604,11 +1703,13 @@ A presença de Founder Gate não pode alterar isso.
 
 Criar teste que confirme que não existem no AgentContext:
 
-- approve
-- deny
-- requestApproval
-- approvalManager
-- founderGate
+```
+approve
+deny
+requestApproval
+approvalManager
+founderGate
+```
 
 A superfície continua exatamente a mesma.
 
@@ -1625,7 +1726,9 @@ devem produzir apenas uma transição válida.
 
 Verificar:
 
+```
 um único evento terminal
+```
 
 e nenhuma execução duplicada.
 
@@ -1698,7 +1801,9 @@ development
 
 Depois de criar ApprovalRequest:
 
+```
 alterar Tool metadata
+```
 
 não pode alterar retroativamente:
 
@@ -1732,11 +1837,13 @@ B não pode resumir A
 
 Adicionar pelo menos:
 
-- ApprovalError
-- ApprovalStateError
-- ApprovalNotFoundError
-- ApprovalExpiredError
-- PolicyRevalidationError
+```
+ApprovalError
+ApprovalStateError
+ApprovalNotFoundError
+ApprovalExpiredError
+PolicyRevalidationError
+```
 
 Evitar erros genéricos.
 
@@ -1744,10 +1851,12 @@ Evitar erros genéricos.
 
 Qualquer:
 
-- approve
-- deny
-- resume
-- cancel
+```
+approve
+deny
+resume
+cancel
+```
 
 para ID inexistente deve gerar:
 
@@ -1958,16 +2067,20 @@ A Fase 3 não implementa EventStore.
 
 Uma UI futura deverá conseguir:
 
-- listar pending approvals
-- mostrar contexto seguro
-- approve
-- deny
+```
+listar pending approvals
+mostrar contexto seguro
+approve
+deny
+```
 
 apenas consumindo:
 
-- ApprovalManager
-- ApprovalStore
-- EventBus
+```
+ApprovalManager
+ApprovalStore
+EventBus
+```
 
 Não deverá precisar falar com ToolRuntime diretamente.
 
@@ -2004,11 +2117,15 @@ Founder = approve
 
 significa:
 
+```
 "uma exceção operacional foi autorizada"
+```
 
 Não significa:
 
+```
 "Policy agora virou allow"
+```
 
 A Policy continua sendo a fonte de autorização normativa.
 
@@ -2016,14 +2133,18 @@ A Policy continua sendo a fonte de autorização normativa.
 
 Uma aprovação vale apenas para:
 
+```
 uma ApprovalRequest
+```
 
 não para:
 
-- agente
-- tool
-- capability
-- resource
+```
+agente
+tool
+capability
+resource
+```
 
 genericamente.
 
@@ -2039,9 +2160,11 @@ como autorização permanente.
 
 Uma aprovação não deve ser herdada por:
 
-- nova Session
-- novo Agent
-- nova Tool invocation
+```
+nova Session
+novo Agent
+nova Tool invocation
+```
 
 Cada operação de risco deve ter seu próprio ApprovalRequest.
 
@@ -2049,38 +2172,38 @@ Cada operação de risco deve ter seu próprio ApprovalRequest.
 
 A Fase 3 só poderá ser declarada DONE quando:
 
-- ApprovalRequest existir.
-- ApprovalDecision existir.
-- ApprovalManager existir.
-- ApprovalStore existir.
-- InMemoryApprovalStore existir.
-- FounderGate existir como seam.
-- InMemoryFounderGate existir para testes.
-- Approval state machine estiver implementada.
-- apenas uma decisão efetiva for aceita.
-- approval-required criar ApprovalRequest.
-- Tool não executar enquanto pending.
-- approve não executar Tool diretamente.
-- deny impedir execução.
-- resume revalidar Policy.
-- resume revalidar Session cancellation.
-- resource ser recalculado através da Tool.
-- input original ser utilizado na retomada.
-- nenhuma nova entrada ser fornecida pelo Founder.
-- eventos de Approval existirem.
-- eventos não conterem input/output sensíveis.
-- dois Approvals puderem coexistir.
-- concorrência de decisão ser protegida.
-- replay de approve não executar duas vezes.
-- approval cancelado não poder ser retomado.
-- approval expirado não poder ser retomado.
-- AgentContext permanecer estruturalmente idêntico.
-- Fases 1 e 2 permanecerem compatíveis.
-- npm test passar.
-- claude plugin validate . --strict passar.
-- exemplo executável demonstrar approve/deny/resume.
-- documentação arquitetural atualizada.
-- nenhuma UI ou provider real for introduzido.
+* ApprovalRequest existir.
+* ApprovalDecision existir.
+* ApprovalManager existir.
+* ApprovalStore existir.
+* InMemoryApprovalStore existir.
+* FounderGate existir como seam.
+* InMemoryFounderGate existir para testes.
+* Approval state machine estiver implementada.
+* apenas uma decisão efetiva for aceita.
+* approval-required criar ApprovalRequest.
+* Tool não executar enquanto pending.
+* approve não executar Tool diretamente.
+* deny impedir execução.
+* resume revalidar Policy.
+* resume revalidar Session cancellation.
+* resource ser recalculado através da Tool.
+* input original ser utilizado na retomada.
+* nenhuma nova entrada ser fornecida pelo Founder.
+* eventos de Approval existirem.
+* eventos não conterem input/output sensíveis.
+* dois Approvals puderem coexistir.
+* concorrência de decisão ser protegida.
+* replay de approve não executar duas vezes.
+* approval cancelado não poder ser retomado.
+* approval expirado não poder ser retomado.
+* AgentContext permanecer estruturalmente idêntico.
+* Fases 1 e 2 permanecerem compatíveis.
+* npm test passar.
+* claude plugin validate . --strict passar.
+* exemplo executável demonstrar approve/deny/resume.
+* documentação arquitetural atualizada.
+* nenhuma UI ou provider real for introduzido.
 
 ## 92. Definition of Architecture Done
 
@@ -2134,42 +2257,19 @@ O terceiro teste é obrigatório porque comprova que a aprovação humana não �
 
 ## 93. Matriz de transições
 
-- Estado atual
-  Operação
-  Resultado
-- pending
-  approve
-  approved
-- pending
-  deny
-  denied
-- pending
-  expire
-  expired
-- pending
-  cancel
-  cancelled
-- approved
-  resume
-  resumed
-- approved
-  approve
-  idempotente ou estado existente
-- approved
-  deny
-  ApprovalStateError
-- denied
-  resume
-  ApprovalStateError
-- expired
-  approve
-  ApprovalStateError
-- cancelled
-  approve
-  ApprovalStateError
-- resumed
-  resume
-  ApprovalStateError
+| Estado atual | Operação | Resultado |
+|---|---|---|
+| pending | approve | approved |
+| pending | deny | denied |
+| pending | expire | expired |
+| pending | cancel | cancelled |
+| approved | resume | resumed |
+| approved | approve | idempotente ou estado existente |
+| approved | deny | ApprovalStateError |
+| denied | resume | ApprovalStateError |
+| expired | approve | ApprovalStateError |
+| cancelled | approve | ApprovalStateError |
+| resumed | resume | ApprovalStateError |
 
 ## 94. Invariantes da Fase 3
 
@@ -2237,17 +2337,27 @@ O terceiro teste é obrigatório porque comprova que a aprovação humana não �
 
 Criar um exemplo:
 
-```
 Agent:
+
+```
 oracle
+```
 
 Tool:
+
+```
 database.migrate
+```
 
 Resource:
+
+```
 database/production
+```
 
 Policy:
+
+```
 approval-required
 ```
 
@@ -2312,55 +2422,42 @@ O Opus 5 deverá entregar:
 
 ```
 ## Implementation
-
 arquivos criados/modificados
 
 ## Approval State Machine
-
 diagrama
 
 ## Approval Lifecycle
-
 diagrama
 
 ## Founder Gate
-
 contrato + implementação de teste
 
 ## Resume
-
 fluxo completo
 
 ## Policy Revalidation
-
 prova
 
 ## Event Sequence
-
 approve / deny / expire / cancel
 
 ## Concurrency
-
 resultado dos testes
 
 ## Security
-
 resource + input + event projection
 
 ## Authority Surface
-
 teste estrutural
 
 ## Tests
-
 comando + resultado
 
 ## Known Limitations
-
 limitações reais
 
 ## Scope Verification
-
 confirmar ausência de UI,
 providers, sandbox e persistence externa
 ```
@@ -2377,7 +2474,9 @@ PolicyEngine
 
 O Founder Gate fornece:
 
+```
 decisão humana
+```
 
 E o Runtime combina as duas:
 

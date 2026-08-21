@@ -1,26 +1,145 @@
 ---
 status: in-review
 owner: TechLeader
-updated: 2026-08-20
-approved: - (o merge existe — PR #11, squash `d7a19c4`, tag `v0.19.0`, 2026-08-20 — mas a fonte transcrita chegou com perda de conteudo no transporte: as secoes 27 e 47 terminam em `Nao basta provar:` e `Precisamos provar:` sem nada depois, e a 27 e onde o INV-415 se apoia. Escopo: a Fase 4 original apenas; as continuacoes 4.5 a 4.8, PRs #19 a #23, nao tem contrato normativo. Aguarda reexport da fonte.)
 depends_on: F1 Runtime Core (docs/spec/RUNTIME-F01-runtime-core.md), F2 Policy Engine, F3 Founder Gate — baseline declarado na fonte: "Fases 1, 2 e 3 congeladas"
 ---
 
 # Spectree Runtime v2 — F04 Capability Providers
 
 > Transcrição da especificação normativa da Fase 4, produzida no harness de
-> planejamento do Founder (owner declarado na fonte: TechLeader). Esta versão
-> restaura a marcação markdown perdida no transporte; o texto é o do documento
-> fonte, sem correção, melhoria ou complemento. O texto commitado é o contrato
-> real (ver `docs/spec/README.md`).
+> planejamento do Founder (declarado na fonte: `Status: SPECIFICATION`,
+> `Owner: TechLeader`). O texto é o do documento fonte, sem correção, melhoria
+> ou complemento. O texto commitado é o contrato real (ver
+> `docs/spec/README.md`).
 >
-> Aprovação a derivar: a Fase 4 embarcou em `main` no PR #11 — squash
-> `d7a19c4`, tag `v0.19.0`, em 2026-08-20. A data está no git; o flip de
-> `status:` e o preenchimento de `approved:` são ato do Invoker.
+> **Duas fontes; esta é a que vale.** A primeira versão deste arquivo nasceu de
+> uma exportação achatada do documento original — o transporte dissolveu blocos
+> de código em prosa, bullets e listas, e a marcação foi reconstruída por
+> inferência. A versão atual vem do documento colado íntegro pelo Founder no
+> chat, com a marcação original preservada, transportada e verificada seção a
+> seção: 158 seções contíguas de 1 a 158, `INV-401` a `INV-425` presentes e
+> únicos, 328 blocos de código.
+>
+> **A aritmética fecha, e o líquido esconde uma invenção.** 656 linhas de cerca
+> na fonte (328 blocos) contra 522 em disco (261 blocos): delta de 134 linhas,
+> ou 67 blocos líquidos. O bruto é outro: **68 blocos da fonte estão ausentes do
+> disco e 1 bloco do disco não existe na fonte.** `328 − 68 = 260`, e
+> `260 + 1 = 261`. Os 68 ausentes se separam em três causas, e só uma delas é
+> dano de marcação:
+>
+> - **62 dissolvidos** em prosa, bullets ou listas — dano de marcação puro, com
+>   o conteúdo integralmente preservado. Por seção: §2 (1), §4 (3), §9 (1),
+>   §10 (2), §12 (1), §13 (1), §20 (1), §22 (1), §35 (1), §37 (1), §38 (2),
+>   §48 (1), §53 (1), §56 (1), §76 (1), §77 (1), §78 (1), §80 (1), §83 (1),
+>   §87 (1), §90 (2), §91 (1), §92 (1), §93 (1), §94 (1), §98 (1), §99 (1),
+>   §100 (1), §101 (2), §102 (1), §105 (1), §107 (4), §108 (1), §119 (1),
+>   §120 (1), §125 (1), §128 (1), §129 (2), §132 (1), §138 (1), §140 (1),
+>   §141 (1), §142 (1), §143 (1), §145 (1), §148 (2), §150 (1), §151 (1),
+>   §153 (1), §157 (2).
+> - **4 blocos vazios apagados** — os dois da §27 e os dois da §47. Não
+>   perderam conteúdo porque não tinham nenhum; ver adiante.
+> - **2 blocos ausentes por a seção inteira faltar** — o
+>   `## Review do TechLeader — PR #11 — REQUEST CHANGES`, que não existia neste
+>   arquivo. Isso é conteúdo, não marcação.
+>
+> A medição usou `^[[:space:]]*` antes da cerca. A regex ancorada na coluna
+> zero subconta cerca indentada dentro de lista, e foi a `RUNTIME-F08` que
+> apontou o defeito do detector.
+>
+> **Classe A no corpo numerado; classe B só na cauda fora dele.** Nas seções 1 a
+> 158, nenhuma linha de texto se perdeu na exportação achatada — o conteúdo dos
+> 62 blocos dissolvidos sobreviveu integralmente como prosa, bullet ou lista, e
+> nenhum `INV-` e nenhuma seção mudou de sentido. O que faltava era conteúdo
+> fora da numeração normativa: a seção de review, com o pacote que define o
+> `R12`.
+>
+> **O bloco que o transporte inventou: §37.** A fonte traz
+> `Minha recomendação:` seguido de `LocalFilesystemProvider` como linha de
+> prosa nua, e traz `Motivos:` seguido de um bloco com os quatro motivos. A
+> versão achatada fez o inverso: dissolveu o bloco dos motivos em bullets e
+> pôs uma cerca em volta de `LocalFilesystemProvider`, que a fonte não cerca.
+> A contagem por seção batia — dois pares de cerca dos dois lados — e por isso
+> a invenção não aparece no líquido. Ambos foram revertidos para a forma da
+> fonte.
+>
+> **As cercas vazias da §27 e da §47 são da fonte, e a acusação anterior a esta
+> spec estava errada.** A versão anterior deste cabeçalho declarava que a fonte
+> achatada tinha **deletado** o texto que segue `Não basta provar:` e
+> `Precisamos provar:` (§27) e `Policy responde:` e `Provider responde:` (§47).
+> **Não deletou.** A fonte íntegra traz, nos quatro pontos, uma cerca de
+> abertura seguida imediatamente da cerca de fechamento, sem nenhuma linha entre
+> elas — linhas 686-687, 691-692, 1135-1136 e 1140-1141 do documento colado pelo
+> Founder. Não há texto a restaurar porque nunca houve texto. É **lacuna do
+> documento do Founder**, não dano de transporte, e a diferença importa porque
+> muda quem precisa consertar: reexportar a fonte não produz esse conteúdo, só o
+> autor produz. As quatro cercas vazias foram restauradas exatamente como a
+> fonte as traz, e ficam como o registro visível do buraco. A §27 é onde o
+> `INV-415` se apoia, e continua sem a prova que ela prometia enunciar.
+>
+> **A cauda §131-§158: a fonte venceu, e o aviso de que ela chegaria achatada
+> ali não se confirmou.** Medido bloco a bloco no trecho: a fonte tem 52 blocos
+> contra 38 em disco, 14 dissolvidos e **nenhum inventado** — a fonte mantém a
+> marcação até o fim. Onde os dois mais divergem, a fonte é estritamente
+> superior: a §154 é uma **tabela markdown de duas colunas** na fonte e uma
+> lista de bullets achatada em disco, com cada célula virando uma linha solta.
+> Os dois pontos em que a versão em disco parece mais rica são inferência do
+> transporte achatado, não marcação da fonte: a §155 traz cada `INV-4NN` como
+> `- **INV-4NN**` em bullet e negrito, e a fonte os traz como linha do
+> identificador seguida da linha do texto; a §152 troca os bullets `*` da fonte
+> por `-`. Nos dois casos vale a decisão já registrada na `RUNTIME-F02`, que
+> transcreveu os `INV-2NN` na forma da fonte pela mesma razão. Os 25
+> identificadores e as 25 sentenças de `INV-401` a `INV-425` são os mesmos, byte
+> a byte.
+>
+> **Onde o review vive, e por quê.** Fica aqui, ao final e fora da numeração
+> normativa — mesma decisão e mesmo endereço que a `RUNTIME-F02` fixou para o
+> review que definiu `R9`, `R10` e `R11`. O `docs/spec/README.md` declara
+> `TechLeader Review` como etapa do processo da fase, e esta é a rodada de
+> correção que emendou este contrato antes do merge do PR #11 — não é uma
+> decisão tomada fora do documento. O `R12` é load-bearing: o código o cita pelo
+> identificador oito vezes
+> (`spectree-runtime/providers/local/filesystem-provider.js`,
+> `spectree-runtime/sandbox/sandbox-policy.js`,
+> `spectree-runtime/sandbox/providers/local-filesystem-sandbox.js`,
+> `spectree-runtime/tests/filesystem-provider.test.js`,
+> `spectree-runtime/tests/sandbox-integration.test.js`,
+> `spectree-runtime/tests/sandbox-unit.test.js`), e as specs `RUNTIME-F05` e
+> `RUNTIME-F07`, o `ADR-05` e o `docs/architecture/SPECTREE-RUNTIME.md` derivam
+> dele sem nunca o definirem. Depois de `R9`, `R10` e `R11`, o `R12` é a órfã
+> seguinte da família R a ganhar endereço. Qualquer outro — ADR próprio ou
+> arquivo de review separado — poria a definição onde nem o comentário do código
+> nem as specs irmãs apontam. O review não é corpo normativo: é o registro da
+> rodada que mudou o corpo.
+>
+> **Duas linhas de preâmbulo restauradas.** A fonte declara `Status:
+> SPECIFICATION` e `Owner: TechLeader` acima de `Implementador:`, e a versão
+> achatada não as trazia. Entram na lista de preâmbulo na forma que a
+> `RUNTIME-F08` usa.
+>
+> Convenções de transporte, as mesmas fixadas pela `RUNTIME-F01`: o h1 é o
+> título do documento; os separadores entre seções são omitidos; as cercas de
+> código ficam sem tag de linguagem; parágrafos que a fonte escreve em linhas
+> consecutivas ficam separados por linha em branco, sem que nenhuma linha de
+> texto seja acrescentada ou retirada. Restauradas também as aspas retas da
+> última frase da §158, que o transporte achatado converteu em aspas
+> tipográficas.
+>
+> **Por que o `status:` é `in-review`** (ADR-10, decisão 13): a Fase 4 embarcou
+> em `main` no PR #11 — squash `d7a19c4`, tag `v0.19.0`, em 2026-08-20 — e o
+> merge é o ato de aprovação do Founder. Mergear, porém, não é declarar o
+> conteúdo íntegro, e este arquivo carrega duas lacunas conhecidas que o Founder
+> ainda não resolveu: as quatro cercas vazias da §27 e da §47, que são buraco do
+> documento original e não do transporte. Enquanto isso valer, **não se deriva
+> desta spec**, e é isso que `status: in-review` em `main` diz por inteiro. O
+> cabeçalho segue a lei da ADR-10, decisão 13: sem `approved:` e sem `updated:`
+> — o git responde por quando e por qual merge, e a razão do status mora no
+> corpo, que é aqui.
 >
 > Escopo da fonte: este documento cobre apenas a Fase 4 original. As
 > continuações 4.5 a 4.8 (PRs #19 a #23) não aparecem no texto fonte.
 
+- Status: SPECIFICATION
+- Owner: TechLeader
 - Implementador: Agente Opus 5
 - Baseline: Spectree Runtime v2 — Fases 1, 2 e 3 congeladas
 - Fase: 4 — Capability Providers
@@ -95,11 +214,13 @@ mesma Capability
 
 pode utilizar Providers diferentes sem modificar:
 
-- Agent
-- AgentLoop
-- ToolRuntime
-- PolicyEngine
-- ApprovalManager
+```
+Agent
+AgentLoop
+ToolRuntime
+PolicyEngine
+ApprovalManager
+```
 
 ## 3. Princípio fundamental
 
@@ -157,15 +278,21 @@ filesystem.delete
 
 Capability define:
 
+```
 operações suportadas
+```
 
 Tool define:
 
+```
 qual operação foi solicitada
+```
 
 Provider define:
 
+```
 como aquela operação é executada
+```
 
 ## 5. Arquitetura da Fase 4
 
@@ -304,11 +431,13 @@ Exemplo:
 
 A Capability não deve conter:
 
-- filesystem path
-- database connection
-- HTTP client
-- shell
-- credentials
+```
+filesystem path
+database connection
+HTTP client
+shell
+credentials
+```
 
 Ela define apenas o contrato.
 
@@ -329,11 +458,15 @@ CapabilityProvider
 
 O Provider deve declarar:
 
+```
 qual capability implementa
+```
 
 e:
 
+```
 quais operações suporta
+```
 
 ## 11. Provider ≠ Tool
 
@@ -378,10 +511,12 @@ list(...)
 
 O Registry deve rejeitar:
 
-- provider inexistente
-- capability inexistente
-- operação não suportada
-- ID duplicado
+```
+provider inexistente
+capability inexistente
+operação não suportada
+ID duplicado
+```
 
 ## 13. Capability ↔ Provider
 
@@ -403,11 +538,13 @@ EverythingProvider
 
 que execute:
 
-- filesystem
-- git
-- database
-- browser
-- cloud
+```
+filesystem
+git
+database
+browser
+cloud
+```
 
 Isso destruiria a separação das capabilities.
 
@@ -541,6 +678,7 @@ Nenhuma execução.
 
 O fluxo da Fase 4 será:
 
+```
 1. resolve Tool
 2. validate Tool input
 3. resolve Capability
@@ -556,6 +694,7 @@ O fluxo da Fase 4 será:
 13. validate Provider supports operation
 14. provider.execute()
 15. emit result
+```
 
 A Policy continua antes da execução física.
 
@@ -595,11 +734,13 @@ ProviderExecutionContext
 
 Não entregar ao Provider:
 
-- AgentContext
-- PolicyEngine
-- ApprovalManager
-- FounderGate
-- EventBus
+```
+AgentContext
+PolicyEngine
+ApprovalManager
+FounderGate
+EventBus
+```
 
 O Provider precisa apenas da informação necessária para executar.
 
@@ -702,7 +843,13 @@ Essa é uma das invariantes mais importantes da Fase 4.
 
 Não basta provar:
 
+```
+```
+
 Precisamos provar:
+
+```
+```
 
 ## 28. Provider Execution Request
 
@@ -885,13 +1032,15 @@ Continuar a regra da Fase 2.
 
 Não publicar automaticamente:
 
-- input completo
-- output completo
-- credentials
-- connection strings
-- tokens
-- filesystem contents
-- database rows
+```
+input completo
+output completo
+credentials
+connection strings
+tokens
+filesystem contents
+database rows
+```
 
 Eventos devem carregar metadata segura.
 
@@ -937,16 +1086,16 @@ A Fase 4 precisa de pelo menos um Provider real.
 
 Minha recomendação:
 
-```
 LocalFilesystemProvider
-```
 
 Motivos:
 
-- determinístico
-- local
-- testável
-- baixo acoplamento externo
+```
+determinístico
+local
+testável
+baixo acoplamento externo
+```
 
 E ele prepara diretamente o terreno para o Sandbox da Fase 5.
 
@@ -961,16 +1110,20 @@ filesystem
 
 operações mínimas:
 
-- read
-- write
-- delete
+```
+read
+write
+delete
+```
 
 Não adicionar:
 
-- chmod
-- mount
-- symlink
-- execute
+```
+chmod
+mount
+symlink
+execute
+```
 
 nesta fase.
 
@@ -1166,7 +1319,13 @@ Isso não é conflito arquitetural.
 
 Policy responde:
 
+```
+```
+
 Provider responde:
+
+```
+```
 
 ## 48. Não confundir Provider com Sandbox
 
@@ -1180,11 +1339,13 @@ filesystem root = workspace
 
 Sandbox futuro:
 
-- filesystem
-- network
-- process
-- syscalls
-- environment
+```
+filesystem
+network
+process
+syscalls
+environment
+```
 
 será uma camada de isolamento sistêmico.
 
@@ -1308,12 +1469,14 @@ uma Capability
 
 Não implementar ainda:
 
-- multi-provider routing
-- load balancing
-- health scoring
-- dynamic provider selection
-- regional routing
-- failover
+```
+multi-provider routing
+load balancing
+health scoring
+dynamic provider selection
+regional routing
+failover
+```
 
 Mas o Registry deve permitir mais de um Provider futuramente.
 
@@ -1363,9 +1526,11 @@ Provider
 
 validar:
 
-- capability existe
-- operations ⊆ capability.operations
-- providerId único
+```
+capability existe
+operations ⊆ capability.operations
+providerId único
+```
 
 A partir desta fase, o gate Capability ↔ Registry é obrigatório.
 
@@ -1769,9 +1934,11 @@ filesystem
 
 mas executar internamente:
 
-- shell
-- network
-- git
+```
+shell
+network
+git
+```
 
 sem que essas capacidades estejam explicitamente modeladas.
 
@@ -1783,8 +1950,10 @@ Não implementar descoberta dinâmica automática.
 
 Registrar explicitamente:
 
-- CapabilityRegistry
-- ProviderRegistry
+```
+CapabilityRegistry
+ProviderRegistry
+```
 
 no createRuntime().
 
@@ -1794,11 +1963,13 @@ Isso mantém a confiança arquitetural explícita.
 
 O createRuntime() deve montar:
 
-- CapabilityRegistry
-- ProviderRegistry
-- PolicyEngine
-- ApprovalManager
-- ToolRuntime
+```
+CapabilityRegistry
+ProviderRegistry
+PolicyEngine
+ApprovalManager
+ToolRuntime
+```
 
 com dependency injection.
 
@@ -1826,6 +1997,7 @@ Nenhum singleton global.
 
 Ao inicializar Runtime:
 
+```
 1. register capabilities
 2. validate capabilities
 3. register providers
@@ -1833,6 +2005,7 @@ Ao inicializar Runtime:
 5. register tools
 6. validate tool ↔ capability
 7. start runtime
+```
 
 Se qualquer validação falhar:
 
@@ -1898,7 +2071,9 @@ provider.started
 
 Não criar Policy específica para dizer:
 
+```
 provider está disponível
+```
 
 São dimensões diferentes.
 
@@ -1907,8 +2082,9 @@ Resultado:
 ```
 Policy = ALLOW
 Provider = unavailable
-→ erro de capability/provider.
 ```
+
+→ erro de capability/provider.
 
 Não:
 
@@ -1983,9 +2159,11 @@ Isso permite futura troca de Provider e valida configuração atual.
 
 A ApprovalRequest pode guardar:
 
-- capabilityId
-- operation
-- resource
+```
+capabilityId
+operation
+resource
+```
 
 mas não deve precisar guardar:
 
@@ -2031,20 +2209,24 @@ Policy continua sendo a autoridade.
 
 Implementar somente:
 
-- read
-- write
-- delete
+```
+read
+write
+delete
+```
 
 Testar:
 
-- normal path
-- nested path
-- invalid path
-- traversal
-- symlink
-- missing file
-- permission failure
-- concurrent access
+```
+normal path
+nested path
+invalid path
+traversal
+symlink
+missing file
+permission failure
+concurrent access
+```
 
 Não implementar shell.
 
@@ -2052,11 +2234,13 @@ Não implementar shell.
 
 read deve:
 
-- receber path
-- normalizar
-- validar boundary
-- ler
-- retornar conteúdo
+```
+receber path
+normalizar
+validar boundary
+ler
+retornar conteúdo
+```
 
 Erro de arquivo inexistente:
 
@@ -2070,10 +2254,12 @@ com causa distinguível.
 
 write deve:
 
-- receber path
-- normalizar
-- validar boundary
-- escrever
+```
+receber path
+normalizar
+validar boundary
+escrever
+```
 
 Não criar diretórios arbitrários fora do workspace.
 
@@ -2081,10 +2267,12 @@ Não criar diretórios arbitrários fora do workspace.
 
 delete deve:
 
-- normalizar
-- validar boundary
-- impedir root deletion
-- executar
+```
+normalizar
+validar boundary
+impedir root deletion
+executar
+```
 
 Não implementar recursive delete nesta fase.
 
@@ -2110,9 +2298,11 @@ Dois recursos semanticamente iguais devem produzir a mesma representação.
 
 Isso ajuda:
 
-- Policy
-- Approval
-- Audit
+```
+Policy
+Approval
+Audit
+```
 
 ## 95. Resource comparison
 
@@ -2187,9 +2377,11 @@ remote-filesystem
 
 sem mudar:
 
-- Tool
-- Capability
-- Policy
+```
+Tool
+Capability
+Policy
+```
 
 quando a semântica de acesso continuar compatível.
 
@@ -2203,12 +2395,14 @@ providerContract(provider)
 
 Verificando:
 
-- capability identity
-- operations
-- context surface
-- error normalization
-- success result
-- failure result
+```
+capability identity
+operations
+context surface
+error normalization
+success result
+failure result
+```
 
 Future providers devem passar pelo mesmo contrato.
 
@@ -2216,13 +2410,15 @@ Future providers devem passar pelo mesmo contrato.
 
 A Fase 4 não deve implementar simultaneamente:
 
-- Git
-- GitHub
-- Supabase
-- Postgres
-- Browser
-- Cloud Run
-- MCP
+```
+Git
+GitHub
+Supabase
+Postgres
+Browser
+Cloud Run
+MCP
+```
 
 O primeiro Provider deve ser suficiente para provar a arquitetura.
 
@@ -2234,11 +2430,15 @@ Não implementar em Fase 4 a menos que o filesystem provider esteja totalmente c
 
 A prioridade é:
 
+```
 Capability architecture
+```
 
 não:
 
+```
 quantidade de integrations
+```
 
 ## 102. Database Provider
 
@@ -2246,11 +2446,13 @@ Não implementar.
 
 Database envolve:
 
-- credentials
-- transactions
-- network
-- connection lifecycle
-- production resources
+```
+credentials
+transactions
+network
+connection lifecycle
+production resources
+```
 
 e deve vir depois do Sandbox.
 
@@ -2314,41 +2516,61 @@ porque Sandbox é boundary de execução.
 
 Criar:
 
-- unit tests
-- contract tests
-- integration tests
-- security tests
+```
+unit tests
+contract tests
+integration tests
+security tests
+```
 
 Não confiar apenas no exemplo executável.
 
 ## 106. Testes obrigatórios — Registry
 
-- CapabilityRegistry
-  - register
-  - resolve
-  - duplicate
-  - unknown
-  - operation validation
-  - immutability
-- ProviderRegistry
-  - register
-  - resolve
-  - duplicate
-  - unknown
-  - capability mismatch
-  - operation mismatch
+CapabilityRegistry
+
+* register
+* resolve
+* duplicate
+* unknown
+* operation validation
+* immutability
+
+ProviderRegistry
+
+* register
+* resolve
+* duplicate
+* unknown
+* capability mismatch
+* operation mismatch
 
 ## 107. Testes obrigatórios — ToolRuntime
 
-- Unknown capability
-  - Tool.execute = 0
-  - Provider.execute = 0
-- Unknown provider
-  - Provider.execute = 0
-- Unsupported operation
-  - Provider.execute = 0
-- Allowed execution
-  - Provider.execute = 1
+Unknown capability
+
+```
+Tool.execute = 0
+Provider.execute = 0
+```
+
+Unknown provider
+
+```
+Provider.execute = 0
+```
+
+Unsupported operation
+
+```
+Provider.execute = 0
+```
+
+Allowed execution
+
+```
+Provider.execute = 1
+```
 
 ## 108. Teste de Policy + Provider
 
@@ -2369,7 +2591,9 @@ Minha preferência é resolver Capability depois da Policy quando possível para
 
 O requisito obrigatório é:
 
+```
 Provider.execute nunca antes de Policy ALLOW.
+```
 
 ## 109. Teste de Approval + Provider
 
@@ -2537,8 +2761,10 @@ uma Tool Invocation
 
 Inclusive após:
 
-- Approval
-- Resume
+```
+Approval
+Resume
+```
 
 ## 120. Teste de Provider bypass
 
@@ -2550,9 +2776,11 @@ Agent context
 
 não possui:
 
-- provider
-- providerRegistry
-- capabilityRegistry
+```
+provider
+providerRegistry
+capabilityRegistry
+```
 
 O Agent continua com:
 
@@ -2630,9 +2858,11 @@ Não a Session.
 
 Se Provider possuir recursos físicos:
 
-- connection
-- worker
-- process
+```
+connection
+worker
+process
+```
 
 o Runtime deve ter seam para:
 
@@ -2676,10 +2906,12 @@ Não aplicar isso rigidamente ao filesystem.
 
 Metadata deve poder incluir:
 
-- providerId
-- version
-- capabilityId
-- operations
+```
+providerId
+version
+capabilityId
+operations
+```
 
 Não incluir segredos.
 
@@ -2687,11 +2919,15 @@ Não incluir segredos.
 
 Capability:
 
+```
 semântico
+```
 
 Provider:
 
+```
 operacional
+```
 
 Exemplo:
 
@@ -2764,12 +3000,14 @@ Isso evita que ToolRuntime acumule toda a lógica de registry.
 
 O ToolRuntime deve continuar coordenando:
 
-- resolve
-- authorize
-- approve
-- resolve capability/provider
-- execute
-- emit
+```
+resolve
+authorize
+approve
+resolve capability/provider
+execute
+emit
+```
 
 mas não implementar diretamente:
 
@@ -2868,10 +3106,12 @@ O contexto entregue ao Provider deve ser snapshot/frozen quando tecnicamente raz
 
 O Provider não deve conseguir alterar:
 
-- resource
-- capabilityId
-- agentId
-- sessionId
+```
+resource
+capabilityId
+agentId
+sessionId
+```
 
 para afetar auditoria.
 
@@ -2903,11 +3143,13 @@ para filesystem.
 
 Não:
 
-- process
-- environment completo
-- network client
-- git client
-- database client
+```
+process
+environment completo
+network client
+git client
+database client
+```
 
 se não precisar.
 
@@ -2915,9 +3157,11 @@ se não precisar.
 
 Não deixar Provider usar diretamente:
 
-- process.cwd()
-- process.env
-- global filesystem
+```
+process.cwd()
+process.env
+global filesystem
+```
 
 como autoridade implícita.
 
@@ -2927,9 +3171,11 @@ Dependências devem ser injetadas.
 
 O Provider pode receber:
 
-- fs adapter
-- path adapter
-- workspaceRoot
+```
+fs adapter
+path adapter
+workspaceRoot
+```
 
 Isso facilita testes sem tocar filesystem real.
 
@@ -2937,7 +3183,9 @@ Isso facilita testes sem tocar filesystem real.
 
 Além dos fakes, o filesystem Provider deve possuir testes reais usando:
 
+```
 temporary directory
+```
 
 Não usar:
 
@@ -2957,10 +3205,12 @@ Nenhum teste pode deixar arquivos fora da área temporária.
 
 Provider tests não podem depender de:
 
-- machine hostname
-- username
-- current directory
-- global environment
+```
+machine hostname
+username
+current directory
+global environment
+```
 
 ## 146. Runtime example
 
@@ -3033,13 +3283,17 @@ Isso prova a integração Fases 2 + 3 + 4.
 
 Os exemplos nunca devem tocar:
 
-- production server
-- production database
-- real infrastructure
+```
+production server
+production database
+real infrastructure
+```
 
 O resource deve ser:
 
+```
 temporary test workspace
+```
 
 ou equivalente.
 
@@ -3063,16 +3317,18 @@ docs/architecture/SPECTREE-RUNTIME.md
 
 com:
 
-- Capability
-- Provider
-- ProviderRegistry
-- CapabilityResolver
-- Resource binding
-- Provider execution
-- Error model
-- Event model
-- Filesystem Provider
-- Future Sandbox seam
+```
+Capability
+Provider
+ProviderRegistry
+CapabilityResolver
+Resource binding
+Provider execution
+Error model
+Event model
+Filesystem Provider
+Future Sandbox seam
+```
 
 ## 151. ADR
 
@@ -3086,9 +3342,11 @@ ADR-04-capability-provider-boundary.md
 
 cobrindo:
 
-- Capability ≠ Provider
-- Provider ≠ Tool
-- Policy ≠ Provider
+```
+Capability ≠ Provider
+Provider ≠ Tool
+Policy ≠ Provider
+```
 
 e a decisão de tornar:
 
@@ -3102,43 +3360,43 @@ um gate real a partir da Fase 4.
 
 A Fase 4 só pode ser declarada DONE quando:
 
-- Capability contract está formalizado.
-- CapabilityRegistry continua funcionando.
-- Provider contract existe.
-- ProviderRegistry existe.
-- CapabilityResolver existe.
-- Tool → Capability está validado.
-- Capability → Provider está validado.
-- Capability desconhecida bloqueia execução.
-- Operation desconhecida bloqueia execução.
-- Provider inexistente bloqueia execução.
-- Provider não suportando operação bloqueia execução.
-- Policy continua sendo avaliada antes de Provider.
-- Approval continua sendo respeitado.
-- Resume continua revalidando Policy.
-- Provider recebe somente contexto autorizado.
-- Provider não recebe PolicyEngine.
-- Provider não recebe ToolRuntime.
-- Agent não recebe Provider.
-- Agent authority surface permanece congelada.
-- Resource anti-spoofing da Fase 2 permanece intacto.
-- resource autorizado == resource do Provider.
-- pelo menos um Provider real existe.
-- LocalFilesystemProvider funciona.
-- path traversal é bloqueado.
-- symlink escape é bloqueado ou explicitamente recusado.
-- Provider failure é normalizado.
-- Provider output não vaza por eventos padrão.
-- Providers concorrentes não compartilham estado indevidamente.
-- Approval + Provider funciona.
-- Policy revalidation + Provider funciona.
-- testes unitários passam.
-- testes de integração passam.
-- testes de segurança passam.
-- claude plugin validate . --strict passa.
-- nenhum Provider de Git, DB, MCP ou Cloud foi introduzido.
-- Sandbox não foi implementado.
-- Orchestrator não foi implementado.
+* Capability contract está formalizado.
+* CapabilityRegistry continua funcionando.
+* Provider contract existe.
+* ProviderRegistry existe.
+* CapabilityResolver existe.
+* Tool → Capability está validado.
+* Capability → Provider está validado.
+* Capability desconhecida bloqueia execução.
+* Operation desconhecida bloqueia execução.
+* Provider inexistente bloqueia execução.
+* Provider não suportando operação bloqueia execução.
+* Policy continua sendo avaliada antes de Provider.
+* Approval continua sendo respeitado.
+* Resume continua revalidando Policy.
+* Provider recebe somente contexto autorizado.
+* Provider não recebe PolicyEngine.
+* Provider não recebe ToolRuntime.
+* Agent não recebe Provider.
+* Agent authority surface permanece congelada.
+* Resource anti-spoofing da Fase 2 permanece intacto.
+* resource autorizado == resource do Provider.
+* pelo menos um Provider real existe.
+* LocalFilesystemProvider funciona.
+* path traversal é bloqueado.
+* symlink escape é bloqueado ou explicitamente recusado.
+* Provider failure é normalizado.
+* Provider output não vaza por eventos padrão.
+* Providers concorrentes não compartilham estado indevidamente.
+* Approval + Provider funciona.
+* Policy revalidation + Provider funciona.
+* testes unitários passam.
+* testes de integração passam.
+* testes de segurança passam.
+* claude plugin validate . --strict passa.
+* nenhum Provider de Git, DB, MCP ou Cloud foi introduzido.
+* Sandbox não foi implementado.
+* Orchestrator não foi implementado.
 
 ## 153. Definition of Architecture Done
 
@@ -3190,114 +3448,104 @@ Agent
 
 não conhece:
 
-- CapabilityRegistry
-- ProviderRegistry
+```
+CapabilityRegistry
+ProviderRegistry
+```
 
 ## 154. Matriz obrigatória
 
-- Situação
-  Resultado
-- Capability registrada + Provider registrado + Policy allow
-  Executa
-- Capability inexistente
-  CapabilityNotFoundError
-- Operation não suportada pela Capability
-  UnsupportedCapabilityOperationError
-- Provider inexistente
-  CapabilityProviderNotFoundError
-- Provider não suporta operation
-  ProviderOperationNotSupportedError
-- Policy deny
-  Não chega ao Provider
-- Approval pending
-  Não chega ao Provider
-- Approval denied
-  Não chega ao Provider
-- Approval approved + revalidation allow
-  Executa
-- Approval approved + revalidation deny
-  Não executa
-- Provider falha
-  ProviderExecutionError
-- Resource fora do boundary
-  Provider rejeita
+| Situação | Resultado |
+|---|---|
+| Capability registrada + Provider registrado + Policy allow | Executa |
+| Capability inexistente | CapabilityNotFoundError |
+| Operation não suportada pela Capability | UnsupportedCapabilityOperationError |
+| Provider inexistente | CapabilityProviderNotFoundError |
+| Provider não suporta operation | ProviderOperationNotSupportedError |
+| Policy deny | Não chega ao Provider |
+| Approval pending | Não chega ao Provider |
+| Approval denied | Não chega ao Provider |
+| Approval approved + revalidation allow | Executa |
+| Approval approved + revalidation deny | Não executa |
+| Provider falha | ProviderExecutionError |
+| Resource fora do boundary | Provider rejeita |
 
 ## 155. Invariantes da Fase 4
 
-- **INV-401**
-  Capability descreve o que o Runtime sabe fazer.
+INV-401
+Capability descreve o que o Runtime sabe fazer.
 
-- **INV-402**
-  Provider implementa Capability.
+INV-402
+Provider implementa Capability.
 
-- **INV-403**
-  Tool não conhece Provider.
+INV-403
+Tool não conhece Provider.
 
-- **INV-404**
-  Agent não conhece Provider.
+INV-404
+Agent não conhece Provider.
 
-- **INV-405**
-  Provider não autoriza sua própria execução.
+INV-405
+Provider não autoriza sua própria execução.
 
-- **INV-406**
-  Policy continua sendo avaliada antes de execução física.
+INV-406
+Policy continua sendo avaliada antes de execução física.
 
-- **INV-407**
-  Approval continua sendo obrigatório quando a Policy exigir.
+INV-407
+Approval continua sendo obrigatório quando a Policy exigir.
 
-- **INV-408**
-  Resume continua revalidando Policy.
+INV-408
+Resume continua revalidando Policy.
 
-- **INV-409**
-  Capability desconhecida não executa.
+INV-409
+Capability desconhecida não executa.
 
-- **INV-410**
-  Provider inexistente não executa.
+INV-410
+Provider inexistente não executa.
 
-- **INV-411**
-  Provider não suportando operation não executa.
+INV-411
+Provider não suportando operation não executa.
 
-- **INV-412**
-  Provider recebe apenas o contexto explicitamente autorizado.
+INV-412
+Provider recebe apenas o contexto explicitamente autorizado.
 
-- **INV-413**
-  Provider não recebe acesso ao ToolRuntime.
+INV-413
+Provider não recebe acesso ao ToolRuntime.
 
-- **INV-414**
-  Provider não recebe acesso ao PolicyEngine.
+INV-414
+Provider não recebe acesso ao PolicyEngine.
 
-- **INV-415**
-  Resource do Provider é o mesmo resource autorizado.
+INV-415
+Resource do Provider é o mesmo resource autorizado.
 
-- **INV-416**
-  Provider não pode alterar o resource autorizado.
+INV-416
+Provider não pode alterar o resource autorizado.
 
-- **INV-417**
-  Nenhum Provider usa autoridade ambiental implícita quando dependência explícita for suficiente.
+INV-417
+Nenhum Provider usa autoridade ambiental implícita quando dependência explícita for suficiente.
 
-- **INV-418**
-  Providers não compartilham estado de Session implicitamente.
+INV-418
+Providers não compartilham estado de Session implicitamente.
 
-- **INV-419**
-  Provider output bruto não é publicado por eventos padrão.
+INV-419
+Provider output bruto não é publicado por eventos padrão.
 
-- **INV-420**
-  A superfície de autoridade do Agent permanece estruturalmente congelada.
+INV-420
+A superfície de autoridade do Agent permanece estruturalmente congelada.
 
-- **INV-421**
-  CapabilityRegistry passa a ser gate obrigatório para execução.
+INV-421
+CapabilityRegistry passa a ser gate obrigatório para execução.
 
-- **INV-422**
-  ProviderRegistry é a fonte de resolução de Providers.
+INV-422
+ProviderRegistry é a fonte de resolução de Providers.
 
-- **INV-423**
-  Não existe caminho Agent → Provider fora do ToolRuntime.
+INV-423
+Não existe caminho Agent → Provider fora do ToolRuntime.
 
-- **INV-424**
-  Nenhum Provider introduz uma capability oculta.
+INV-424
+Nenhum Provider introduz uma capability oculta.
 
-- **INV-425**
-  A Fase 4 não altera a Session state machine.
+INV-425
+A Fase 4 não altera a Session state machine.
 
 ## 156. Handoff obrigatório do Opus 5
 
@@ -3305,62 +3553,48 @@ O handoff deve conter:
 
 ```
 ## Implementation
-
 arquivos criados/modificados
 
 ## Capability Model
-
 diagrama
 
 ## Provider Model
-
 diagrama
 
 ## Resolution Flow
-
 Tool → Capability → Provider
 
 ## Enforcement Flow
-
 Policy → Approval → Capability → Provider
 
 ## Resource Binding
-
 prova
 
 ## Provider Context
-
 surface + teste estrutural
 
 ## First Provider
-
 LocalFilesystemProvider
 
 ## Security
-
 path traversal
 symlink
 resource binding
 event projection
 
 ## Tests
-
 comando + resultado
 
 ## Integration Proof
-
 execução real em workspace temporário
 
 ## Compatibility
-
 Fases 1, 2 e 3
 
 ## Known Limitations
-
 limitações reais
 
 ## Scope Verification
-
 confirmar ausência de Sandbox,
 Git/DB/MCP/Cloud e Orchestrator
 ```
@@ -3379,11 +3613,15 @@ Founder Approval
 
 A capability define:
 
+```
 o que pode ser feito
+```
 
 e o Provider define:
 
+```
 como fazer.
+```
 
 ## 158. Resultado estratégico
 
@@ -3459,4 +3697,38 @@ Esse é o marco em que o Spectree Runtime passa de uma arquitetura que governa a
 
 Por isso, a Fase 4 deve permanecer pequena: um Capability contract sólido, um Provider contract sólido e um único Provider real — filesystem local — são suficientes para validar a arquitetura.
 
-A próxima fronteira, depois disso, será a que realmente separará o Spectree de um executor comum: Sandbox, onde deixaremos de perguntar apenas “o Agent pode fazer?” e passaremos a responder também “em qual ambiente, com quais recursos e sob quais limites físicos essa execução pode ocorrer?”
+A próxima fronteira, depois disso, será a que realmente separará o Spectree de um executor comum: Sandbox, onde deixaremos de perguntar apenas "o Agent pode fazer?" e passaremos a responder também "em qual ambiente, com quais recursos e sob quais limites físicos essa execução pode ocorrer?"
+
+> Fora da numeração normativa: registro da rodada de review que emendou o
+> contrato desta fase, transcrito da fonte. É aqui que o `R12` — citado oito
+> vezes no código e derivado pelas specs `RUNTIME-F05` e `RUNTIME-F07`, pelo
+> `ADR-05` e pelo `docs/architecture/SPECTREE-RUNTIME.md` — ganha a sua
+> definição. Ver o bloco de proveniência no topo.
+
+## Review do TechLeader — PR #11 — REQUEST CHANGES
+
+Pacote obrigatório:
+
+```
+R12
+1. corrigir boundary físico para symlink/junction em parent directories;
+2. verificar real path dentro do real workspace;
+3. testar read através de parent symlink;
+4. testar write através de parent symlink;
+5. manter o arquivo externo intocado;
+6. manter a garantia resource ↔ physical path;
+7. atualizar documentação/ADR se a semântica mudar.
+```
+
+Depois disso, eu espero:
+
+```
+npm test
+→ 101+ verdes
+
+npm run example:provider
+→ green
+
+claude plugin validate . --strict
+→ green
+```

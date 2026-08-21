@@ -1,22 +1,81 @@
 ---
-status: approved
+status: in-review
 owner: TechLeader
-updated: 2026-08-20
-approved: 2026-08-20 (merge do PR #24 em `main`: squash `2841048`, tag `v0.29.0`. Texto transcrito para este repositorio em 2026-08-21, com equivalencia de conteudo medida linha a linha)
 depends_on: F1 Runtime Core, F2 Policy Engine, F3 Founder Gate, F4 Capability Providers, F4.5 Squad/Runtime Integration
 ---
 
 # Spectree Runtime v2 — F05 Sandbox Runtime
 
 > Transcrição da especificação normativa da Fase 5, produzida no harness de
-> planejamento do Founder (owner declarado na fonte: TechLeader). Esta versão
-> restaura a marcação markdown perdida no transporte; o texto é o do documento
-> fonte, sem correção, melhoria ou complemento. O texto commitado é o contrato
-> real (ver `docs/spec/README.md`).
+> planejamento do Founder (declarado na fonte: `Status: SPECIFICATION`,
+> `Owner: TechLeader`). O texto é o do documento fonte, sem correção, melhoria
+> ou complemento. O texto commitado é o contrato real (ver
+> `docs/spec/README.md`).
 >
-> Aprovação a derivar: a Fase 5 embarcou em `main` no PR #24 — squash
-> `2841048`, tag `v0.29.0`, em 2026-08-20. A data está no git; o flip de
-> `status:` e o preenchimento de `approved:` são ato do Invoker.
+> **Duas fontes; esta é a que vale.** A primeira versão deste arquivo nasceu de
+> uma exportação achatada do documento original — o transporte dissolveu blocos
+> de código em prosa e em bullets, fundiu blocos vizinhos, cercou uma tabela
+> que nunca foi cerca e deixou a cauda de fora. A versão atual vem do documento
+> colado íntegro pelo Founder no chat, com a marcação original preservada,
+> transportada e verificada seção a seção: 186 seções contíguas de 1 a 186,
+> `INV-501` a `INV-530` presentes e únicos, 720 linhas de cerca — 360 blocos de
+> código.
+>
+> **A conta da reconciliação fecha, e ela tem quatro parcelas.** 720 cercas na
+> fonte contra 666 em disco: 54 linhas, 27 blocos de diferença líquida. Deles,
+> **18 dissolveram** em prosa ou bullets (§1 três vezes, §4, §10, §27 duas
+> vezes, §28, §60, §61, §73 duas vezes, §95, §102, §171, §183, §184, §186);
+> **8 desapareceram em cinco fusões** — a §55 recebeu dois blocos como um,
+> a §91 recebeu três, a §155 recebeu quatro, a §156 e a §163 receberam dois
+> cada, sempre com os rótulos que viviam fora (`read-only`, `workspace-write`,
+> `danger-full-access`, `SandboxPolicy`, `SandboxRegistry`, `SandboxResolver`,
+> `SandboxHandle`, `Read-only`, `Workspace-write`, `Danger full access`,
+> `requested:`, `backend:`) puxados para dentro da cerca; **2 nunca chegaram**,
+> porque a seção de review não existia neste arquivo; e **1 foi fabricado** —
+> a tabela da §181 virou cerca em disco, um bloco a mais que a fonte não tem.
+> 360 − 18 − 8 − 2 + 1 = 333, exatamente os 666 ÷ 2 que estavam em disco.
+> Fusão não é dissolução: na dissolução o bloco vira prosa e some do balanço;
+> na fusão o texto continua cercado, mas dois blocos passam a contar como um.
+>
+> **As duas tabelas, dois veredictos diferentes.** A §91 nunca foi tabela na
+> fonte — são três rótulos soltos e três cercas, e o achatamento os fundiu numa
+> cerca só; restaurada como estava, sem nada fabricado. A §181 **é** tabela na
+> fonte, com cabeçalho `Situação` / `Resultado`, e em disco chegou como cerca
+> achatada: as duas células do cabeçalho passaram a ler como se fossem a
+> primeira das doze linhas de resultado. É a mesma doença da §93 da F03 —
+> texto fabricado por perda de estrutura, não texto perdido. A tabela está
+> restaurada, e com ela some a cerca que não existia.
+>
+> **Esta fase traz review, e com ele o `R13`.** A cauda da fonte é
+> `Review do TechLeader — PR #24 — REQUEST CHANGES`, que define `R13` —
+> classificação de execução de Tool, Sandbox obrigatório para tools físicas
+> self-provided, tools puras explicitamente não-sandboxed, testes das duas
+> rotas. Ela fica aqui, ao final e fora da numeração normativa, pelo endereço
+> que a F02 fixou: é a rodada de correção que emendou este contrato antes do
+> merge, e o `R13` é load-bearing — o código o cita nove vezes
+> (`spectree-runtime/tools/tool-runtime.js`,
+> `spectree-runtime/tests/sandbox-classification.test.js`), e o `ADR-05`
+> (decisão 8), o `docs/architecture/SPECTREE-RUNTIME.md` e a `RUNTIME-F06`
+> derivam dele. Sem esta seção, o identificador que sete testes carregam no
+> nome não teria definição em disco.
+>
+> Aprovação: a Fase 5 embarcou em `main` no PR #24 — squash `2841048`, tag
+> `v0.29.0`, em 2026-08-20. A citação fica no corpo e não no cabeçalho (ADR-10,
+> decisão 13) porque o `git log` **deste arquivo** não a contém: o merge
+> aprovou a implementação da fase, e este arquivo só nasceu na transcrição de
+> 2026-08-21.
+>
+> `status: in-review` nesta edição, e **não por rebaixamento** — a ADR-10
+> (decisões 5 e 13) aboliu o rebaixamento e manda ler o `status:` da cópia em
+> `main`. É a matriz de autoridade que obriga: escrever a linha
+> `status: approved` é o ato `artifact-status.approve`, que nenhum agente tem,
+> e o guard lê o byte, não o delta. Sob a lei nova, preservar um `approved` que
+> já existia é indistinguível de concedê-lo.
+>
+> Convenção de transcrição: cada linha não vazia da fonte vira exatamente uma
+> linha deste arquivo, com no máximo um prefixo. Linha em branco entre
+> parágrafos é livre e foi acrescentada; dentro de bloco de código, não —
+> o conteúdo cercado é verbatim.
 
 - Implementador: Agente Opus 5
 - Baseline: Spectree Runtime v2 — Fases 1, 2, 3, 4 e 4.5 congeladas
@@ -64,11 +123,15 @@ A Fase 4 adicionou o primeiro acesso físico real através de LocalFilesystemPro
 
 A partir desse momento, precisamos separar claramente:
 
+```
 autorização
+```
 
 de:
 
+```
 isolamento físico.
+```
 
 A Policy pode dizer:
 
@@ -78,7 +141,9 @@ ALLOW filesystem.write
 
 mas isso não deve significar:
 
+```
 acesso irrestrito ao filesystem do host.
+```
 
 O Sandbox introduz essa segunda fronteira.
 
@@ -120,44 +185,46 @@ Essa distinção é normativa.
 
 Criar o primeiro Sandbox Runtime do Spectree capaz de:
 
-- definir uma política de isolamento físico;
-- construir um contexto de sandbox para uma execução;
-- aplicar limites ao Provider;
-- suportar modos de sandbox;
-- detectar capacidades de enforcement da plataforma;
-- diferenciar full de partial enforcement;
-- preservar o contrato do Provider;
-- impedir bypass pelo Agent;
-- manter a Policy e o Founder Gate como autoridades superiores;
-- criar um seam para futuros sandboxes Linux/Windows/Container/Remote.
+1. definir uma política de isolamento físico;
+2. construir um contexto de sandbox para uma execução;
+3. aplicar limites ao Provider;
+4. suportar modos de sandbox;
+5. detectar capacidades de enforcement da plataforma;
+6. diferenciar full de partial enforcement;
+7. preservar o contrato do Provider;
+8. impedir bypass pelo Agent;
+9. manter a Policy e o Founder Gate como autoridades superiores;
+10. criar um seam para futuros sandboxes Linux/Windows/Container/Remote.
 
 ## 4. Não implementar
 
 Nesta fase não implementar:
 
-- ❌ Docker Runtime
-- ❌ Kubernetes
-- ❌ VM
-- ❌ E2B
-- ❌ Firecracker
-- ❌ gVisor
-- ❌ network proxy real
-- ❌ seccomp
-- ❌ AppArmor
-- ❌ Windows kernel driver
-- ❌ remote sandbox
-- ❌ distributed sandbox
-- ❌ GPU isolation
-- ❌ CPU quotas reais
-- ❌ memory quotas reais
-- ❌ cgroup management completo
-- ❌ subprocess/PTY completo
-- ❌ shell provider completo
-- ❌ Git provider
-- ❌ Database provider
-- ❌ MCP provider
-- ❌ Orchestrator
-- ❌ LLM provider
+```
+❌ Docker Runtime
+❌ Kubernetes
+❌ VM
+❌ E2B
+❌ Firecracker
+❌ gVisor
+❌ network proxy real
+❌ seccomp
+❌ AppArmor
+❌ Windows kernel driver
+❌ remote sandbox
+❌ distributed sandbox
+❌ GPU isolation
+❌ CPU quotas reais
+❌ memory quotas reais
+❌ cgroup management completo
+❌ subprocess/PTY completo
+❌ shell provider completo
+❌ Git provider
+❌ Database provider
+❌ MCP provider
+❌ Orchestrator
+❌ LLM provider
+```
 
 A primeira implementação deve provar a arquitetura com Filesystem Sandbox + Local Provider.
 
@@ -297,7 +364,9 @@ outside workspace:
 
 Não significa:
 
+```
 filesystem inteiro liberado
+```
 
 ## 11. danger-full-access
 
@@ -721,11 +790,15 @@ Não permitir que uma Tool declare isso sozinha.
 
 Policy responde:
 
+```
 pode executar?
+```
 
 Sandbox responde:
 
+```
 em quais limites físicos?
+```
 
 Exemplo:
 
@@ -767,7 +840,9 @@ O Founder aprovou a operação.
 
 Não aprovou:
 
+```
 acesso irrestrito ao host.
+```
 
 ## 29. Explicit sandbox escalation
 
@@ -1319,6 +1394,9 @@ read-only
     filesystem:
       read = workspace
       write = none
+```
+
+```
 workspace-write
     filesystem:
       read = workspace
@@ -1414,6 +1492,7 @@ execute
 
 A ordem normativa:
 
+```
 1. resolve Tool
 2. validate Tool
 3. resolve Capability
@@ -1424,6 +1503,7 @@ A ordem normativa:
 8. apply Sandbox
 9. resolve Provider
 10. execute Provider
+```
 
 A sequência exata pode otimizar resolução sem alterar:
 
@@ -1439,9 +1519,11 @@ O SandboxProvider não deve tocar no recurso protegido apenas para "testar" a po
 
 Exemplo:
 
-- não abrir arquivo
-- não conectar banco
-- não iniciar shell
+```
+não abrir arquivo
+não conectar banco
+não iniciar shell
+```
 
 durante apply().
 
@@ -1657,16 +1739,20 @@ SandboxDeniedError
 
 deve explicar:
 
-- qual boundary
-- qual recurso
-- qual operação
-- qual motivo
+```
+qual boundary
+qual recurso
+qual operação
+qual motivo
+```
 
 sem expor:
 
-- segredos
-- paths sensíveis desnecessários
-- environment
+```
+segredos
+paths sensíveis desnecessários
+environment
+```
 
 ## 74. Escalation seam
 
@@ -1987,8 +2073,9 @@ como enforcement porque esse modo significa explicitamente ausência de restriç
 
 ## 91. LocalFilesystemSandbox behavior
 
-```
 read-only
+
+```
 read:
   workspace ✓
 
@@ -2000,7 +2087,11 @@ delete:
 
 outside:
   ✗
+```
+
 workspace-write
+
+```
 read:
   workspace ✓
 
@@ -2012,7 +2103,11 @@ delete:
 
 outside:
   ✗
+```
+
 danger-full-access
+
+```
 Sandbox boundary:
 none
 ```
@@ -2119,7 +2214,9 @@ não inventar uma implementação pseudo-Landlock.
 
 Se houver apenas uma proteção no Provider:
 
+```
 documentar como partial
+```
 
 ## 96. Windows backend
 
@@ -2238,7 +2335,9 @@ sandboxPolicySnapshot
 
 para permitir auditoria:
 
+```
 qual sandbox estava aplicado?
+```
 
 ## 103. Resume
 
@@ -3144,6 +3243,7 @@ Se:
 ```
 sandboxProvider:
 linux
+
 current platform:
 windows
 ```
@@ -3179,22 +3279,35 @@ Futuros Sandboxes deverão passar pelo mesmo contrato.
 
 ## 155. Unit tests
 
-```
 SandboxPolicy
+
+```
 defaults
 normalization
 immutability
 invalid combinations
+```
+
 SandboxRegistry
+
+```
 registration
 duplicate
 resolution
 unsupported provider
+```
+
 SandboxResolver
+
+```
 mode selection
 provider selection
 enforcement compatibility
+```
+
 SandboxHandle
+
+```
 lifecycle
 cleanup
 idempotency
@@ -3202,18 +3315,24 @@ idempotency
 
 ## 156. Integration tests
 
-```
 Read-only
+
+```
 read = success
 write = denied
 delete = denied
+```
+
 Workspace-write
+
+```
 read = success
 write = success
 delete = success
 outside = denied
-Danger full access
 ```
+
+Danger full access
 
 Apenas provar que:
 
@@ -3297,11 +3416,15 @@ sandbox disposed = true
 
 ## 163. Integration test: enforcement mismatch
 
-```
 requested:
+
+```
 workspace-write/full
+```
 
 backend:
+
+```
 partial
 ```
 
@@ -3422,14 +3545,16 @@ docs/adr/ADR-05-sandbox-execution-boundary.md
 
 com as decisões:
 
-- Sandbox é camada separada de Policy.
-- Sandbox é camada separada de Provider.
-- Default fail-closed.
-- full/partial/none são estados explícitos.
-- danger-full-access não bypassa Policy.
-- sandbox escalation não é automatic retry.
-- primeiro backend é filesystem.
-- backend OS-specific será substituível.
+```
+Sandbox é camada separada de Policy.
+Sandbox é camada separada de Provider.
+Default fail-closed.
+full/partial/none são estados explícitos.
+danger-full-access não bypassa Policy.
+sandbox escalation não é automatic retry.
+primeiro backend é filesystem.
+backend OS-specific será substituível.
+```
 
 ## 172. Example
 
@@ -3781,38 +3906,31 @@ O handoff deve conter:
 
 ```
 ## Implementation
-
 arquivos criados/modificados
 
 ## DeepSeek Adaptation
-
 o que foi adotado
 o que foi deliberadamente não adotado
 
 ## Sandbox Model
-
 SandboxPolicy
 SandboxMode
 ExecutionBoundary
 
 ## Provider Model
-
 SandboxProvider
 Registry
 Resolver
 
 ## Enforcement
-
 full / partial / none
 
 ## Platform Matrix
-
 Linux
 Windows
 macOS
 
 ## Security
-
 workspace
 symlink
 junction
@@ -3821,24 +3939,20 @@ temp
 environment
 
 ## Lifecycle
-
 apply
 execute
 release
 
 ## Approval Integration
-
 pending
 approve
 revalidate
 sandbox
 
 ## Tests
-
 comando + resultado
 
 ## Integration Proof
-
 Policy
 Approval
 Capability
@@ -3846,43 +3960,28 @@ Sandbox
 Provider
 
 ## Known Limitations
-
 limitações reais
 
 ## Scope Verification
-
 confirmar ausência de
 Shell/DB/Git/MCP/Cloud/Orchestrator
 ```
 
 ## 181. Matriz final obrigatória
 
-```
-Situação
-Resultado
-Policy deny
-PolicyDeniedError
-Approval pending
-execução suspensa
-Approval denied
-stop
-Policy revalidation deny
-stop
-Capability missing
-CapabilityNotFoundError
-Sandbox missing
-SandboxUnavailableError
-Sandbox denied
-SandboxDeniedError
-Sandbox partial + partial não permitido
-SandboxUnavailableError
-Sandbox full + policy allow
-Provider pode executar
-Provider invariant violation
-Provider error
-Provider success
-Tool success
-```
+| Situação | Resultado |
+|---|---|
+| Policy deny | PolicyDeniedError |
+| Approval pending | execução suspensa |
+| Approval denied | stop |
+| Policy revalidation deny | stop |
+| Capability missing | CapabilityNotFoundError |
+| Sandbox missing | SandboxUnavailableError |
+| Sandbox denied | SandboxDeniedError |
+| Sandbox partial + partial não permitido | SandboxUnavailableError |
+| Sandbox full + policy allow | Provider pode executar |
+| Provider invariant violation | Provider error |
+| Provider success | Tool success |
 
 ## 182. Fluxo final da Fase 5
 
@@ -3922,14 +4021,16 @@ Tool success
 
 Estamos adotando os princípios que provaram ser úteis:
 
-- Capability seam
-- Sandbox provider abstraction
-- Platform-specific enforcement
-- Explicit sandbox modes
-- Full / partial enforcement
-- Restricted-by-default
-- Approval escalation seam
-- Filesystem + subprocess separation
+```
+Capability seam
+Sandbox provider abstraction
+Platform-specific enforcement
+Explicit sandbox modes
+Full / partial enforcement
+Restricted-by-default
+Approval escalation seam
+Filesystem + subprocess separation
+```
 
 O DeepSeek demonstra que essa arquitetura permite trocar o mecanismo de execução sem modificar as ferramentas consumidoras.
 
@@ -3937,14 +4038,16 @@ O DeepSeek demonstra que essa arquitetura permite trocar o mecanismo de execuç�
 
 O Spectree não deve copiar:
 
-- Cordis
-- plugin framework inteiro
-- subprocess runtime inteiro
-- PTY
-- E2B
-- UI
-- remote API
-- session architecture deles
+```
+Cordis
+plugin framework inteiro
+subprocess runtime inteiro
+PTY
+E2B
+UI
+remote API
+session architecture deles
+```
 
 porque essas coisas pertencem a problemas que o Spectree já resolveu ou resolverá em outras fases.
 
@@ -4002,7 +4105,9 @@ EXECUTION BOUNDARY
 
 O próximo grande marco depois dessa fase será o Process/Subprocess Capability, porque aí poderemos aplicar a arquitetura do DeepSeek à execução de comandos e, finalmente, responder a um dos problemas mais difíceis do Agent Runtime:
 
+```
 "o agente pode executar este comando?"
+```
 
 não apenas em termos de Policy, mas:
 
@@ -4016,4 +4121,29 @@ e qual limite de vida?"
 ```
 
 Esse será o passo seguinte depois que o Sandbox estiver sólido.
+
+## Review do TechLeader — PR #24 — REQUEST CHANGES
+
+Não solicito nenhuma alteração relacionada à arquitetura do Sandbox que já foi implementada. Só quero fechar:
+
+```
+R13
+Tool execution classification
++ Sandbox obrigatório para self-provided physical tools
++ pure tools explicitamente não-sandboxed
++ testes de ambas as rotas
+```
+
+Depois disso:
+
+```
+npm test
+→ 196+ verdes
+
+npm run example:sandbox
+→ green
+
+claude plugin validate . --strict
+→ green
+```
 
