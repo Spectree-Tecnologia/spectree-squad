@@ -137,6 +137,51 @@ test('read-only fisico: le, nao escreve — negado pelo KERNEL (secoes 30, 101)'
   }
 });
 
+/**
+ * Patch F7 — a assercao que fecha o buraco do CI. O conformance harness
+ * da E3 e zero-rede por construcao, entao um DNS quebrado dentro do
+ * namespace era INVISIVEL para ele: o sintoma e timeout, nao erro.
+ *
+ * A verificacao que importa nao precisa de rede — e de FILESYSTEM:
+ * `/etc/resolv.conf` resolve para um arquivo que existe dentro do
+ * namespace? lstat + realpath respondem, sem resolver nome nenhum. Foi
+ * assim que a calibracao da F9 travou, e e assim que o CI pega da
+ * proxima vez.
+ */
+test('mount plan: /etc/resolv.conf nao fica PENDURADO no namespace (patch F7)', { skip: SKIP }, async () => {
+  const w = world();
+  try {
+    const policy = createSandboxPolicy({ mode: 'read-only', workspaceRoot: w.workspaceRoot, requiredEnforcement: 'full' });
+    const handle = await provider.apply(policy, { sessionId: 'phys_dns' });
+    const report = await confinedNode(handle, w.workspaceRoot, [
+      "const fs = require('fs'); const r = [];",
+      tryFs("if (!fs.existsSync('/etc/resolv.conf')) throw new Error('ausente')"),
+      // o coracao: o ALVO do symlink existe dentro do namespace?
+      tryFs("if (!fs.existsSync(fs.realpathSync('/etc/resolv.conf'))) throw new Error('pendurado')"),
+      "process.stdout.write('REPORT:' + JSON.stringify(r));",
+    ].join('\n'));
+    assert.equal(report[0], true, '/etc/resolv.conf visivel no namespace');
+    assert.equal(report[1], true,
+      'symlink PENDURADO: o alvo de /etc/resolv.conf nao existe dentro do namespace. ' +
+      'DNS morre em TIMEOUT, nao em erro — ver diagnostics().mountFidelity');
+
+    // Honestidade sobre o alcance deste teste: num host cujo
+    // /etc/resolv.conf e ARQUIVO COMUM, a assercao acima passa com ou sem
+    // a correcao — o ro-bind de /etc ja o cobre. O teste so tem dentes
+    // onde o link e symlink para fora das roots (WSL, systemd-resolved).
+    // Entao o status e afirmado E impresso: o log do CI diz qual caso
+    // este host exercitou, em vez de deixar um verde ambiguo.
+    const [link] = provider.diagnostics().mountFidelity;
+    console.log('    mountFidelity: ' + link.path + ' -> ' + link.status +
+      (link.target ? ' (' + link.target + ')' : ''));
+    assert.ok(['not-a-symlink', 'covered', 'bindable'].includes(link.status),
+      "mount plan nao resolveu /etc/resolv.conf: status '" + link.status + "'");
+    await handle.dispose();
+  } finally {
+    w.cleanup();
+  }
+});
+
 test('child e grandchild permanecem confinados (secoes 40, 101, 122, INV-710)', { skip: SKIP }, async () => {
   const w = world();
   try {

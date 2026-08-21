@@ -282,6 +282,12 @@ export class LinuxPhysicalSandboxProvider {
       enforcement: this.enforcement,
       usable: this.#verdict?.usable ?? false,
       attempts: this.#verdict?.attempts ?? Object.freeze([]),
+      // patch F7: fidelidade do mount plan. Symlink de sistema pendurado
+      // dentro do namespace quebra em TIMEOUT, nao em erro — entao o
+      // estado dele e reportado, para ser lido em vez de depurado.
+      mountFidelity: typeof this.#selected?.mountFidelity === 'function'
+        ? this.#selected.mountFidelity()
+        : Object.freeze([]),
     });
   }
 
