@@ -1,8 +1,6 @@
 ---
 status: in-review
 owner: lina
-updated: 2026-08-21
-approved: 2026-08-21 — Founder (56 termos, todos ancorados em fonte do repositorio; homonimo `effect` e canonizacao de `seam` decididos antes da aprovacao)
 depends_on: -
 ---
 
@@ -58,15 +56,14 @@ _Avoid_: relatório, report, resumo final, entrega, sumário
 **Spec** (spec, especificação normativa):
 O contrato verificável de uma fase do Runtime — o que MUST valer, com
 invariantes numeradas e critérios de aceite. É a nota da classe `feature`;
-aprovada, é contrato: o texto commitado é o contrato real.
+aprovada, é contrato: o texto em `main` é o contrato real.
 _Avoid_: documento de requisitos, RFC, design doc, PRD (PRD é produto; spec é
 fase do Runtime), proposta
 
 **ADR** (ADR, decisão de arquitetura):
 O registro de UMA decisão difícil de reverter, com o porquê e as alternativas
-descartadas. É a nota das classes `architecture` e `process`: alterar um item da
-lista de decisões é emenda substantiva na própria nota, e substituir a nota
-inteira é supersessão.
+descartadas. É a nota das classes `architecture` e `process`: corrigi-la é
+editá-la, sem ato nem preço; substituí-la inteira é supersessão.
 _Avoid_: design doc, RFC, spec, documentação técnica, proposta
 
 **Lesson** (lição):
@@ -117,13 +114,17 @@ classe)
 **Note lifecycle** (ciclo de vida):
 Onde uma nota está em relação ao código — `proposed`, `implemented`, `archived`
 ou `rejected`. Mora no caminho porque pasta é fato do filesystem; convive com o
-`status:` do cabeçalho, que responde a outra pergunta.
+`status:` do cabeçalho, que responde a outra pergunta — este conteúdo serve para
+derivar? —, e quem a responde é o `status:` da fonte de derivação; o da sua
+branch é trabalho em curso, e não é dele que se deriva.
 _Avoid_: status (status é o rótulo do cabeçalho), estado, fase, etapa, workflow
 
 **Living record** (registro vivo):
 O artefato reescrito continuamente que fotografa o estado atual: sem data, sem
 ciclo de vida, nunca congelado. Congelá-lo o tornaria falso, e por isso ele fica
-fora da árvore de notas — este glossário é um.
+fora da árvore de notas — este glossário é um. Não responde à regra de derivação:
+ler a cópia de `main` devolveria a fotografia anterior à mudança de quem a está
+lendo.
 _Avoid_: nota, documento vivo, wiki, referência, snapshot
 
 **Derivation chain** (cadeia de derivação):
@@ -135,44 +136,40 @@ português de Audit, e quem quer aquele sentido está no verbete errado.
 _Avoid_: trilha, trilha do repositório, nota de trilha, cadeia de artefatos,
 pipeline, fluxo, esteira, workflow
 
-**Additive amendment** (emenda aditiva):
-O ato de editar nota aprovada em que toda linha alterada em `## Decisões`,
-retirados os links relativos e os símbolos colados neles, continua byte a byte
-igual à da base — e cada link novo resolve. Existe onde o gate de repositório
-obriga a corrigir e em lugar nenhum além: muda `updated:`, preserva `approved:`
-e não invalida derivação.
-_Avoid_: correção, ajuste, typo, atualização, emenda (sem qualificar)
-
-**Substantive amendment** (emenda substantiva):
-O ato de editar nota aprovada no lugar, quando o texto alterado não passa no
-teste da emenda aditiva — acrescentar, remover ou alterar um item de
-`## Decisões`, ou trocar a razão que sustenta um. A marca é o cabeçalho
-rebaixado para `in-review` no mesmo diff, e o preço é a reaprovação do Founder
-no merge; é a saída comum, não a excepcional.
-_Avoid_: revisão, atualização, correção, emenda (sem qualificar), supersessão
-(a supersessão substitui a nota; a emenda corrige a nota que fica)
+**Derivation source** (fonte de derivação):
+A cópia que `origin/main` carrega do artefato-pai, e só ela: dela saem, juntos, o
+`status:` que se confere e o texto de que se deriva. Não diz `approved` ali, não
+há de onde derivar — é uma condição só. A cópia da sua árvore não entra na regra
+(quem escreve `status: in-progress` na story de que deriva o código não está em
+violação, porque nada da árvore dele é lido), e registro vivo não responde a ela:
+não carrega conteúdo aprovado, e a fotografia de agora inclui o PR que a muda.
+_Avoid_: cópia local, working copy, a sua cópia, cópia idêntica à de `main`,
+arquivo idêntico ao de `main`, `updated:` anterior a `approved:` (as duas
+condições viraram uma, e os dois campos não existem mais), `main` sozinho
 
 **Supersession** (supersessão):
 O ato de substituir uma nota inteira por outra: a substituída vai para
 `archived/` com `superseded_by:`, o mesmo diff traz a nova com `supersedes:`, e
-a linha entra no manifesto de hash. Serve à nota que foi substituída, nunca à
-que foi corrigida — não é preço de emenda nenhuma, e emenda nenhuma a dispara.
-_Avoid_: emenda, emenda substantiva, revogação, deprecação, invalidação,
-obsolescência
+a linha entra no manifesto de hash. Existe porque o git não a registra — o
+`git log` vê dois arquivos mudarem no mesmo commit e não sabe que um substituiu
+o outro. Serve à nota que foi trocada, nunca à que foi corrigida: corrigir é
+editar, e editar não tem ato nem nome.
+_Avoid_: emenda, emenda aditiva, emenda substantiva, revogação, deprecação,
+invalidação, obsolescência
 
 **Freeze** (congelamento):
 A propriedade de uma nota fora de circulação — arquivada ou rejeitada — de não
 mudar nunca mais. É fato provado por manifesto de hash, não promessa: é o que
 tira "decisão registrada permanece" da disciplina. Chega-se a ele por
-supersessão ou por rejeição, e por emenda nenhuma.
+supersessão ou por rejeição, e por nenhum outro caminho.
 _Avoid_: arquivamento (arquivar é o movimento, congelar é a propriedade),
 imutabilidade, lock, bloqueio, somente leitura
 
 **Claim** (declaração):
-Uma citação em link relativo dentro de uma nota: afirma que aquele arquivo
-existe e que o símbolo colado no link está definido lá. Token entre crases sem
-link não afirma nada — é vocabulário, e é por isso que este glossário não
-declara nada sobre código.
+Uma citação em link relativo dentro de uma nota ou de um registro vivo: afirma
+que aquele arquivo existe e que o símbolo colado no link está definido lá.
+Token entre crases sem link não afirma nada — é vocabulário, e é por isso que
+este glossário não declara nada sobre código.
 _Avoid_: citação (a citação é a forma, a declaração é o que ela afirma),
 referência, menção, link, crase
 
@@ -242,8 +239,8 @@ _Avoid_: approval, aprovação, policy, autorização do runtime
 O pedido formal de decisão humana criado quando a policy responde
 `approval-required` — estado explícito, decisão única, terminal.
 _Avoid_: permissão, permission, confirmação, autorização, sinal verde; e a
-aprovação do Founder sobre um artefato não é esta — aquela é o fato registrado
-em `approved:`, derivado do merge
+aprovação do Founder sobre um artefato não é esta — aquela é o merge do PR, que
+só o Founder executa
 
 **Founder Gate** (gate do Founder):
 O ponto em que a execução para e espera a decisão do Founder, e o contrato
@@ -497,65 +494,49 @@ confirmada — não inverte.
   nenhuma coisa que um agente precise identificar do mesmo jeito que outro.
   Registrado aqui para ninguém reabrir. (O par dele, "laço vermelho", entrou:
   virou nome de seção verificada por gate de repositório, e isso é símbolo.)
-- **ADR-09 contradiz o próprio adendo sobre `~/.claude`** — a decisão 8 diz
-  que o diretório inteiro "nunca é candidato", e o adendo E6 (item 2) declara
-  o contrário: a proibição nominal saiu, substituída pela regra mecânica de
-  HOME-ou-ancestral, e o degrau `directory` é resultado legítimo. Não
-  harmonizei — a nota tem outro dono. A ADR-10 reaprovada classifica o caso
-  como emenda **substantiva** (o primeiro corte da decisão 5 o chamava de
-  aditivo): conserta-se editando a decisão 8 e rebaixando a ADR-09 para
-  `in-review`, reaprovada no merge seguinte. *Trava o Rubick até lá — quem ler
-  só a decisão 8 implementa um veto que a spec removeu.*
 - **As quatro primeiras ADRs e as lições pré-contrato não têm cabeçalho** —
   mesma situação: a decisão 10 (item 6) as cobre com cabeçalho retroativo, sem
-  cláusula de avô, e com `approved:` derivado do merge em vez de inventado.
-  *Trava o Rubick pelo PR de migração.*
+  cláusula de avô, e agora com três campos só — `status:`, `owner:`,
+  `depends_on:` —, sem data nenhuma a reconstruir. *Trava o Rubick pelo PR de
+  migração.*
 - **O vocabulário da ADR-10 entrou em 2026-08-21** — nota, classe, ciclo de
-  vida, registro vivo, emenda aditiva, emenda substantiva, congelamento,
-  declaração, mandato de escrita e gate de repositório: dez termos, admitidos
-  depois da aprovação da ADR, nunca antes. A pergunta que estava aqui fecha.
-  `cadeia de derivação`, da decisão 11.1, entrou no mesmo dia e pelo mesmo
-  critério — onze. `supersessão` entrou com a reaprovação da decisão 5, que a
-  tirou da máquina de emendas e a tornou ato próprio — doze.
-- **A ADR-10 chama a cadeia de derivação de "trilha", e o texto dela vai
-  divergir deste glossário** — a decisão 11.1 diz "cada repo declara sua trilha
-  em um lugar só", e o mesmo uso está na tabela de contexto (linha de
-  `docs/spec/`) e na decisão 10 item 3. `trilha` é o português de Audit desde a
-  primeira versão deste glossário; o contrato retrabalhado já moveu para "cadeia
-  de derivação", a ADR ainda não. Não harmonizei — a nota tem outro dono, e
-  trocar palavra dentro de uma decisão aprovada não é edição minha. Pela decisão
-  5 reaprovada é emenda **substantiva**, não aditiva: nas decisões 11.1 e 10.3 a
-  troca é palavra de prosa, a linha alterada não fica byte a byte igual à da base
-  depois de retirados os links, e a rota aditiva se fecha. (A ocorrência na
-  tabela de contexto está fora de `## Decisões` e não dispara nada.) *Correção do
-  Rubick, com rebaixamento; não trava ninguém agora.*
+  vida, registro vivo, congelamento, declaração, mandato de escrita e gate de
+  repositório, admitidos depois da aprovação da ADR e nunca antes; mais `cadeia
+  de derivação` (decisão 11.1) e `supersessão`, que entrou quando a decisão 5 a
+  tornou ato próprio. (A divergência do "trilha" que estava registrada aqui
+  fechou: a ADR-10 não usa mais a palavra em lugar nenhum, e `trilha` volta a ser
+  o português de Audit e de mais nada.)
 - **O vocabulário que nasce no contrato retrabalhado espera a aprovação dele** —
   `instrução` (a terceira forma de documento, ao lado de nota e registro vivo),
   `token de fase`, e o `tipo`/`escopo` da convenção de commits só existem hoje
-  no `SKILL.md`, que está em revisão. Nenhum entra aqui antes de o contrato ser
-  aprovado, pela mesma regra que segurou os termos da ADR-10 até ela ser
-  aprovada. Registrado para ninguém ler a ausência como esquecimento. *Volta
-  para mim quando o contrato for aprovado.*
+  no `SKILL.md`, que está em reaferição e não passou. Nenhum entra aqui antes
+  de o contrato ser aprovado, pela mesma regra que segurou os termos da ADR-10
+  até ela ser aprovada. Registrado para ninguém ler a ausência como
+  esquecimento. *Volta para mim quando o contrato for aprovado.*
 - **O contrato escreve "ferramenta" onde este glossário canoniza `tool`** — no
   princípio AI FIRST ("uma ferramenta ao seu alcance") e na descrição do
   `TEST-SEAMS.md`. É violação de `_Avoid_`, não colisão de sentido: aqui está
   certo, o texto de lá é que diverge. Anterior ao retrabalho, logo não é
   regressão dele. *Correção do Rubick, no arquivo que é dele.*
-- **Os três atos não alcançam registro vivo, e isso é decisão, não omissão** —
-  o gatilho dos três é o diff tocar `## Decisões` de nota cujo cabeçalho, na
-  base do PR, diz `status: approved`. Registro vivo não é nota e não tem essa
-  seção: nenhum dos três dispara, e a supersessão menos ainda — congelar uma
-  fotografia a tornaria falsa (decisão 10, item 5). O que governa aqui é a
-  regra de status do contrato, que a decisão 5 reaprovada devolve ao centro:
-  editar conteúdo aprovado rebaixa para `in-review` e o Founder reaprova no
-  merge — que é o caminho desta própria edição. A seção `## Emendas` some junto
-  com o `tipo:` que ela carregava, e não faz falta a quem nunca a teve.
-  Registrado aqui para ninguém reabrir.
-- **Correção obrigada pelo gate 3 em registro vivo aprovado: rebaixa?** — a
-  emenda aditiva existe "exatamente onde o gate obriga a editar, e em lugar
-  nenhum além", mas a marca dela se lê em `## Decisões`, que registro vivo não
-  tem — e a decisão 5 não responde fora de nota. Este glossário não sente: por
-  contrato ele não cita código, só vocabulário (decisão 10, item 5). Sentem o
-  mapa de costuras e o doc de arquitetura do runtime, que respondem ao gate 3 e
-  citam. *Trava o Rubick na edição do contrato (decisão 11, item 4), que é onde
-  os três atos entram — e ele decide lá, não aqui.*
+- **Três verbetes saíram porque a lei que os exigia deixou de existir** —
+  `emenda aditiva`, `emenda substantiva` e `unidade protegida` nomeavam peças de
+  uma máquina de classificar edições. A decisão 5 tirou o preço que a movia (todo
+  PR merge, então o rebaixamento era um bilhete pedindo o que ia acontecer de
+  qualquer jeito) e a decisão 13 tirou os campos `approved:` e `updated:` que a
+  sustentavam. Sem preço não há duas emendas a distinguir; sem preço a proteger
+  não há unidade a nomear. Os três entraram pela regra certa — termo só depois da
+  ADR aprovada — e a ADR estava errada: a regra funcionou e não bastou, porque só
+  executá-la mostrou o buraco. Ficaram `supersessão` e `congelamento`, que
+  descrevem o que o git não sabe registrar. E a pergunta que este glossário
+  deixou aberta — *correção obrigada pelo gate 3 em registro vivo aprovado
+  rebaixa?* — fecha por dissolução, não pela resposta que eu tinha dado: não
+  rebaixa porque rebaixamento não existe. Corrige-se, o PR merge, e `main` passa
+  a dizer `approved` sobre o texto corrigido. Registrado para ninguém
+  reintroduzir os três daqui a um mês achando que faltavam.
+- **"A cópia de `main` é a que vale" virou verbete, e o gatilho fechou** — eu
+  tinha deixado aqui a condição de três formulações da mesma noção no contrato.
+  Conferidas uma a uma nesta rodada, as três estão lá: a regra de derivação, o
+  bullet da cadeia ("o pai é lido inteiro... na cópia de `main`") e o AI FIRST,
+  que reserva ao Founder derivar de artefato que `main` ainda não aprova. O nome
+  ficou `fonte de derivação`, e não o descritivo. Registrado para ninguém reabrir
+  a pergunta do nome.
