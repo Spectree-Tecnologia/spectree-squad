@@ -105,6 +105,17 @@ violada = erro) e pelo risk statement nomeando o alcance real: binding
 de diretorio expoe tudo sob ele — em ~/.claude, credencial MAIS
 projects/ (transcripts de todas as sessoes), plugins, config e memoria.
 
+Terceiro giro (#29): a escada tinha dois degraus sem peso — 'file-set'
+nao era verificado contra o disco (um diretorio entrava num degrau
+estreito com o rotulo errado no record, tornando a secao 92 factualmente
+errada) e 'directory' podia ser o primeiro candidato. Correcao pela
+raiz: granularity DERIVADA do disco (caminho inexistente recusado;
+diretorio exige 'directory'; nao-diretorio exige 'file'/'file-set') e
+'directory' nunca primeiro. O padrao dos tres achados do review —
+igualdade exata em vez de ancestralidade, veto condicional a homePath
+truthy, rotulo enumerado em vez de derivado — virou licao permanente em
+docs/LESSONS.md: derivar do fato, nunca enumerar os casos.
+
 ## Consequencia
 
 Um segundo harness entra criando apenas outro launcher + calibracao +

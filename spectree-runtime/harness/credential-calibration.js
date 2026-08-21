@@ -46,22 +46,33 @@ function validateCandidate(candidate, index, homePath) {
   // Follow-up F9: o MESMO piso do binding (sandbox-policy), aplicado na
   // proposta — igual-ou-ancestral do HOME, raiz do filesystem e raiz de
   // sistema morrem aqui tambem. Se so o HOME inteiro autentica, o
-  // resultado e C — nunca uma ampliacao (INV-906).
+  // resultado e C — nunca uma ampliacao (INV-906). O veto de identidade
+  // vem ANTES da existencia: HOME inexistente continua sendo HOME.
   const physical = existsSync(candidate.physicalPath)
     ? realpathSync(candidate.physicalPath)
     : path.resolve(candidate.physicalPath);
-  // declaracao verificada contra o disco quando o caminho existe:
-  // granularity nao e opiniao
-  if (existsSync(physical)) {
-    const isDirectory = statSync(physical).isDirectory();
-    if (isDirectory && candidate.granularity === 'file') {
-      throw new SandboxConfigurationError(label + " declares granularity 'file' but the path is a directory");
-    }
-    if (!isDirectory && candidate.granularity === 'directory') {
-      throw new SandboxConfigurationError(label + " declares granularity 'directory' but the path is a file");
-    }
-  }
   assertBindablePhysicalPath(physical, { homePath, label });
+  // Giro 3 (#29): a granularity e DERIVADA do disco, nao um rotulo
+  // enumerado — a regra sobre uma propriedade do disco se deriva do
+  // disco. Caminho inexistente nao autentica nada: recusado, e com isso
+  // a verificacao e TOTAL, nao condicional.
+  if (!existsSync(physical)) {
+    throw new SandboxConfigurationError(
+      label + ': physicalPath does not exist — a credential path that does not exist authenticates nothing',
+    );
+  }
+  const isDirectory = statSync(physical).isDirectory();
+  if (isDirectory && candidate.granularity !== 'directory') {
+    throw new SandboxConfigurationError(
+      label + ": the path IS a directory — granularity must be 'directory' (derived from disk, " +
+      "not declared); a directory bind never enters a narrower rung",
+    );
+  }
+  if (!isDirectory && candidate.granularity === 'directory') {
+    throw new SandboxConfigurationError(
+      label + ": the path is NOT a directory — granularity must be 'file' or 'file-set'",
+    );
+  }
 }
 
 /**
@@ -81,6 +92,16 @@ function assertLadderOrder(candidates) {
       );
     }
     broadest = Math.max(broadest, rank);
+  }
+  // Giro 3 (#29): 'directory' NUNCA e o primeiro degrau tentado — a
+  // secao 12 diz "somente depois de os degraus estreitos falharem", e a
+  // escada e a EVIDENCIA de que o estreito nao bastou. Analogo mecanico
+  // do PROFILE-0-primeiro, que ja e imposto por construcao.
+  if (candidates.length > 0 && candidates[0].granularity === 'directory') {
+    throw new SandboxConfigurationError(
+      "candidate[0] cannot be 'directory': at least one narrower rung must be tried first — " +
+      'the record must show that the narrow rung failed (secao 12)',
+    );
   }
 }
 

@@ -12,11 +12,20 @@ import { SandboxConfigurationError } from '../errors.js';
 /** Credential Calibration (spec F9, secoes 9-13, 18-25, 80, 83, E3). */
 
 import { tmpdir } from 'node:os';
+import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
+
+// giro 3 (#29): granularity e DERIVADA do disco — os candidatos dos
+// testes sao caminhos REAIS, porque caminho inexistente e recusado
+const FIX = mkdtempSync(path.join(tmpdir(), 'cal-fix-'));
+const AUTH_FILE = path.join(FIX, 'auth.json');
+const AUTH_DIR = path.join(FIX, 'authdir');
+writeFileSync(AUTH_FILE, '{}', 'utf8');
+mkdirSync(AUTH_DIR, { recursive: true });
 
 // escada normativa (#29 item 2a): degrau mais estreito PRIMEIRO
 const CANDIDATES = [
-  { resourceId: 'claude/auth-file', physicalPath: '/tmp/fake/.claude/auth.json', granularity: 'file' },
-  { resourceId: 'claude/auth-dir', physicalPath: '/tmp/fake/.claude/auth', granularity: 'directory' },
+  { resourceId: 'claude/auth-file', physicalPath: AUTH_FILE, granularity: 'file' },
+  { resourceId: 'claude/auth-dir', physicalPath: AUTH_DIR, granularity: 'directory' },
 ];
 // HOME de referencia para o veto — o piso NAO tem interruptor (#29 item 1)
 const HOME = path.join(tmpdir(), 'cal-home-' + process.pid);
@@ -110,8 +119,8 @@ test('#29 item 2a: a escada e norma — diretorio antes de arquivo e erro, nunca
       adapterId: 'a@1',
       homePath: HOME,
       candidates: [
-        { resourceId: 'claude/dir', physicalPath: '/tmp/fake/.claude', granularity: 'directory' },
-        { resourceId: 'claude/file', physicalPath: '/tmp/fake/.claude/a.json', granularity: 'file' },
+        { resourceId: 'claude/dir', physicalPath: AUTH_DIR, granularity: 'directory' },
+        { resourceId: 'claude/file', physicalPath: AUTH_FILE, granularity: 'file' },
       ],
       runCandidate: async () => ({ verdict: 'auth-ok' }),
     }),
@@ -122,10 +131,68 @@ test('#29 item 2a: a escada e norma — diretorio antes de arquivo e erro, nunca
     runCredentialCalibration({
       adapterId: 'a@1',
       homePath: HOME,
-      candidates: [{ resourceId: 'claude/x', physicalPath: '/tmp/fake/x' }],
+      candidates: [{ resourceId: 'claude/x', physicalPath: AUTH_FILE }],
       runCandidate: async () => ({ verdict: 'auth-ok' }),
     }),
     (e) => e instanceof SandboxConfigurationError && /granularity/.test(e.message),
+  );
+});
+
+test('giro 3 (#29 2.1): file-set num DIRETORIO morre — granularity derivada do disco, nao rotulo', async () => {
+  // o caso provado pelo Founder: ~/.claude real declarado 'file-set'
+  // entrava num degrau estreito com o rotulo errado no record
+  await assert.rejects(
+    runCredentialCalibration({
+      adapterId: 'a@1',
+      homePath: HOME,
+      candidates: [{ resourceId: 'claude/dir', physicalPath: AUTH_DIR, granularity: 'file-set' }],
+      runCandidate: async () => ({ verdict: 'auth-ok' }),
+    }),
+    (e) => e instanceof SandboxConfigurationError && /derived from disk/.test(e.message),
+  );
+  // e 'file' num diretorio continua morrendo pela MESMA derivacao
+  await assert.rejects(
+    runCredentialCalibration({
+      adapterId: 'a@1',
+      homePath: HOME,
+      candidates: [{ resourceId: 'claude/dir', physicalPath: AUTH_DIR, granularity: 'file' }],
+      runCandidate: async () => ({ verdict: 'auth-ok' }),
+    }),
+    (e) => e instanceof SandboxConfigurationError && /derived from disk/.test(e.message),
+  );
+  // e 'directory' num arquivo tambem
+  await assert.rejects(
+    runCredentialCalibration({
+      adapterId: 'a@1',
+      homePath: HOME,
+      candidates: [{ resourceId: 'claude/f', physicalPath: AUTH_FILE, granularity: 'directory' }],
+      runCandidate: async () => ({ verdict: 'auth-ok' }),
+    }),
+    (e) => e instanceof SandboxConfigurationError && /NOT a directory/.test(e.message),
+  );
+});
+
+test('giro 3 (#29 2.2): directory NUNCA e o primeiro degrau — a evidencia do estreito e obrigatoria', async () => {
+  await assert.rejects(
+    runCredentialCalibration({
+      adapterId: 'a@1',
+      homePath: HOME,
+      candidates: [{ resourceId: 'claude/dir', physicalPath: AUTH_DIR, granularity: 'directory' }],
+      runCandidate: async () => ({ verdict: 'auth-ok' }),
+    }),
+    (e) => e instanceof SandboxConfigurationError && /narrower rung must be tried first/.test(e.message),
+  );
+});
+
+test('giro 3 (#29): caminho inexistente nao autentica nada — recusado, verificacao TOTAL', async () => {
+  await assert.rejects(
+    runCredentialCalibration({
+      adapterId: 'a@1',
+      homePath: HOME,
+      candidates: [{ resourceId: 'claude/nope', physicalPath: path.join(FIX, 'nao-existe.json'), granularity: 'file' }],
+      runCandidate: async () => ({ verdict: 'auth-ok' }),
+    }),
+    (e) => e instanceof SandboxConfigurationError && /does not exist/.test(e.message),
   );
 });
 

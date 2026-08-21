@@ -164,9 +164,16 @@ degrau MAIS ESTREITO vem primeiro. Ordem normativa: (1) PROFILE-0 —
 nenhum credential resource; (2) menor ARQUIVO candidato; (3) menor
 conjunto de arquivos; (4) diretório — somente depois de os degraus
 estreitos falharem. Cada candidato declara `granularity`
-(`file | file-set | directory`), verificada contra o disco quando o
-caminho existe; ordem violada é erro de configuração, nunca reordenação
-silenciosa; e o record da calibração registra QUAL degrau foi aprovado.
+(`file | file-set | directory`), DERIVADA do disco (giro 3 do #29):
+caminho inexistente é recusado — um caminho de credencial que não existe
+não autentica nada, e com isso a verificação é TOTAL, não condicional;
+caminho que É diretório exige `directory` (um bind de diretório nunca
+entra num degrau estreito); caminho que NÃO é diretório exige `file` ou
+`file-set`. `directory` nunca é o primeiro candidato: um degrau mais
+estreito tem de precedê-lo, para o record mostrar que o estreito foi
+tentado e falhou. Ordem violada é erro de configuração, nunca
+reordenação silenciosa; e o record da calibração registra QUAL degrau
+foi aprovado.
 A ordem concreta dos paths é propriedade do adapter/calibration data,
 não do Core. Nenhuma etapa pode ampliar automaticamente `candidate N ->
 candidate N + HOME` como fallback.
@@ -746,3 +753,10 @@ não-vazio — ou calibração com candidatos — HOME irresolúvel é
 `SandboxConfigurationError`, nunca um veto que silenciosamente não se
 aplica. `homePath` é injetável no wiring (como o `workspaceRoot`), com
 `os.homedir()` apenas como fallback.
+
+Giro 3 do #29: a granularity passou de rótulo validado a propriedade
+DERIVADA do disco (ver §12) — fechando o degrau `file-set` que aceitava
+diretório, o `directory` como primeiro candidato, e o caminho
+inexistente. Lição permanente registrada em `docs/LESSONS.md`: piso novo
+se prova pelo caminho em que ele NÃO dispara, e regra sobre uma
+propriedade do disco se deriva do disco — nunca se enumera.

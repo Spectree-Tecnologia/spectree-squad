@@ -15,8 +15,10 @@
  *   [{ "resourceId": "claude/auth",
  *      "physicalPath": "/home/user/.claude/.credentials.json",
  *      "granularity": "file" }]
- * granularity: 'file' | 'file-set' | 'directory' (verificada contra o
- * disco; ordem violada = erro). Sem arquivo: somente PROFILE-0 e sondado.
+ * granularity: 'file' | 'file-set' | 'directory' — DERIVADA do disco:
+ * caminho inexistente e recusado; diretorio exige 'directory';
+ * 'directory' nunca e o primeiro degrau. Ordem violada = erro.
+ * Sem arquivo: somente PROFILE-0 e sondado.
  */
 import { readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir, homedir } from 'node:os';
