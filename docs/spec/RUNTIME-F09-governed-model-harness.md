@@ -1,9 +1,9 @@
 # Spectree Runtime v2 — F09 Governed Model Harness
 
-status: in-review
+status: approved
 owner: TechLeader
 updated: 2026-08-20
-approved: — (aguarda re-aprovacao do Founder: conteudo alterado pela nota E7 — regra "aprovacao pertence ao conteudo". Ultima aprovacao: 2026-08-20, commit 1d1c6bb, emendas E1-E6)
+approved: 2026-08-20 — Founder (re-aprovacao apos a nota E7/§19.1; emendas E1-E7. Rebaixada e re-aprovada tres vezes sob a regra "aprovacao pertence ao conteudo")
 depends_on: F1 Runtime Core, F2 Policy Engine, F3 Founder Gate, F4 Capability Providers, F4.5 Squad/Runtime Integration, F5 Sandbox Runtime, F6 Process/Subprocess, F7 Linux Physical Sandbox, F8 Execution Effects / Resource Model
 
 > Transcrito da proposta do TechLeader (2026-08-20) e aprovado com as
