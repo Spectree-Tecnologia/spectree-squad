@@ -2,7 +2,7 @@
 
 status: approved
 owner: rubick
-updated: 2026-08-20
+updated: 2026-08-20 (adendo: fidelidade do mount plan)
 approved: 2026-08-20
 depends_on: docs/adr/ADR-05-sandbox-execution-boundary.md, docs/adr/ADR-06-process-subprocess-capability.md
 
@@ -85,3 +85,48 @@ O R14 encontra o backend que faltava: `workspace-write` volta a parir
 processo — agora FISICAMENTE confinado, com o kernel negando o que o
 modo promete negar. A Fase 8 (Execution Effects / Resource Model) pode
 nascer sem a divida, e o Shell (F9) herda uma boundary provada.
+
+## Adendo — fidelidade do mount plan (2026-08-20)
+
+Descoberto pela calibracao de credencial da F9, no primeiro momento em
+que um processo confinado usou rede real.
+
+**O defeito.** `--ro-bind /etc /etc` binda o DIRETORIO — nao o que os
+symlinks dele alcancam. `/etc/resolv.conf` e symlink em praticamente
+todo host moderno: para `/mnt/wsl/resolv.conf` no WSL, para
+`/run/systemd/resolve/stub-resolv.conf` em qualquer distro com
+systemd-resolved (Ubuntu 18.04+, Fedora, boa parte do Debian — inclusive
+o `ubuntu-latest` do nosso CI). Nem `/mnt` nem `/run` estao em
+`SYSTEM_RO_ROOTS`, entao o namespace recebia um symlink PENDURADO: o
+mount plan prometia `/etc` e nao cumpria.
+
+Nao e particularidade do WSL. O WSL foi apenas o primeiro lugar onde
+alguem rodou rede real dentro do namespace e viu. O sintoma era TIMEOUT
+de DNS, nao erro — o pior formato de falha possivel, porque nao se parece
+com uma.
+
+**A correcao.** `BubblewrapBackend.mountFidelity()` resolve o realpath
+dos symlinks de sistema conhecidos e binda o ALVO, pontualmente
+(`--ro-bind alvo alvo`), quando ele existe e nao esta coberto pelas roots
+ja montadas. Derivado do disco: o alvo vem do realpath, o tipo vem do
+`statSync` (so arquivo vira bind), e o alvo passa pelo MESMO piso dos
+`declaredResources` (INV-906 — raiz, HOME, ancestral de HOME, root de
+sistema). A lista de symlinks e enumerada de proposito e curta: varrer
+`/etc` atras de todo symlink pendurado seria enumerar por varredura, com
+um mount plan imprevisivel.
+
+**Observabilidade.** O que custou uma sessao de depuracao nao foi o DNS
+quebrado — foi ele ser invisivel. O status de cada symlink viaja em
+`diagnostics().mountFidelity`, e o CI ganhou a assercao que o conformance
+harness zero-rede CONSEGUE fazer: `/etc/resolv.conf` resolve para um
+arquivo existente dentro do namespace? E pergunta de filesystem, nao de
+rede.
+
+**Nenhuma decisao deste ADR muda.** As 14 decisoes seguem de pe,
+inclusive a decisao 10: rede e process visibility continuam fora do
+vocabulario de SandboxMode. Este adendo e correcao de FIDELIDADE do plano
+de montagem, nao mudanca de fronteira — a rede ja era deliberadamente
+disponivel nesta fase (sem `--unshare-net`) e o material exposto pelo
+bind e configuracao de DNS, nunca credencial. Quando uma fase futura der
+enforcement ao eixo de rede, este bind passa a fazer parte da superficie
+DAQUELA fase e e reavaliado la.

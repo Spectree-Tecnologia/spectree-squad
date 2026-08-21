@@ -1,9 +1,9 @@
 # Spectree Runtime v2 — F09 Governed Model Harness
 
-status: approved
+status: in-review
 owner: TechLeader
 updated: 2026-08-20
-approved: 2026-08-20 — Founder (review do PR #29, commit 1d1c6bb, emendas E1-E6; rebaixada e re-aprovada duas vezes sob a regra "aprovacao pertence ao conteudo")
+approved: — (aguarda re-aprovacao do Founder: conteudo alterado pela nota E7 — regra "aprovacao pertence ao conteudo". Ultima aprovacao: 2026-08-20, commit 1d1c6bb, emendas E1-E6)
 depends_on: F1 Runtime Core, F2 Policy Engine, F3 Founder Gate, F4 Capability Providers, F4.5 Squad/Runtime Integration, F5 Sandbox Runtime, F6 Process/Subprocess, F7 Linux Physical Sandbox, F8 Execution Effects / Resource Model
 
 > Transcrito da proposta do TechLeader (2026-08-20) e aprovado com as
@@ -240,6 +240,22 @@ O credential probe MUST distinguir três estados:
 
 Ausência de sentinel/resultado confiável MUST significar
 `runner-failure`, nunca `auth-insufficient`.
+
+### 19.1 `runner-failure` também acusa o mount plan (nota E7)
+
+`runner-failure` NÃO significa "problema do CLI". Ele cobre qualquer
+falha que impeça concluir autenticação de forma confiável — e a primeira
+calibração real provou que isso inclui o **plano de montagem do
+namespace**: `--ro-bind /etc` não binda o que os symlinks de `/etc`
+alcançam, e um `/etc/resolv.conf` pendurado derruba o DNS dentro do
+namespace. O sintoma é timeout, e o timeout é `runner-failure` pela §18 —
+corretamente, mas sem dizer onde está a causa.
+
+Quem investigar dois ou mais `runner-failure` por timeout numa escada
+MUST checar `diagnostics().mountFidelity` antes de suspeitar do CLI ou
+do candidato. A correção do backend e o raciocínio completo estão no
+adendo de `docs/adr/ADR-07-linux-physical-sandbox.md`; a calibração desta
+fase depende daquele plano de montagem.
 
 ## 20. Credential probe e quota
 
@@ -760,3 +776,21 @@ diretório, o `directory` como primeiro candidato, e o caminho
 inexistente. Lição permanente registrada em `docs/LESSONS.md`: piso novo
 se prova pelo caminho em que ele NÃO dispara, e regra sobre uma
 propriedade do disco se deriva do disco — nunca se enumera.
+
+**E7 — `runner-failure` também acusa o mount plan (primeira calibração
+real).** A calibração da F9 produziu bloqueio, não veredito: dois degraus
+com credencial saíram `runner-failure` por timeout. A §18-19 fez o
+trabalho para o qual existe — classificou como falha do runner em vez de
+inventar `auth-insufficient` — mas a causa não estava no CLI nem no
+candidato: `--ro-bind /etc` não binda o que os symlinks de `/etc`
+alcançam, e o `/etc/resolv.conf` pendurado derrubava o DNS dentro do
+namespace. Corrigido no backend da F7 (ver o adendo do
+`docs/adr/ADR-07-linux-physical-sandbox.md`); §19.1 acrescenta a
+instrução de investigação, e `diagnostics().mountFidelity` torna a
+condição legível. A calibração desta fase depende daquele plano de
+montagem.
+
+O record oficial daquela rodada foi preservado como inconclusivo
+(`approved: null`), e não substituído pelo resultado que o diagnóstico
+manual já indicava: record que não corresponde ao que aconteceu é
+exatamente o defeito que a §12 e a §92 existem para impedir.

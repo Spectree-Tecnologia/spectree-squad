@@ -201,7 +201,7 @@ export function isPathWithinOrEqual(target, root) {
   return target === root || target.startsWith(root + path.sep);
 }
 
-function safeHomedir() {
+export function safeHomedir() {
   try { return homedir() || null; } catch { return null; }
 }
 

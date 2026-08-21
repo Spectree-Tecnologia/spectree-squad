@@ -1,6 +1,7 @@
-import { existsSync, lstatSync, readlinkSync, realpathSync, accessSync, constants } from 'node:fs';
+import { existsSync, lstatSync, readlinkSync, realpathSync, statSync, accessSync, constants } from 'node:fs';
 import path from 'node:path';
 import { SandboxConfigurationError } from '../../../errors.js';
+import { assertBindablePhysicalPath, safeHomedir } from '../../sandbox-policy.js';
 
 /**
  * BubblewrapBackend (spec Fase 7, secoes 7, 9, 26, 35): o runner
@@ -31,6 +32,15 @@ const SYSTEM_RO_ROOTS = Object.freeze(['/usr', '/etc', '/opt']);
 /** Entradas merged-usr que precisam virar symlink dentro do namespace. */
 const MERGED_USR_LINKS = Object.freeze(['/bin', '/sbin', '/lib', '/lib32', '/lib64', '/libx32']);
 
+/**
+ * Symlinks de sistema cujo ALVO vive fora das roots bindadas (patch F7,
+ * descoberto na calibracao da F9). Enumerado de proposito e curto: varrer
+ * /etc atras de todo symlink pendurado seria enumerar por varredura, com
+ * um mount plan imprevisivel puxando qualquer coisa. O ALVO, esse sim, e
+ * derivado do disco.
+ */
+const SYSTEM_LINKS = Object.freeze(['/etc/resolv.conf']);
+
 export class BubblewrapBackend {
   backendId = 'bubblewrap';
   /** O que este backend ENTREGA para o profile da fase (secao 38). */
@@ -42,7 +52,7 @@ export class BubblewrapBackend {
 
   constructor({ bwrapPath = null, fsImpl = null } = {}) {
     this.#explicitPath = bwrapPath;
-    this.#fsImpl = fsImpl ?? { existsSync, lstatSync, readlinkSync, realpathSync, accessSync };
+    this.#fsImpl = fsImpl ?? { existsSync, lstatSync, readlinkSync, realpathSync, statSync, accessSync };
   }
 
   /**
@@ -106,6 +116,13 @@ export class BubblewrapBackend {
         args.push('--ro-bind', link, link);
       }
     }
+    // Fidelidade do mount plan (patch F7): `--ro-bind /etc /etc` binda o
+    // DIRETORIO, nunca o que os symlinks dele alcancam. Symlink de
+    // sistema que ficaria PENDURADO dentro do namespace tem o alvo
+    // bindado, pontualmente — ver mountFidelity().
+    for (const link of this.mountFidelity()) {
+      if (link.status === 'bindable') args.push('--ro-bind', link.target, link.target);
+    }
     args.push('--proc', '/proc', '--dev', '/dev');
 
     // o executavel precisa ser visivel mesmo fora das roots de sistema
@@ -131,6 +148,58 @@ export class BubblewrapBackend {
     // secao 26: o argv original permanece sem alteracao semantica
     args.push(...argv);
     return Object.freeze(args);
+  }
+
+  /**
+   * Fidelidade do mount plan para os symlinks de sistema (patch F7).
+   *
+   * O defeito que isto corrige: bindar `/etc` promete `/etc` e nao
+   * cumpre. Em WSL, `/etc/resolv.conf` aponta para `/mnt/wsl/...`; em
+   * qualquer distro com systemd-resolved — Ubuntu 18.04+, Fedora, boa
+   * parte do Debian, e o `ubuntu-latest` do nosso CI — aponta para
+   * `/run/systemd/resolve/...`. Nem `/mnt` nem `/run` estao nas roots,
+   * entao o namespace recebe um symlink pendurado e o DNS morre. O
+   * sintoma e TIMEOUT, nao erro: o pior formato de falha possivel,
+   * porque nao se parece com uma.
+   *
+   * Deriva do disco (LESSONS 2026-08-20): o alvo vem do realpath, o tipo
+   * vem do statSync, e o alvo passa pelo MESMO piso dos
+   * declaredResources (INV-906). Nada aqui amplia a postura de
+   * seguranca: a rede ja e deliberadamente disponivel nesta fase
+   * (ADR-07 decisao 10, sem `--unshare-net`) e o material exposto e
+   * configuracao de DNS, nunca credencial.
+   *
+   * Observabilidade e metade da correcao: o status viaja em
+   * `diagnostics()`, para que a proxima quebra seja lida em vez de
+   * depurada.
+   *
+   * @returns {ReadonlyArray<{path: string, status: string, target: string|null}>}
+   *   status: 'absent' | 'not-a-symlink' | 'covered' | 'bindable'
+   *   | 'broken-on-host' | 'not-a-file' | 'refused-by-floor'
+   */
+  mountFidelity() {
+    return Object.freeze(SYSTEM_LINKS.map((linkPath) => {
+      const verdict = (status, target = null) => Object.freeze({ path: linkPath, status, target });
+      let stat = null;
+      try { stat = this.#fsImpl.lstatSync(linkPath); } catch { return verdict('absent'); }
+      // arquivo real: o ro-bind de /etc ja o cobre, nada a fazer
+      if (!stat.isSymbolicLink()) return verdict('not-a-symlink');
+      let target = null;
+      try { target = this.#fsImpl.realpathSync(linkPath); } catch { return verdict('broken-on-host'); }
+      if (this.#coveredBySystemRoots(target)) return verdict('covered', target);
+      let targetStat = null;
+      try { targetStat = this.#fsImpl.statSync(target); } catch { return verdict('broken-on-host', target); }
+      // derivado do disco: so arquivo vira bind — alvo que virou
+      // diretorio e sintoma, nao caso de uso
+      if (!targetStat.isFile()) return verdict('not-a-file', target);
+      try {
+        assertBindablePhysicalPath(target, { homePath: safeHomedir(), label: linkPath + ' target' });
+      } catch {
+        // o piso vence: nao monta. Mas nao some — o status diz por que
+        return verdict('refused-by-floor', target);
+      }
+      return verdict('bindable', target);
+    }));
   }
 
   #coveredBySystemRoots(dir) {

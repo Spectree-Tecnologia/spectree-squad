@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import { mkdtempSync, rmSync, existsSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { tmpdir, homedir } from 'node:os';
 import path from 'node:path';
 import {
   LinuxPhysicalSandboxProvider,
@@ -290,6 +290,7 @@ test('BubblewrapBackend: forma da invocacao por modo (secoes 26, 30-31, 35)', ()
     lstatSync: () => { throw new Error('absent'); },
     readlinkSync: () => { throw new Error('absent'); },
     realpathSync: (p) => p,
+    statSync: () => { throw new Error('absent'); },
     accessSync: () => {},
   };
   const backend = new BubblewrapBackend({ bwrapPath: '/fake/bwrap', fsImpl: fs });
@@ -308,6 +309,77 @@ test('BubblewrapBackend: forma da invocacao por modo (secoes 26, 30-31, 35)', ()
     assert.throws(() => backend.buildConfinedArgv({ argv, mode: 'danger-full-access', workspaceRoot: '/w' }),
       SandboxConfigurationError, 'secao 23: danger nao passa por backend');
   });
+});
+
+/**
+ * Fidelidade do mount plan (patch F7). O defeito real: bindar /etc NAO
+ * binda o que os symlinks dele alcancam, e o sintoma e timeout de DNS —
+ * invisivel para o conformance harness zero-rede. Cada caso e derivado
+ * do disco por fsImpl injetado, entao roda em qualquer plataforma.
+ */
+function backendWithLink({ target, targetIsFile = true, symlink = true, extraExists = [] } = {}) {
+  const present = new Set(['/usr', '/etc', '/fake/bwrap', '/w', '/etc/resolv.conf', ...extraExists]);
+  if (target) present.add(target);
+  const fs = {
+    existsSync: (p) => present.has(p),
+    lstatSync: (p) => {
+      if (!present.has(p)) throw new Error('absent');
+      return { isSymbolicLink: () => p === '/etc/resolv.conf' && symlink, isDirectory: () => false };
+    },
+    readlinkSync: () => { throw new Error('absent'); },
+    realpathSync: (p) => (p === '/etc/resolv.conf' && target ? target : p),
+    statSync: (p) => {
+      if (!present.has(p)) throw new Error('absent');
+      return { isFile: () => targetIsFile, isDirectory: () => !targetIsFile };
+    },
+    accessSync: () => {},
+  };
+  return new BubblewrapBackend({ bwrapPath: '/fake/bwrap', fsImpl: fs });
+}
+
+const fidelityOf = async (backend) => {
+  await backend.locate();
+  const argv = backend.buildConfinedArgv({
+    argv: ['/usr/bin/node', '-e', '1'], cwd: '/w', mode: 'read-only', workspaceRoot: '/w',
+  });
+  return { status: backend.mountFidelity()[0], joined: argv.join(' ') };
+};
+
+test('mount plan: symlink de sistema PENDURADO tem o alvo bindado (patch F7)', async () => {
+  // o caso real do WSL (/mnt/wsl) e do systemd-resolved (/run/...)
+  const { status, joined } = await fidelityOf(backendWithLink({ target: '/run/systemd/resolve/stub-resolv.conf' }));
+  assert.equal(status.status, 'bindable');
+  assert.equal(status.target, '/run/systemd/resolve/stub-resolv.conf');
+  assert.ok(joined.includes('--ro-bind /run/systemd/resolve/stub-resolv.conf /run/systemd/resolve/stub-resolv.conf'),
+    'o alvo entra como bind PONTUAL, nunca a root /run inteira');
+  assert.ok(!joined.includes('--ro-bind /run /run'), 'nunca a root ampla');
+});
+
+test('mount plan: arquivo real nao vira bind — /etc ja o cobre (patch F7)', async () => {
+  const { status, joined } = await fidelityOf(backendWithLink({ symlink: false }));
+  assert.equal(status.status, 'not-a-symlink');
+  assert.equal(status.target, null);
+  assert.ok(!joined.includes('resolv.conf'), 'nada adicional entra no plano');
+});
+
+test('mount plan: alvo ja coberto pelas roots nao vira bind (patch F7)', async () => {
+  const { status, joined } = await fidelityOf(backendWithLink({ target: '/etc/resolv.conf.real' }));
+  assert.equal(status.status, 'covered');
+  assert.ok(!joined.includes('--ro-bind /etc/resolv.conf.real'), 'bind duplicado nao entra');
+});
+
+test('mount plan: o alvo passa pelo MESMO piso do INV-906 (patch F7)', async () => {
+  // alvo apontando para o HOME: o piso dos declaredResources vence, e o
+  // status diz POR QUE em vez de sumir
+  const { status, joined } = await fidelityOf(backendWithLink({ target: homedir() }));
+  assert.equal(status.status, 'refused-by-floor');
+  assert.ok(!joined.includes('--ro-bind ' + homedir() + ' '), 'HOME nunca entra pelo mount plan');
+});
+
+test('mount plan: alvo que nao e arquivo nao vira bind (patch F7)', async () => {
+  const { status, joined } = await fidelityOf(backendWithLink({ target: '/run/algum-dir', targetIsFile: false }));
+  assert.equal(status.status, 'not-a-file');
+  assert.ok(!joined.includes('--ro-bind /run/algum-dir'), 'derivado do disco: so arquivo vira bind');
 });
 
 test('LandlockBackend: seam formal — sem helper instalado, unusable com razao (secoes 54-57)', async () => {
