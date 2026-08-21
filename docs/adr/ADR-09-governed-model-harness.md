@@ -81,6 +81,41 @@ reduzir essa exposicao e o `CredentialBroker` (credencial fora do
 namespace, interface controlada: unix socket / host proxy / ephemeral
 credential service) — NAO implementado nesta fase.
 
+## Adendo (follow-up do review, E6)
+
+O review do Founder no PR #28 encontrou o INV-906 enforcado so na
+calibracao — o lado que propoe, nao o lado que monta. Corrigido no
+padrao da F4 (defense in depth): `assertBindablePhysicalPath` vive em
+`createSandboxPolicy` (autoridade) e a calibracao consome a MESMA regra.
+Recusas tipadas: raiz do filesystem; HOME ou ancestral do HOME
+(igual-ou-ancestral — `HOME/..` morre); raiz de sistema que o backend ja
+monta; e sobreposicao com o workspace em qualquer direcao (no bwrap o
+ultimo bind vence — sombreamento seria mudanca de comportamento
+silenciosa). Um teste por recusa em
+`tests/declared-resources-floor.test.js`.
+
+Segundo giro do review (#29), dois fechos: (1) o piso NAO tem
+interruptor — com declaredResources nao-vazio (ou calibracao com
+candidatos), HOME irresoluvel e recusa tipada, nunca um veto que
+silenciosamente nao se aplica; homePath e injetavel no wiring. (2) A E6
+declara DUAS mudancas: a correcao de escopo E a saida do ~/.claude da
+proibicao nominal — compensada pela escada normativa por granularity
+(arquivo -> conjunto -> diretorio, degrau registrado no record e ordem
+violada = erro) e pelo risk statement nomeando o alcance real: binding
+de diretorio expoe tudo sob ele — em ~/.claude, credencial MAIS
+projects/ (transcripts de todas as sessoes), plugins, config e memoria.
+
+Terceiro giro (#29): a escada tinha dois degraus sem peso — 'file-set'
+nao era verificado contra o disco (um diretorio entrava num degrau
+estreito com o rotulo errado no record, tornando a secao 92 factualmente
+errada) e 'directory' podia ser o primeiro candidato. Correcao pela
+raiz: granularity DERIVADA do disco (caminho inexistente recusado;
+diretorio exige 'directory'; nao-diretorio exige 'file'/'file-set') e
+'directory' nunca primeiro. O padrao dos tres achados do review —
+igualdade exata em vez de ancestralidade, veto condicional a homePath
+truthy, rotulo enumerado em vez de derivado — virou licao permanente em
+docs/LESSONS.md: derivar do fato, nunca enumerar os casos.
+
 ## Consequencia
 
 Um segundo harness entra criando apenas outro launcher + calibracao +

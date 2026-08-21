@@ -914,6 +914,13 @@ autorizados x bindings declarados); physicalPath nunca vem de Agent ou
 Tool; read-only nesta fase; credencial autorizada sem binding fisico =
 fail closed com instrucao de calibrar.
 
+E o binding tem PISO (follow-up E6, no lado com autoridade): raiz do
+filesystem, HOME ou ancestral do HOME, raiz de sistema ja montada pelo
+backend e sobreposicao com o workspace sao recusados com erro tipado em
+`createSandboxPolicy` — e a calibracao consome a mesma regra. Um
+ro-bind da raiz anularia o confinement; o piso garante que
+declaredResources so materializa recursos PONTUAIS.
+
 ### Credencial e efeito
 
 `filesystem.read` sobre resource `{type: 'credential', id: '...'}` —

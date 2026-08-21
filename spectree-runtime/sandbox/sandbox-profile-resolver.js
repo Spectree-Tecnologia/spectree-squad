@@ -66,7 +66,7 @@ export class SandboxProfileResolver {
   #workspaceRoot;
   #resourceBindings;
 
-  constructor({ document, workspaceRoot = null, resourceBindings = null }) {
+  constructor({ document, workspaceRoot = null, resourceBindings = null, homePath = undefined }) {
     this.#document = normalizeSandboxProfileDocument(document);
     // sem autoridade ambiental (secao 129): a raiz e injetada, nunca
     // lida de cwd ou de variavel de ambiente
@@ -76,7 +76,13 @@ export class SandboxProfileResolver {
     // binding sozinho nao monta nada: so materializa quando um efeito
     // AUTORIZADO o referencia.
     this.#resourceBindings = resourceBindings ? Object.freeze({ ...resourceBindings }) : null;
+    // Item 1 do review (#29), sugestao aceita: homePath injetavel no
+    // wiring, como o workspaceRoot — a referencia do veto INV-906 deixa
+    // de depender so do ambiente de quem lancou o processo
+    this.#homePath = homePath;
   }
+
+  #homePath;
 
   get runtimeMaxMode() {
     return this.#document.runtimeMaxMode;
@@ -157,6 +163,7 @@ export class SandboxProfileResolver {
       mode,
       workspaceRoot: this.#workspaceRoot,
       declaredResources,
+      ...(this.#homePath !== undefined ? { homePath: this.#homePath } : {}),
       allowPartialEnforcement: this.#document.allowPartialEnforcement === true,
       requiredEnforcement: this.#document.requiredEnforcement,
     });

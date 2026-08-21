@@ -10,8 +10,14 @@
  * (sem segredo, sem caminho absoluto) e o que o Founder aprova e commita
  * como configuracao; os bindings fisicos ficam em configuracao de host.
  *
- * candidates.json (opcional; ordem = menor primeiro, secao 12):
- *   [{ "resourceId": "claude/auth", "physicalPath": "/home/user/.claude/.credentials.json" }]
+ * candidates.json (opcional; escada NORMATIVA da secao 12 — degrau mais
+ * estreito primeiro, diretorio so depois dos estreitos falharem):
+ *   [{ "resourceId": "claude/auth",
+ *      "physicalPath": "/home/user/.claude/.credentials.json",
+ *      "granularity": "file" }]
+ * granularity: 'file' | 'file-set' | 'directory' — DERIVADA do disco:
+ * caminho inexistente e recusado; diretorio exige 'directory';
+ * 'directory' nunca e o primeiro degrau. Ordem violada = erro.
  * Sem arquivo: somente PROFILE-0 e sondado.
  */
 import { readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
