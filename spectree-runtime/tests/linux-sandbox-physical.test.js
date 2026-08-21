@@ -164,6 +164,18 @@ test('mount plan: /etc/resolv.conf nao fica PENDURADO no namespace (patch F7)', 
     assert.equal(report[1], true,
       'symlink PENDURADO: o alvo de /etc/resolv.conf nao existe dentro do namespace. ' +
       'DNS morre em TIMEOUT, nao em erro — ver diagnostics().mountFidelity');
+
+    // Honestidade sobre o alcance deste teste: num host cujo
+    // /etc/resolv.conf e ARQUIVO COMUM, a assercao acima passa com ou sem
+    // a correcao — o ro-bind de /etc ja o cobre. O teste so tem dentes
+    // onde o link e symlink para fora das roots (WSL, systemd-resolved).
+    // Entao o status e afirmado E impresso: o log do CI diz qual caso
+    // este host exercitou, em vez de deixar um verde ambiguo.
+    const [link] = provider.diagnostics().mountFidelity;
+    console.log('    mountFidelity: ' + link.path + ' -> ' + link.status +
+      (link.target ? ' (' + link.target + ')' : ''));
+    assert.ok(['not-a-symlink', 'covered', 'bindable'].includes(link.status),
+      "mount plan nao resolveu /etc/resolv.conf: status '" + link.status + "'");
     await handle.dispose();
   } finally {
     w.cleanup();
