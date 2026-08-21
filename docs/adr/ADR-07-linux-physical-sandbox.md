@@ -3,7 +3,7 @@
 status: approved
 owner: rubick
 updated: 2026-08-20 (adendo: fidelidade do mount plan)
-approved: 2026-08-20
+approved: 2026-08-21 — Founder (re-aprovacao do adendo de fidelidade do mount plan; as 14 decisoes originais permanecem inalteradas. Aprovacao original: 2026-08-20)
 depends_on: docs/adr/ADR-05-sandbox-execution-boundary.md, docs/adr/ADR-06-process-subprocess-capability.md
 
 ## Contexto
