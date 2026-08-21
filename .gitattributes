@@ -1,0 +1,2 @@
+# scripts de shell rodam no WSL2/Linux: CRLF quebraria o shebang e cada linha
+*.sh text eol=lf
