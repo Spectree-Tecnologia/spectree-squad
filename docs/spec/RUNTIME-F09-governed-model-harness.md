@@ -1,14 +1,54 @@
-# Spectree Runtime v2 — F09 Governed Model Harness
-
+---
 status: approved
 owner: TechLeader
-updated: 2026-08-20
-approved: 2026-08-20 — Founder (re-aprovacao apos a nota E7/§19.1; emendas E1-E7. Rebaixada e re-aprovada tres vezes sob a regra "aprovacao pertence ao conteudo")
 depends_on: F1 Runtime Core, F2 Policy Engine, F3 Founder Gate, F4 Capability Providers, F4.5 Squad/Runtime Integration, F5 Sandbox Runtime, F6 Process/Subprocess, F7 Linux Physical Sandbox, F8 Execution Effects / Resource Model
+---
+
+# Spectree Runtime v2 — F09 Governed Model Harness
 
 > Transcrito da proposta do TechLeader (2026-08-20) e aprovado com as
-> cinco emendas normativas da seção final. O texto commitado é o
-> contrato real (ver `docs/spec/README.md`).
+> emendas normativas da seção final. O texto commitado é o contrato real
+> (ver `docs/spec/README.md`). O bloco original desta nota dizia "cinco
+> emendas"; a seção final traz **sete**, E1 a E7 — E6 nasceu das reviews do
+> Founder nos PRs #28 e #29, E7 da primeira calibração real.
+>
+> **Por que esta é a única das nove specs cujo `status:` do cabeçalho não é
+> `in-review`, e como isso foi medido.** Sob a decisão 13 da
+> `docs/adr/ADR-10-repository-memory-system.md`, o `status:` que vale é o da
+> cópia em `main`. A F9 foi mergeada em `main` como `v0.33.0` (PR #28, "F9 —
+> Governed Model Harness"), e a cópia committed que este repositório carrega
+> em duas árvores de trabalho independentes — a de
+> `feat/repository-memory-system` e a de `feat/calibration-config-and-wizard`,
+> esta última descendente de `main` e sem modificação pendente neste arquivo
+> — trazia o mesmo valor de `status:` na leitura de 2026-08-21. As outras
+> oito specs estão sendo transcritas agora e são legitimamente `in-review`.
+> *Limite desta medição:* ela compara duas cópias committed em disco, não um
+> `git show origin/main:<caminho>` — o agente que a escreveu não tinha shell.
+>
+> **A razão da aprovação, descida do cabeçalho para o corpo** (decisão 13:
+> o cabeçalho carrega o que o git não sabe, e nada além; *quando* o Founder
+> aprovou é pergunta do `git log`). O campo que saiu daqui registrava:
+> aprovação do Founder em 2026-08-20, sendo esta uma **re-aprovação após a
+> nota E7/§19.1**, cobrindo as emendas **E1 a E7**; e a spec foi **rebaixada
+> e re-aprovada três vezes** sob a regra "a aprovação pertence ao conteúdo,
+> não ao arquivo". Esse histórico não existe em nenhum outro lugar do
+> repositório, e é por isso que ele desce em vez de sumir.
+>
+> **A numeração de 1 a 120 é contígua; as lacunas aparentes são faixas.**
+> Medição de 2026-08-21 sobre os títulos `^## ` deste arquivo: 55 títulos
+> nomeiam uma seção só e 18 nomeiam uma **faixa** (`## 43-45.`, `## 48-50.`,
+> `## 99-114.`, `## 116-118.` e mais catorze). Os 55 individuais cobrem
+> {1–42, 46, 47, 56, 57, 58, 61, 70, 96, 97, 98, 115, 119, 120} = 55
+> números; as 18 faixas cobrem 65 números; `55 + 65 = 120`, sem sobreposição
+> e sem sobra. **Não há seção faltando** — um detector que casa só
+> `^## \d+\.` não enxerga as faixas e relata como lacuna os 65 números que
+> elas cobrem. Prova independente: as citações `secao NNN` que o código faz
+> à F9 (`harness/model-harness.js:9` §116, `:92` §81 e §113,
+> `harness/claude-launcher.js:8` §82 e §112,
+> `harness/credential-calibration.js:7` §80,
+> `tests/model-harness-surface.test.js:13` §§81-87 e §112, entre outras)
+> caem todas dentro de um título individual ou de uma faixa, e nenhuma cita
+> número acima de 120.
 
 ## 1. Propósito
 
