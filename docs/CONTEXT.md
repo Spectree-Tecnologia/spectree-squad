@@ -113,17 +113,18 @@ classe)
 
 **Note lifecycle** (ciclo de vida):
 Onde uma nota está em relação ao código — `proposed`, `implemented`, `archived`
-ou `rejected`. Mora no caminho porque pasta é fato do filesystem; convive com o
-`status:` do cabeçalho, que responde a outra pergunta — este conteúdo serve para
-derivar? —, e quem a responde é o `status:` da fonte de derivação; o da sua
-branch é trabalho em curso, e não é dele que se deriva.
+ou `rejected`. Mora no caminho porque pasta é fato do filesystem, e é o eixo que
+responde "isto descreve código que existe?". O outro eixo é o `status:` do
+cabeçalho, que é a declaração do autor sobre a maturidade do conteúdo — quão
+pronto ele diz que aquele texto está —, e nada além. Nenhum dos dois é aprovação,
+e nenhum dos dois é derivabilidade: essa quem responde é a fonte de derivação.
 _Avoid_: status (status é o rótulo do cabeçalho), estado, fase, etapa, workflow
 
 **Living record** (registro vivo):
 O artefato reescrito continuamente que fotografa o estado atual: sem data, sem
 ciclo de vida, nunca congelado. Congelá-lo o tornaria falso, e por isso ele fica
 fora da árvore de notas — este glossário é um. Não responde à regra de derivação:
-ler a cópia de `main` devolveria a fotografia anterior à mudança de quem a está
+ler a cópia da base devolveria a fotografia anterior à mudança de quem a está
 lendo.
 _Avoid_: nota, documento vivo, wiki, referência, snapshot
 
@@ -137,15 +138,30 @@ _Avoid_: trilha, trilha do repositório, nota de trilha, cadeia de artefatos,
 pipeline, fluxo, esteira, workflow
 
 **Derivation source** (fonte de derivação):
-A cópia que `origin/main` carrega do artefato-pai, e só ela: dela saem, juntos, o
-`status:` que se confere e o texto de que se deriva. Não diz `approved` ali, não
-há de onde derivar — é uma condição só. A cópia da sua árvore não entra na regra
-(quem escreve `status: in-progress` na story de que deriva o código não está em
-violação, porque nada da árvore dele é lido), e registro vivo não responde a ela:
-não carrega conteúdo aprovado, e a fotografia de agora inclui o PR que a muda.
-_Avoid_: cópia local, working copy, a sua cópia, cópia idêntica à de `main`,
-arquivo idêntico ao de `main`, `updated:` anterior a `approved:` (as duas
-condições viraram uma, e os dois campos não existem mais), `main` sozinho
+A cópia do artefato-pai que o review vai ver: dela saem, juntos, o `status:` que
+se confere e o texto de que se deriva. É a da base do PR quando a base carrega o
+pai — e lá ela tem de dizer `approved` —, e a do diff quando o pai nasce no PR,
+onde a autoridade vem de ele estar no diff e o rótulo **confessa** em vez de
+conceder: `draft` e `rejected` recusam, e rótulo nenhum autoriza. O pai é
+identificado pelo **nome do arquivo**, nunca por caminho: uma ocorrência na base
+é ele, esteja em que pasta estiver; nenhuma ocorrência é o pai que nasce no PR;
+mais de uma é vermelho. É por isso que nota que a base carrega não desaparece da
+árvore — sumindo o nome, some a identidade. Nada disso é promessa de um agente:
+é asserção de gate de repositório. Fica de fora o texto que não chega a diff
+algum.
+_Avoid_: `main` sozinho, pai mergeado, caminho do pai (atual ou antigo), rename
+detectado pelo git, cópia idêntica à de `main`, arquivo idêntico ao de `main`,
+`updated:` anterior a `approved:` (os dois campos não existem mais)
+
+**External parent** (pai externo):
+O pai que não é arquivo do repositório — o brief do Founder, uma conversa, uma
+fonte de fora. Escreve-se `depends_on: -`, não há fonte de derivação a ler porque
+não há arquivo, e quem confere que o derivado é fiel a ele é o review. Não é
+isenção: isenção é folga dada a um caso que a regra alcançaria, e esta não
+alcança. É circunstância em qualquer nota, e impossibilidade só na nota da cadeia
+de derivação.
+_Avoid_: sem pai, órfão, raiz, bootstrap, pai implícito, pai não declarado, `-`
+como isenção
 
 **Supersession** (supersessão):
 O ato de substituir uma nota inteira por outra: a substituída vai para
@@ -153,17 +169,40 @@ O ato de substituir uma nota inteira por outra: a substituída vai para
 a linha entra no manifesto de hash. Existe porque o git não a registra — o
 `git log` vê dois arquivos mudarem no mesmo commit e não sabe que um substituiu
 o outro. Serve à nota que foi trocada, nunca à que foi corrigida: corrigir é
-editar, e editar não tem ato nem nome.
+editar, e editar não tem ato nem nome. E tem alcance: troca a nota que **vale**
+por outra, e o que a base carrega em `rejected/` ou `archived/` já não vale — não
+há o que trocar, e de lá nada sai (ver congelamento). Mudar de ideia sobre uma
+proposta recusada continua possível e não é este ato: é nota nova, que cita a
+recusada por link relativo e diz o que mudou desde a recusa. A recusada não vira
+`superseded`, porque não foi trocada — perdeu, e continua tendo perdido.
 _Avoid_: emenda, emenda aditiva, emenda substantiva, revogação, deprecação,
-invalidação, obsolescência
+invalidação, obsolescência, supersessão de nota recusada, `rejected/` ->
+`archived/`, retrabalho de proposta recusada; e chamar de supersessão a nota nova
+que repropõe uma recusada (ela não substitui coisa alguma — a recusa fica de pé
+do outro lado do link)
+
+**Mutual field** (campo mútuo):
+Um par de campos de cabeçalho que se apontam de dois arquivos — hoje
+`supersedes:` e `superseded_by:`. Prova consistência, nunca legitimidade: os dois
+lados são escritos pela mesma pessoa, no mesmo diff, e nada que os dois fechem
+autoriza coisa alguma.
+_Avoid_: referência cruzada, backlink, par de campos, prova de supersessão,
+atestado, campos que se resolvem
 
 **Freeze** (congelamento):
 A propriedade de uma nota fora de circulação — arquivada ou rejeitada — de não
-mudar nunca mais. É fato provado por manifesto de hash, não promessa: é o que
-tira "decisão registrada permanece" da disciplina. Chega-se a ele por
-supersessão ou por rejeição, e por nenhum outro caminho.
+mudar nunca mais: nem o conteúdo, nem o caminho. É fato provado por manifesto de
+hash, não promessa: é o que tira "decisão registrada permanece" da disciplina.
+Chega-se a ele por supersessão ou por rejeição, e por nenhum outro caminho; de lá
+não se sai, porque `archived/` e `rejected/` são terminais. A metade do caminho é
+o que fecha a lavagem de uma recusa em dois PRs — tirar a nota da pasta num PR e
+supersedê-la no seguinte, quando o segundo já é indistinguível de uma supersessão
+legítima —, e é ela nominalmente: o manifesto de hash recusaria aquele primeiro
+PR por aritmética própria, e porta fechada por efeito colateral de outra regra
+reabre no dia em que essa outra regra for consertada.
 _Avoid_: arquivamento (arquivar é o movimento, congelar é a propriedade),
-imutabilidade, lock, bloqueio, somente leitura
+imutabilidade, lock, bloqueio, somente leitura; e desrejeição — sair de
+`rejected/` não é ato deste repositório, e quem muda de ideia escreve nota nova
 
 **Claim** (declaração):
 Uma citação em link relativo dentro de uma nota ou de um registro vivo: afirma
@@ -239,8 +278,7 @@ _Avoid_: approval, aprovação, policy, autorização do runtime
 O pedido formal de decisão humana criado quando a policy responde
 `approval-required` — estado explícito, decisão única, terminal.
 _Avoid_: permissão, permission, confirmação, autorização, sinal verde; e a
-aprovação do Founder sobre um artefato não é esta — aquela é o merge do PR, que
-só o Founder executa
+aprovação do Founder sobre um artefato não é esta — aquela é o merge do PR
 
 **Founder Gate** (gate do Founder):
 O ponto em que a execução para e espera a decisão do Founder, e o contrato
@@ -533,10 +571,160 @@ confirmada — não inverte.
   rebaixa porque rebaixamento não existe. Corrige-se, o PR merge, e `main` passa
   a dizer `approved` sobre o texto corrigido. Registrado para ninguém
   reintroduzir os três daqui a um mês achando que faltavam.
-- **"A cópia de `main` é a que vale" virou verbete, e o gatilho fechou** — eu
+- **O sétimo corte da decisão 13 mudou a natureza de `fonte de derivação`, e não
+  o detalhe** — a regra saiu da mão do agente e virou asserção de gate de
+  repositório, e a identidade do pai passou a ser o **nome do arquivo**: uma
+  ocorrência na base é ele, nenhuma é pai nascido no PR, mais de uma é vermelho.
+  Some do verbete todo o vocabulário de caminho — inclusive o "pergunta a `main`
+  pelo caminho antigo" que o sexto corte tinha escrito nele e que este bullet
+  repetia: **caminho antigo não é mais a resposta certa, é regra revogada**, e um
+  `_Avoid_` que só proibisse `caminho atual do pai` ensinaria que o antigo vale.
+  Entrou `caminho do pai (atual ou antigo)` no lugar dos dois, mais `rename
+  detectado pelo git`, que é a heurística que o sétimo corte matou. As três
+  linhas removidas na rodada anterior — `cópia local`, `working copy`, `a sua
+  cópia` — continuam fora, e a frase que as substituiu (*fica de fora o texto que
+  não chega a diff algum*) continua verdadeira nos três estados. Nenhum verbete
+  descreve comando, e nenhum deve: metade do squad não tem shell.
+  **Contagem ao fim daquela rodada:** 68, o mesmo de antes dela — nenhuma
+  entrada nasceu nem morreu; três foram reescritas. (A contagem de agora está no
+  bullet da rodada 9, abaixo.)
+- **Os cinco vizinhos foram reconferidos, e três não mudaram** — `pai externo`:
+  sobrevive intacto à troca de caminho por nome, porque ele nunca falou de
+  caminho: não há arquivo, logo não há nome a procurar na base, e o que confere
+  fidelidade continua sendo o review; `cadeia de derivação`: define a ordem de
+  derivação, não como se identifica um pai, e recusado pela quarta vez.
+  **`ciclo de vida` sobreviveu, e é o que mais parecia envenenado:** ele diz que
+  o `status:` lido é o da fonte de derivação, "nunca o de uma cópia que não entra
+  em diff nenhum" — e isso é sobre *qual cópia*, não sobre *quem lê*. O sétimo
+  corte mudou o leitor (agente -> gate) e não mudou a cópia, então o verbete
+  segue. (Sobreviveu ao sétimo corte e caiu no oitavo, por outra razão: mudou o
+  dono da pergunta que o campo responde — ver o bullet da rodada 9 abaixo.) **Mudou `aprovação`:** a cauda dizia que o merge do PR é o ato "que só o
+  Founder executa", e isso é afirmação no presente sobre o estado deste
+  repositório — a própria ADR-10 (decisão 5) mede que hoje quem sustenta isso é a
+  matriz, pelo `no-direct-push-main`, e que a proteção de branch nativa ainda não
+  existe. Cortada a cauda: o verbete `Founder` já define a única autoridade de
+  aprovação, e o glossário não precisa afirmar enforcement que não pode medir.
+  **E `registro vivo` mudou uma palavra, por consistência comigo mesma:** ele
+  dizia "ler a cópia de `main`", e o `_Avoid_` que esta rodada escreveu duas
+  entradas acima proíbe ``main`` sozinho como nome da fonte. Virou "a cópia da
+  base". A exclusão em si não mudou e não dependia da camada: a fotografia de
+  agora inclui o PR que a muda, com gate ou sem.
+- **A pergunta do `status:` tinha duas respostas em dois arquivos, e agora tem
+  uma em um lugar só** — eu tinha deixado aqui a divergência (o contrato dizia
+  "este conteúdo está aprovado?", a decisão 1 da ADR-10 dizia "este conteúdo
+  serve para derivar?") com o contrafactual que derrubava as duas: o pai que
+  nasce no PR com `in-review` serve para derivar e não está aprovado. A decisão
+  13 respondeu com uma terceira, e a lição é que **as duas anteriores eram usos
+  do campo, não definições dele** — e ter duas definições em dois arquivos foi o
+  que produziu o defeito. Fica: `status:` é a declaração do autor sobre a
+  maturidade do conteúdo, e nada além. Medido na árvore de trabalho desta
+  worktree em 2026-08-22: a definição está na decisão 13 da ADR-10 e no bloco do
+  cabeçalho obrigatório do `SKILL.md`, e a decisão 1 e o contrato citam em vez de
+  redefinir. O `ciclo de vida` deste glossário passou a carregar a definição, não
+  um dos dois usos. A pergunta está fechada; fica registrada para ninguém a
+  reabrir com uma das formulações antigas. *Nada pendente do Rubick aqui — a
+  correção dele já está nos dois arquivos.*
+- **A fonte de derivação virou verbete, e o gatilho do nome fechou** — o rótulo
+  que este bullet usava era "a cópia de `main` é a que vale", e ele envelheceu
+  duas vezes: a cópia é a da **base**, e ela só decide quando a base carrega o
+  pai. Fica o que o bullet registrava: eu
   tinha deixado aqui a condição de três formulações da mesma noção no contrato.
   Conferidas uma a uma nesta rodada, as três estão lá: a regra de derivação, o
   bullet da cadeia ("o pai é lido inteiro... na cópia de `main`") e o AI FIRST,
   que reserva ao Founder derivar de artefato que `main` ainda não aprova. O nome
   ficou `fonte de derivação`, e não o descritivo. Registrado para ninguém reabrir
   a pergunta do nome.
+- **A rodada 9 mexeu em dois verbetes, e o segundo era uma porta** — `ciclo de
+  vida` trocou um uso do `status:` pela definição dele (bullet acima), e saiu de
+  lá a cauda "nunca o de uma cópia que não entra em diff nenhum": ela respondia
+  derivabilidade, que deixou de ser pergunta do campo, e quem a responde é `fonte
+  de derivação`, que já a carrega inteira. Repeti-la aqui seria a segunda
+  definição em segundo arquivo, que é exatamente o defeito que esta rodada
+  fechou. **`supersessão` ganhou o alcance da decisão 5:** ela não alcança o que
+  a base carrega em `rejected/` ou `archived/` — nota que já não vale não tem o
+  que trocar. Sem o alcance o verbete ensinava, passo a passo, o ato que **lava
+  uma recusa**, e a defesa que se poderia supor ("a lavagem aparece no diff como
+  duplicata, e o review pega") é falsa para esta espécie: a assinatura no diff é
+  byte a byte a da supersessão legítima, e nenhuma leitura humana distingue as
+  duas. Não exige má-fé — o agente que pensa "a proposta recusada foi
+  retrabalhada, então supersedo" produz o caso sozinho, cumprindo a regra que o
+  verbete lhe ensinava. O verbete também passou a dizer que **`rejected/` não é
+  terminal**: sai-se de lá num PR próprio, que o merge aprova; o que a supersessão
+  não pode é alcançar de lá, e isso é diferente de dizer que de lá não se sai.
+- **Entrou um verbete novo, `campo mútuo`, e ele não é sobre supersessão** — é a
+  frase do Keeper que generaliza o furo da rodada: *campo mútuo prova
+  consistência, nunca legitimidade — os dois lados são escritos pela mesma
+  pessoa, no mesmo diff*. Vale além de `supersedes:`/`superseded_by:`, e é por
+  isso que virou verbete em vez de ficar dentro de `supersessão`: o próximo par
+  de campos que alguém inventar vai parecer prova de autoridade pela mesma razão
+  errada. Entrou pela mesma regra que admitiu o resto do vocabulário da ADR-10, e
+  na mesma condição — se a ADR mudar de ideia, ele sai com ela.
+  **Contagem:** `grep -c '^\*\*[^*]\+\*\* ('` no `docs/CONTEXT.md` desta worktree
+  devolve **69** — 68 antes desta rodada, mais `campo mútuo`; dois verbetes
+  reescritos, nenhum removido.
+- **Os seis vizinhos foram varridos, e cinco não mudaram** — `nota`: já dizia que
+  quem responde "descreve código que existe" é a pasta e não a linha `status:`, e
+  a decisão 13 confirma esse eixo em vez de mexer nele; `cadeia de derivação` e
+  `pai externo`: nenhum dos dois fala de status nem de supersessão, e foram
+  recusados de novo; `registro vivo`: fica fora da regra de derivação, e nenhum
+  `status:` o alcança; `aprovação`: continua dizendo que a aprovação do Founder
+  sobre um artefato é o merge do PR, e a decisão 13 reforça isso em vez de mudar.
+  **`congelamento` não mudou naquela rodada, e a pergunta que eu deixei aberta
+  está respondida — fica como registro, não apagada.** Eu tinha escrito que não
+  reescreveria o verbete porque a colisão entre "não mudar nunca mais" (decisão
+  6), a saída de `rejected/` (decisão 1, versão de então) e o manifesto que só
+  cresce exigia decidir *qual das duas cede*, e que a decisão era do Rubick.
+  Respondida na rodada seguinte: **nenhuma das duas cede — cai o ato.** A saída
+  de `rejected/` deixa de existir, o congelamento continua sendo "não mudar nunca
+  mais" e o manifesto continua só crescendo. *Nada pendente do Rubick aqui.*
+- **A rodada 10 mexeu em dois verbetes, e o que mudou neles foi o ato, não a
+  redação** — a terminalidade de `archived/` e `rejected/` (decisão 1) tirou o
+  referente de três linhas que eu tinha escrito. (a) A cauda de `supersessão`
+  dizia que a nota recusada "sai de `rejected/` num PR próprio" e que `rejected/`
+  "não é destino terminal": as duas caem, e a segunda inverte. No lugar, a forma
+  que sobreviveu — nota nova que cita a recusada por link relativo —, que não é
+  supersessão porque não substitui nada. (b) O `_Avoid_` dela listava
+  "desrejeição (sair de `rejected/` é ato próprio, e não esta)", e isso
+  **promovia a desrejeição a ato** ao proibir confundi-la com esta: quem lesse
+  aprendia que existiam dois atos e que precisava escolher o nome certo. O termo
+  saiu daqui e entrou no `_Avoid_` de `congelamento`, que é o verbete que agora
+  carrega a terminalidade — continua achável por grep, e a linha ensina que o ato
+  não existe em vez de ensinar qual é o outro. No lugar dele, em `supersessão`,
+  ficou o que de fato é proibido: chamar de supersessão a nota nova que repropõe
+  uma recusada. (c) `congelamento` passou a valer para o **caminho** além do
+  conteúdo, e leva junto a razão, sem a qual a proibição parece arbitrária: **é a
+  terminalidade, nominalmente, que fecha a lavagem em dois PRs** — o manifesto de
+  hash recusa o primeiro PR por aritmética própria, e porta fechada por efeito
+  colateral de outra regra reabre quando aquela outra regra é consertada. É a
+  quinta redação de `supersessão`, e nenhuma das quatro anteriores estava errada
+  quando foi escrita: o ato mudou cinco vezes. **`ciclo de vida` ficou como
+  está** — ele descreve os quatro estados sem afirmar transição nenhuma, e a
+  terminalidade é propriedade de quem já chegou, que é o verbete `congelamento`.
+  Repeti-la lá seria a segunda definição em segundo lugar, defeito que a rodada 9
+  fechou.
+  **Contagem:** `grep -c '^\*\*[^*]\+\*\* ('` no `docs/CONTEXT.md` desta worktree
+  devolve **69**, o mesmo de antes desta rodada — três verbetes reescritos,
+  nenhum criado, nenhum removido.
+- **"Lista que só encolhe" não vira verbete, e a recusa é medida** — a
+  propriedade é real e o Keeper a nomeou bem: a garantia de que a dívida morre
+  sozinha é a mesma que impede rever uma entrada que entrou errada, porque
+  ninguém varre uma lista de isenção procurando quem nunca deveria estar lá.
+  Recuso por duas razões. **A primeira é de medição:** `grep -c 'só encolhe'` na
+  ADR-10 desta worktree devolve **1** — a lista de laço não recuperado da decisão
+  10 item 7, um caso —, e `só cresce` devolve 7, todas sobre o mesmo objeto, o
+  `FROZEN.sha256`. São duas ocorrências de uma propriedade geral em dois objetos,
+  em direções opostas; não é noção que o repositório repita. **A segunda é de
+  regra:** monotonicidade de lista é conceito geral, da mesma família de
+  `timeout` e `cache`, que este glossário mantém fora por contrato. E não há
+  `_Avoid_` a escrever — não existe sinônimo rejeitado, porque ninguém está
+  usando outra palavra para isso. Se o repositório passar a declarar listas
+  monótonas como classe, com mais de um objeto e nome próprio no gate, eu
+  reabro. *Registrado para não parecer esquecimento; a decisão é minha e está
+  tomada.*
+- **O que eu não consigo medir, e digo em vez de afirmar** — não tenho `Bash`
+  (medido em `agents/*.md`, campo `tools:`, e é a mesma constatação da decisão 13,
+  sétimo corte). Toda medição deste bullet e dos de cima foi feita por leitura da
+  **árvore de trabalho da worktree `.worktrees/memory`** em 2026-08-22, nunca
+  contra `origin/main`, que andou na última rodada com o merge do PR #31. Onde
+  este arquivo precisar de um fato sobre uma ref do git, o fato é de quem tem
+  shell.
