@@ -1,8 +1,6 @@
 ---
 status: in-review
 owner: TechLeader
-updated: 2026-08-21
-approved: 2026-08-19 (merge do PR #8 em `main`: squash `0cdb168`, tag `v0.16.0`, 2026-08-19 22:25 -03. Texto transcrito para este repositorio em 2026-08-21, com equivalencia de conteudo medida linha a linha — a transcricao restaurou marcacao, nao alterou conteudo, e por isso `updated:` registra a data do conteudo e nao a do arquivo)
 depends_on: -
 ---
 
@@ -30,13 +28,25 @@ depends_on: -
 > número. Nenhum `INV-` e nenhuma seção mudou de sentido.
 >
 > Aprovação a derivar (ADR-10, decisão 10 item 6): a Fase 1 embarcou no merge
-> de `feat/runtime-core-phase-1` em `main` — squash `0cdb168`, tag `v0.16.0`,
-> em 2026-08-19 (reflog: `pull --ff-only origin main` às 22:25 -03, entre os
-> commits `0d5b3c3` e `ca59952` da branch da fase). A data está no git; o flip
-> de `status:` e o preenchimento de `approved:` são ato do Invoker.
+> do **PR #8** (`feat/runtime-core-phase-1`) em `main` — squash `0cdb168`, tag
+> `v0.16.0`, em 2026-08-19 (reflog: `pull --ff-only origin main` às 22:25 -03,
+> entre os commits `0d5b3c3` e `ca59952` da branch da fase). A data está no
+> git; o flip de `status:` é ato do Invoker.
 >
 > `status:` rebaixado a `in-review` nesta edição: substituir o corpo pelo texto
 > fiel à fonte íntegra é emenda substantiva (ADR-10, decisão 5).
+>
+> **A procedência, descida do cabeçalho para o corpo** (decisão 13 da
+> `docs/adr/ADR-10-repository-memory-system.md`: o cabeçalho carrega o que o
+> git não sabe, e nada além; *quando* o Founder aprovou é pergunta do
+> `git log`). Os campos `updated:` e `approved:` saíram deste cabeçalho, e o
+> que eles registravam fica aqui: aprovação em 2026-08-19, pelo merge do PR #8
+> com o squash e a tag do parágrafo acima; e transcrição do texto para este
+> repositório em 2026-08-21, com equivalência de conteúdo medida linha a linha
+> — a transcrição restaurou marcação, não alterou conteúdo, e é por isso que o
+> `updated:` registrava a data do **conteúdo**, não a do arquivo. O commit e a
+> tag o `git log` sabe; o ato de transcrição e a equivalência medida, não —
+> eles descem em vez de sumir.
 
 - Implementador: Agente Opus 5
 - Repositório: Spectree-Tecnologia/spectree-squad

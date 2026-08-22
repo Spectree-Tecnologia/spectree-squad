@@ -1,8 +1,6 @@
 ---
 status: in-review
 owner: TechLeader
-updated: 2026-08-21
-approved: 2026-08-19 (merge do PR #9 em `main`: squash `c55d5e6`, tag `v0.17.0`. Texto transcrito para este repositorio em 2026-08-21, com equivalencia de conteudo medida linha a linha — a transcricao restaurou marcacao, nao alterou conteudo, e por isso `updated:` registra a data do conteudo e nao a do arquivo)
 depends_on: F1 Runtime Core (docs/spec/RUNTIME-F01-runtime-core.md)
 ---
 
@@ -76,10 +74,23 @@ depends_on: F1 Runtime Core (docs/spec/RUNTIME-F01-runtime-core.md)
 >
 > `status:` rebaixado a `in-review` nesta edição: substituir o corpo pelo texto
 > fiel à fonte íntegra e acrescentar uma seção ausente é emenda substantiva
-> (ADR-10, decisão 5). A linha `approved:` fica como estava — ela descreve a
-> transcrição anterior, e a ressalva "restaurou marcacao, nao alterou conteudo"
-> deixou de valer para este arquivo: houve conteúdo acrescentado, e por isso a
-> aprovação de 2026-08-19 não cobre o que está aqui.
+> (ADR-10, decisão 5).
+>
+> **A procedência, descida do cabeçalho para o corpo** (decisão 13 da
+> `docs/adr/ADR-10-repository-memory-system.md`: o cabeçalho carrega o que o
+> git não sabe, e nada além; *quando* o Founder aprovou é pergunta do
+> `git log`). Os campos `updated:` e `approved:` saíram deste cabeçalho, e o
+> que eles registravam fica aqui: aprovação em 2026-08-19, pelo merge do
+> **PR #9** em `main` — squash `c55d5e6`, tag `v0.17.0`; e transcrição do texto
+> para este repositório em 2026-08-21, com equivalência de conteúdo medida
+> linha a linha — a transcrição restaurou marcação, não alterou conteúdo, e é
+> por isso que o `updated:` registrava a data do **conteúdo**, não a do
+> arquivo. Junto com o campo morreria a ressalva que mais importa aqui: aquela
+> equivalência **deixou de valer para este arquivo**, porque houve conteúdo
+> acrescentado (a seção de review, acima) — e por isso a aprovação de
+> 2026-08-19 não cobre o que está agora neste texto. O commit e a tag o
+> `git log` sabe; o ato de transcrição, a equivalência medida e o alcance da
+> aprovação, não — eles descem em vez de sumir.
 
 - Implementador: Agente Opus 5
 - Baseline: Spectree Runtime v2 — Fase 1 congelada
