@@ -14,7 +14,7 @@ Skill tool with "spectree-artifacts".
 
 - **Rubick decide.** O `docs/TEST-SEAMS.md` existe antes do primeiro
   código: quais costuras existem (unit, integração, e2e), o que cada uma
-  cobre, qual ferramenta, e o que deliberadamente fica de fora em cada
+  cobre, qual runner, e o que deliberadamente fica de fora em cada
   camada. Ele vai ao Founder antes do primeiro código — estratégia de teste
   errada só dá sinal no veredito do QA, quando o custo já foi pago.
 - **Jakiro escreve** na costura que o mapa manda. Costura certa inexistente é
